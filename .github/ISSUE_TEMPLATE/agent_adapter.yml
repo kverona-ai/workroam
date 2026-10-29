@@ -1,0 +1,49 @@
+name: Agent 适配 / Agent adapter
+description: 新增或修正某个 Agent 的适配信息 / Add or fix an agent adapter
+labels: ["adapter"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        适配器是纯数据文件，是最容易上手的贡献方式。请尽量附上官方文档链接或实测结果。
+        Adapters are plain data files. Please link official docs or describe how you verified each item.
+  - type: input
+    id: agent
+    attributes:
+      label: Agent 名称与版本 / Agent and version
+      placeholder: Grok Build 1.4.0
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: 实测系统 / Verified on
+      multiple: true
+      options: [Windows, macOS, Linux]
+  - type: textarea
+    id: rules
+    attributes:
+      label: 规则文件 / Rules
+      description: 读取哪些文件？是否读 AGENTS.md？/ Which files does it read? Does it read AGENTS.md?
+  - type: textarea
+    id: skills
+    attributes:
+      label: 项目级 Skills / Project skills
+  - type: textarea
+    id: mcp
+    attributes:
+      label: 项目级 MCP / Project MCP config
+      description: 路径、格式、是否展开环境变量 / Path, format, env var expansion
+  - type: textarea
+    id: sessions
+    attributes:
+      label: 会话与记忆位置 / Sessions and memory
+      description: 目录结构与路径键编码方式 / Directory layout and path-key encoding
+  - type: textarea
+    id: secrets
+    attributes:
+      label: 需要排除的凭证 / Credentials to exclude
+  - type: textarea
+    id: sources
+    attributes:
+      label: 参考资料 / Sources

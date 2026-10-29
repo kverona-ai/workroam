@@ -241,7 +241,7 @@ name = "office-win"
 os = "windows"
 device_id = "d_7f3a…"
 access = "read-write"            # read-write | read-only
-root = 'D:\projects'
+root = 'D:\projects'              # 默认项目位置；每个项目可单独指定目录（§6.7）
 reachable = ["git.corp.internal", "github.com"]
 
 [workspace]
@@ -261,8 +261,13 @@ approval_timeout = "10m"
 [notify]
 ntfy = ""                        # 可选：ntfy 主题地址
 
-[projects]
-pull = ["proj-a", "proj-b"]
+[projects.proj-a]
+path = 'D:\projects\proj-a'
+state = "bound"                  # pending | bound | missing
+
+[projects.proj-b]
+path = 'E:\work\customer-b'      # 自定义目录
+state = "pending"
 ```
 
 访问密钥与加密密码不写入此文件，只存在系统密钥库（macOS Keychain、Windows Credential Manager、Linux Secret Service）。
@@ -365,6 +370,28 @@ headers = { Authorization = "Bearer ${secret:jira_token}" }
   "device": { "id": "d_7f3a…", "name": "office-win" },
   "note": "一期交付完成", "size": 1288490188, "keep_history": false }
 ```
+
+### 6.7 项目目录绑定
+
+每台设备为每个项目记录一条绑定（`machine.toml` 的 `[projects.<名称>]`），项目目录的位置只属于本机，不同步。
+
+```mermaid
+stateDiagram-v2
+    [*] --> Pending: 添加项目并选择目录
+    Pending --> Pending: 更换目录（目录仍为空）
+    Pending --> Bound: 第一次 init、拉取或恢复写入内容
+    Bound --> Missing: 启动或同步前发现目录不存在
+    Missing --> Bound: 目录恢复原位
+    Bound --> [*]: 移除项目（不删除文件）
+    Missing --> [*]: 移除项目
+```
+
+- **Pending**：已选目录但还没有写入任何内容；`project.move` 允许更换，前提是当前目录不存在或为空。
+- **Bound**：目录已有内容并已同步。`.workroam/local/binding` 记录项目 ID、设备 ID 和绑定时的绝对路径，是本机比对改动的基准。此时 `project.move` 一律拒绝（退出码 18），提示先移除再重新添加。
+- **Missing**：目录不存在，或其中 `binding` 的项目 ID 不符。暂停该项目的推送、拉取与自动触发，托盘警示；目录恢复原位后自动回到 Bound。
+- **移除**（`project.remove`）：删除本机绑定、释放本机持有的租约（有未同步改动时先询问是否推送）；不删除、不修改目录中的任何文件，`.workroam/` 也原样保留。
+- **重新添加**（`project.add`）：选择目录后按 §10.3 的场景判定：空目录直接拉取；目录中 `.workroam/` 的项目 ID 一致时只比对差异；其他内容拒绝。用户自己搬动过的文件夹因此可以原样接回。
+- **选择目录时的检查**：可写；与本机其他项目目录互不嵌套；不是磁盘根目录、用户主目录或系统目录；位于 OneDrive、iCloud、Dropbox 等同步文件夹内时警告；Windows 路径过长时提示长路径设置。
 
 ## 7. 初始化引导与检查
 
@@ -636,7 +663,7 @@ sequenceDiagram
 
 ### 10.3 恢复归档（v0.2）
 
-`archive.restore` 先运行 `archive.restore_plan`，检查目标目录（默认 `<root>/<项目名>`）并判定场景，结果放进确认卡片：
+`archive.restore` 先运行 `archive.restore_plan`，检查目标目录（默认是本机对该项目的绑定目录，没有绑定时为 `<root>/<项目名>`）并判定场景，结果放进确认卡片：
 
 ```mermaid
 flowchart TD
@@ -817,7 +844,7 @@ paths = ["~/.claude/.credentials.json"]
 
 ### 12.4 会话迁移（v0.2）
 
-- 机器的 `root` 定义逻辑根路径映射，例如 `D:\projects` ↔ `/Users/me/projects`；
+- 每台设备上项目的绝对路径来自本机绑定（§6.7），会话中的路径按“发起设备的项目目录 ↔ 本机项目目录”映射，例如 `D:\work\proj-a` ↔ `/Users/me/code/proj-a`；
 - 推送时按适配器白名单收集本项目相关会话，放入快照的 `.workroam-snapshot/sessions/`；
 - 拉取时按适配器的路径键规则换成本机路径对应的目录，并改写 `rewrite_fields` 中的工作目录字段；
 - 迁移失败只记录警告，不影响同步。
@@ -863,6 +890,7 @@ paths = ["~/.claude/.credentials.json"]
 | `doctor.run` | 客户端 → 服务端 | 运行全部检查 |
 | `device.pairing_code` / `device.list` / `device.remove` | 客户端 → 服务端 | 设备管理 |
 | `project.scan` / `project.init` | 客户端 → 服务端 | 接入项目 |
+| `project.add` / `project.list` / `project.move` / `project.remove` | 客户端 → 服务端 | 本机添加项目并选择目录、更换目录（仅 Pending）、移除项目（§6.7） |
 | `status` | 客户端 → 服务端 | 后台服务、租约、最新快照、本地改动 |
 | `push.plan` / `pull.plan` / `restore.plan` | 客户端 → 服务端 | 预演，返回作业 ID 与变更摘要 |
 | `job.start` / `job.cancel` | 客户端 → 服务端 | 启动或取消作业 |
@@ -891,6 +919,7 @@ paths = ["~/.claude/.credentials.json"]
 | 15 | git 仓库处于 rebase / merge 中途 |
 | 16 | 只读设备不能执行此操作 |
 | 17 | 项目已归档 |
+| 18 | 项目目录已同步，不能更换（需先移除再重新添加） |
 | 20 | 网络或存储错误（可重试） |
 | 21 | 检查未通过（初始化或 doctor） |
 | 22 | 校验发现数据损坏 |

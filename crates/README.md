@@ -10,6 +10,7 @@ Rust 代码目录（Cargo workspace）。各 crate 的职责见 [技术架构 ·
 | `workroam-device` | 配对码、设备登记、凭证创建与轮换 |
 | `workroam-lease` | 租约与最新快照指针 |
 | `workroam-snapshot` | 快照引擎接口与 rustic_core 实现 |
+| `workroam-backup` | 备份目标、恢复点、保留清理、校验与演练、存储迁移 |
 | `workroam-git` | bundle、WIP、历史重建、三方合并 |
 | `workroam-adapters` | 适配器加载、导入、本机文件生成、会话迁移 |
 | `workroam-platform` | 跨平台检查、原子落盘、链接、阻止休眠、服务安装、密钥库 |

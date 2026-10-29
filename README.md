@@ -49,7 +49,7 @@ Workroam turns "leave the office → get home → keep going → push at the off
 | 🤖 **Agent-aware** | One `AGENTS.md`, one MCP definition and one Skills folder, rendered into each agent's native config. `HANDOFF.md` lets the next agent continue. |
 | 🖥️ **Cross-platform** | Case conflicts, invalid Windows file names and long paths are caught before you push. Links and executable bits are handled per OS on pull. |
 | 🙋 **You stay in the loop** | Approve every sync, including agent-initiated ones, watch progress, and get notified on success or failure. |
-| ⏪ **Backup & restore** | Every sync is an immutable snapshot you can return to. Encrypted backups to a second bucket or a local disk let you rebuild the whole workspace even if your storage is lost. |
+| ⏪ **Rollback & archive** | Every sync is an immutable snapshot you can return to. When you decide a project is done, archive it: syncing stops, a self-contained copy is kept forever, and you can resume it any time. Local files are never touched. |
 
 ## How it works
 
@@ -88,8 +88,8 @@ workroam pull --acquire     # when arriving
 | Version | Theme | Gate |
 | --- | --- | --- |
 | **v0.1** | Dogfooding: setup wizard & checks, pairing codes, CLI, snapshots, lease, encryption, bundle mode, Claude Code & Codex adapters, approval cards | Two weeks of daily Windows ↔ Mac handoffs without data loss |
-| v0.2 | More agents: Grok Build, Antigravity, ZCode, Pi; session migration; remote & files modes; scoped keys, read-only devices, key rotation; backups to a second location, verification and restore drills | Six agents work right after switching machines |
-| **v0.3** | Hands-free (target product): automatic sync, arrival cards, sync history, MCP server for agents, mobile push, optional server with pairing codes and a web UI; storage migration | Almost no manual commands |
+| v0.2 | More agents: Grok Build, Antigravity, ZCode, Pi; session migration; remote & files modes; scoped keys, read-only devices, key rotation; project archive & restore | Six agents work right after switching machines |
+| **v0.3** | Hands-free (target product): automatic sync, arrival cards, sync history, MCP server for agents, mobile push, optional server with pairing codes and a web UI; optional off-site mirror | Almost no manual commands |
 
 See [PRD · Roadmap](docs/prd.md#10-版本规划与验收门槛) for details.
 

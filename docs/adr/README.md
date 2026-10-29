@@ -10,6 +10,6 @@
 | [0004](0004-per-machine-git.md) | 每台机器自有 `.git`，代码通过 git 自身传递 | 已接受 |
 | [0005](0005-setup-wizard-desktop-first.md) | 首次初始化以桌面向导为主，命令行等价 | 已接受 |
 | [0006](0006-pairing-code-encrypted-with-password.md) | 配对码用工作区加密密码保护 | 已接受 |
-| [0007](0007-backup-as-mirror-repository.md) | 备份目标是共用主密钥的独立仓库 | 已接受 |
+| [0007](0007-project-archive-and-optional-mirror.md) | 项目归档保存在同一个仓库中，异地备份只做可选的对象级镜像 | 已接受 |
 
 新增 ADR 时复制 [template.md](template.md)，编号递增，并更新上表。

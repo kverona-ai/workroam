@@ -2,7 +2,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 版本 | 1.0（第一版完整技术方案） |
+| 版本 | 1.1（新增备份与恢复） |
 | 覆盖范围 | 产品最终形态 v0.3，各模块标注首次交付版本 |
 | 最后更新 | 2026-10-29 |
 | 关联文档 | [产品需求](prd.md) · [架构决策记录](adr/README.md) |
@@ -20,19 +20,20 @@
 7. [初始化引导与检查](#7-初始化引导与检查)
 8. [设备与凭证](#8-设备与凭证)
 9. [同步协议](#9-同步协议)
-10. [代码仓库同步](#10-代码仓库同步)
-11. [Agent 适配层](#11-agent-适配层)
-12. [自动同步与触发](#12-自动同步与触发)
-13. [跨平台层](#13-跨平台层)
-14. [进程间通信协议](#14-进程间通信协议)
-15. [Agent 用 MCP server](#15-agent-用-mcp-server)
-16. [轻量服务端（可选）](#16-轻量服务端可选)
-17. [安全架构](#17-安全架构)
-18. [部署架构](#18-部署架构)
-19. [可观测性](#19-可观测性)
-20. [测试策略](#20-测试策略)
-21. [技术选型](#21-技术选型)
-22. [架构决策记录](#22-架构决策记录)
+10. [备份与恢复](#10-备份与恢复)
+11. [代码仓库同步](#11-代码仓库同步)
+12. [Agent 适配层](#12-agent-适配层)
+13. [自动同步与触发](#13-自动同步与触发v03)
+14. [跨平台层](#14-跨平台层)
+15. [进程间通信协议](#15-进程间通信协议)
+16. [Agent 用 MCP server](#16-agent-用-mcp-serverv03)
+17. [轻量服务端（可选）](#17-轻量服务端可选v03)
+18. [安全架构](#18-安全架构)
+19. [部署架构](#19-部署架构)
+20. [可观测性](#20-可观测性)
+21. [测试策略](#21-测试策略)
+22. [技术选型](#22-技术选型)
+23. [架构决策记录](#23-架构决策记录)
 
 ---
 
@@ -108,6 +109,7 @@ flowchart TB
             Adpt["适配器引擎"]
             XP["跨平台层"]
             Store["存储访问（OpenDAL）"]
+            Bak["备份与恢复"]
         end
     end
     CLI <--> API
@@ -116,17 +118,19 @@ flowchart TB
     API --> Jobs
     Watch --> Trig --> Jobs
     Jobs --> Appr
-    Jobs --> Setup & Dev & Engine
+    Jobs --> Setup & Dev & Engine & Bak
     Engine --> Snap & Lease & Git & Adpt & XP
+    Bak --> Snap
     Setup --> Store
     Dev --> Store
     Snap --> Store
     Lease --> Store
+    Bak --> Store
 ```
 
 | 组件 | 职责 |
 | --- | --- |
-| `workroamd` | 后台服务：作业调度、触发检测、文件监听、授权管理、事件推送；以用户级服务开机自启（macOS launchd、Windows 登录任务、Linux systemd 用户服务） |
+| `workroamd` | 后台服务：作业调度、触发检测、文件监听、授权管理、事件推送；维护设备上还负责定期备份与校验；以用户级服务开机自启（macOS launchd、Windows 登录任务、Linux systemd 用户服务） |
 | `workroam` CLI | 用户与 Agent 的命令行入口；后台服务未运行时临时在前台启动一个实例 |
 | 桌面应用 | 托盘图标、初始化与项目接入向导、四种卡片、设置界面；只负责展示和转达用户选择 |
 | `workroam mcp` | stdio MCP server，把 MCP 工具调用转成 IPC 请求（v0.3） |
@@ -143,7 +147,7 @@ flowchart TB
 
 | 层 | 内容 | 同步策略 |
 | --- | --- | --- |
-| 项目层 | 代码仓库、文档、交付物 | 文件按内容哈希增量同步；仓库按代码同步模式处理（§10） |
+| 项目层 | 代码仓库、文档、交付物 | 文件按内容哈希增量同步；仓库按代码同步模式处理（§11） |
 | 规则层 | `AGENTS.md`、`.workroam/mcp.toml`、`.agents/skills/` | 正文与定义源同步；环境块与各 Agent 原生配置在本机生成 |
 | Agent 状态层 | 各 Agent 的会话、记忆 | 按适配器白名单同步本项目相关部分；排除凭证；改写路径（v0.2） |
 | 交接层 | `.handoff/HANDOFF.md` | 推送前由当前 Agent 写，随项目同步 |
@@ -162,6 +166,7 @@ flowchart TB
 │   ├── workroam-device/       # 配对码、设备登记、凭证创建与轮换
 │   ├── workroam-lease/        # 租约与最新快照指针
 │   ├── workroam-snapshot/     # 快照引擎接口与 rustic_core 实现
+│   ├── workroam-backup/       # 备份目标、恢复点、保留清理、校验与演练、存储迁移
 │   ├── workroam-git/          # bundle / WIP / 历史重建 / 三方合并（调用本机 git）
 │   ├── workroam-adapters/     # 适配器加载、校验、导入与本机文件生成、会话迁移
 │   ├── workroam-platform/     # 跨平台检查、原子落盘、链接、阻止休眠、服务安装、密钥库
@@ -177,7 +182,7 @@ flowchart TB
 └── deploy/                    # install.sh、Compose、Caddyfile、Helm Chart
 ```
 
-依赖方向：`workroam-cli`、`workroamd`、`apps/desktop` 只通过 `workroam-ipc` 交互；`workroamd` → `workroam-engine` / `workroam-setup` / `workroam-device` → 各功能 crate → `workroam-core`。
+依赖方向：`workroam-cli`、`workroamd`、`apps/desktop` 只通过 `workroam-ipc` 交互；`workroamd` → `workroam-engine` / `workroam-setup` / `workroam-device` / `workroam-backup` → 各功能 crate → `workroam-core`。
 
 ## 5. 存储布局
 
@@ -193,6 +198,8 @@ flowchart TB
 └── control/
     ├── workspace.json             # 布局版本、创建时间、仓库 ID（明文，不含敏感信息）
     ├── credentials                # 当前与待轮换的访问密钥（加密）
+    ├── backups                    # 维护设备、备份目标与最近一次备份 / 校验结果（加密，v0.2）
+    ├── moved                      # 存储迁移指针（加密，仅迁移期间与迁移后存在，v0.3）
     ├── devices/<device-id>        # 设备登记：名称、系统、权限、最后活动（加密）
     └── projects/<pid>/
         ├── lease                  # 租约（加密，条件写）
@@ -203,6 +210,7 @@ flowchart TB
 - 控制对象用主密钥派生的控制子密钥以 AEAD 加密；对象键只含随机 ID 或 HMAC。
 - 所有项目共用一个加密仓库，跨项目去重；每个项目一条独立快照序列（rustic 快照标签 `workroam:project=<pid>`）。
 - git bundle、WIP 提交与 Workroam 清单都作为快照中的虚拟文件放在 `.workroam-snapshot/` 下，随快照加密、去重、续传。
+- 备份目标是另一个桶或本地目录中的独立仓库，布局见 §10.2。
 
 ## 6. 配置与数据模型
 
@@ -316,6 +324,7 @@ headers = { Authorization = "Bearer ${secret:jira_token}" }
   "format": 1,
   "project": "<pid>",
   "parent": "<上一个快照 ID 或 null>",
+  "restored_from": null,
   "device": { "id": "d_7f3a…", "name": "office-win", "os": "windows" },
   "created_at": "2026-10-29T18:02:11Z",
   "handoff_updated": true,
@@ -334,7 +343,7 @@ headers = { Authorization = "Bearer ${secret:jira_token}" }
 }
 ```
 
-文件内容、大小、修改时间由 rustic 快照树记录；清单补充父快照、仓库交换点、会话、可执行位与符号链接。
+文件内容、大小、修改时间由 rustic 快照树记录；清单补充父快照、恢复来源（由恢复生成的快照记录来源快照 ID）、仓库交换点、会话、可执行位与符号链接。
 
 ### 6.6 控制对象
 
@@ -351,6 +360,18 @@ headers = { Authorization = "Bearer ${secret:jira_token}" }
 // control/credentials（解密后）
 { "current": { "access_key": "…", "secret_key": "…", "scope": "read-write" },
   "next": null, "rotated_at": null }
+
+// control/backups（解密后）
+{ "maintainer": "d_7f3a…",
+  "targets": [{
+    "id": "b_91c2…", "name": "offsite", "kind": "s3",           // s3 | local
+    "endpoint": "https://s3.eu-central-1.amazonaws.com",
+    "bucket": "workroam-backup-8k2d", "prefix": "",
+    "access_key": "…", "secret_key": "…",
+    "schedule": "daily", "retention": { "daily": 30, "weekly": 26, "monthly": 12 },
+    "last_backup": { "at": "2026-10-29T03:10:00Z", "ok": true, "point": "20261029T031000Z" },
+    "last_verify": { "at": "2026-10-27T03:40:00Z", "ok": true, "level": "structure" } }],
+  "primary_verify": { "at": "2026-10-27T03:20:00Z", "ok": true, "level": "structure" } }
 ```
 
 ## 7. 初始化引导与检查
@@ -367,7 +388,7 @@ workroam setup --new \
   --device-name office-win --root 'D:\projects' --yes
 ```
 
-非交互模式下加密密码从标准输入或环境变量读取，恢复密钥写入 `--recovery-key-out` 指定的文件。
+非交互模式下加密密码从标准输入或环境变量读取，恢复密钥写入 `--recovery-key-out` 指定的文件。从备份恢复使用 `workroam setup --from-backup`，参数为备份目标的连接信息、恢复点与新主存储的选择（v0.2）。
 
 ### 7.2 状态机
 
@@ -376,6 +397,7 @@ stateDiagram-v2
     [*] --> Choose
     Choose --> Endpoint: 新建工作区
     Choose --> Pairing: 加入已有工作区
+    Choose --> BackupSource: 从备份恢复
     Endpoint --> Credentials
     Credentials --> KeyMode
     KeyMode --> Bucket
@@ -386,9 +408,16 @@ stateDiagram-v2
     Pairing --> Unlock
     Unlock --> Checks2
     Checks2 --> Machine
+    BackupSource --> UnlockBackup
+    UnlockBackup --> RestorePoint
+    RestorePoint --> NewPrimary
+    NewPrimary --> Checks3: 提升备份目标或复制到新桶
+    Checks3 --> Machine
     Machine --> Done
     Done --> [*]
 ```
+
+“从备份恢复”路径（v0.2）的每一步见 §10.4。
 
 每一步的结果暂存在 `workroamd` 的初始化会话中，用户可回退；只有到达“完成”才会写入存储与本机配置，中途退出不留下任何远端对象（检查用的探测对象除外，检查结束即删除）。
 
@@ -432,6 +461,8 @@ stateDiagram-v2
 | 本机 git | `git --version` 不低于 2.30 | 失败 | 升级 git |
 | 长路径（Windows） | 读取 LongPathsEnabled | 警告 | 一键打开设置说明 |
 | Agent 检测 | 按适配器的检测命令识别已安装 Agent 与版本 | 提示 | 版本不在支持范围时提示 |
+| 备份目标（v0.2） | 对每个备份目标检查连通、凭证与读 / 写 / 删除；本地目录检查是否已挂载、可写与剩余空间 | 警告 | 核对备份目标凭证，或连接移动硬盘 / NAS |
+| 备份与校验状态（v0.2） | 读取 `control/backups`：最近一次备份是否成功、是否超过 3 天、最近一次校验是否通过；未配置备份目标时提示 | 警告 | 立即备份、运行 `workroam verify`，或改派维护设备 |
 
 ## 8. 设备与凭证
 
@@ -569,18 +600,123 @@ sequenceDiagram
 - git 仓库处于 rebase 或 merge 中途时拒绝同步；
 - 拉取期间的 `.workroam/SYNCING` 让 Agent 暂停写入（约定写在 `AGENTS.md` 共享正文中）。
 
-## 10. 代码仓库同步
+## 10. 备份与恢复
+
+| 层次 | 实现 | 首次交付 |
+| --- | --- | --- |
+| 快照历史 | 主仓库中每个项目的快照序列；从任意快照恢复；`workroam prune` 按保留策略清理 | v0.1（恢复）/ v0.2（清理） |
+| 备份目标 | 另一个 rustic 仓库，由维护设备定期把各项目的最新快照复制过去，并写入恢复点 | v0.2 |
+| 恢复密钥 | 主仓库与每个备份仓库中各有一个由恢复密钥包装主密钥的密钥文件 | v0.1 |
+
+### 10.1 从快照恢复（v0.1）
+
+`restore.plan` 接收恢复点（快照 ID，或 `<项目>@<时间>` 取该时间之前最近的快照）、路径过滤和恢复目标：
+
+| 目标 | 流程 |
+| --- | --- |
+| 原位置 | 获取租约 → 选中路径中本地有未同步改动的文件先另存为冲突副本 → 从快照还原选中路径（与拉取相同：临时文件、核对、改名替换、操作日志）→ 涉及代码仓库时，把当前分支位置另存为 `workroam/before-restore/<时间>` 分支，再用快照中的 bundle 与 WIP 提交还原 → 以当前 `head` 为父快照推送一个新快照，清单记录 `restored_from` |
+| 其他目录 | 不获取租约、不写任何控制对象；把快照完整还原到指定目录，代码仓库从 bundle 克隆，并生成本机配置；只读设备也可执行 |
+
+恢复从不删除或改写已有快照，所以一次恢复本身也可以被撤销。
+
+### 10.2 备份目标（v0.2）
+
+备份目标是另一个 rustic 仓库，放在另一个 S3 兼容桶中，或维护设备上的本地目录（NAS、移动硬盘）中：
+
+```text
+<backup>/<prefix>/
+├── repo/                          # rustic 仓库：与主仓库同一主密钥和分块参数，仓库 ID 不同
+└── control/
+    ├── backup.json                # 来源工作区 ID、布局版本（明文，不含敏感信息）
+    └── points/<时间戳>            # 恢复点（加密）
+```
+
+- **同一主密钥**：添加备份目标时，维护设备用已解锁的主密钥初始化备份仓库：沿用主仓库的分块参数，并把主密钥分别用加密密码和恢复密钥包装成两个密钥文件。因此备份可以用同一个加密密码或恢复密钥解锁；项目 ID 与控制对象两边一致；数据块按 ID 去重，复制时不需要重新分块。
+- **恢复点**：每次备份成功后写入一条，内容是当时控制对象的副本：`workspace.json`、设备登记、每个项目的 `head`，以及项目 ID 与项目名的对应表；不含 `credentials` 和 `lease`。从备份恢复整个工作区就是还原某个恢复点。
+- **配置**：维护设备与全部备份目标记录在主存储的 `control/backups`（加密，见 §6.6）。S3 备份目标的访问密钥保存在维护设备的系统密钥库，同时加密保存在 `control/backups` 中，以便改派维护设备；只拿到主存储访问密钥的人无法解密它。
+
+### 10.3 备份作业
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant D as workroamd（维护设备）
+    participant P as 主存储
+    participant B as 备份目标
+    D->>P: 读取各项目 head
+    D->>B: 列出备份仓库已有的快照
+    D->>P: 读取缺少的快照与数据块
+    D->>B: 写数据块（已存在则跳过），写快照
+    D->>B: 写恢复点 points/<时间戳>
+    D->>B: 按保留策略清理恢复点，删除不再被引用的快照与数据块
+    D->>P: 在 control/backups 中记录本次结果
+```
+
+- **调度**：`workroamd` 按频率在本机空闲时触发（默认每天一次），也可用 `workroam backup run` 立即执行；只读主存储，不需要租约，不影响其他设备同步。
+- **一致性**：恢复点只引用开始时读到的 `head`；之后才完成的推送留给下一次备份。快照文件在 `head` 更新之前已经完整写入，所以复制到的总是完整快照。
+- **维护设备**：一个工作区一台维护设备，负责备份、校验与快照清理，避免多台设备同时写同一个备份仓库。默认是添加第一个备份目标的设备；它超过 3 天没有成功备份时，每台设备都会提醒，并可在设置中改派。本地目录目标只能由挂载该目录的设备维护，目录未挂载时跳过并计入失败天数。
+- **保留**：恢复点按“最近 30 天每天一个、26 周每周一个、12 个月每月一个”清理；备份仓库只保留仍被恢复点引用的快照，然后清理不再被引用的数据块。
+- **防删除**：建议为备份桶开启版本控制或对象锁定（存储支持时）。这样即使维护设备被入侵，历史备份也无法被永久删除；旧版本由存储的生命周期规则过期。
+
+### 10.4 从备份恢复整个工作区（v0.2）
+
+对应初始化向导的“从备份恢复”路径（§7.2）：
+
+1. 连接备份目标（S3 端点与凭证，或本地目录），读取 `control/backup.json`；
+2. 用加密密码或恢复密钥解锁备份仓库，列出恢复点：时间、项目数、每个项目最后一次同步的设备；
+3. 选择新的主存储：
+   - **提升备份目标**：在备份目标上写入恢复点中的控制对象，它从此成为主存储，不再作为备份目标；
+   - **复制到新桶**：沿用新建工作区的存储桶选择与全部能力检查，用快照复制把恢复点引用的快照写入新仓库，再写入控制对象；
+4. 工作区 ID 和主密钥保持不变；生成新的访问密钥（或使用当前密钥）、新的配对码，所有租约为空闲；
+5. 设备登记从恢复点还原。其他设备用新配对码重新加入时可以选择“作为原设备”，保留设备 ID 与本机项目，只更新连接信息；本地文件与最新快照比对后只拉取差异；
+6. 完成页提醒用户重新配置一个备份目标。
+
+### 10.5 存储迁移（v0.3）
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as 发起设备
+    participant O as 原存储
+    participant N as 新存储
+    participant B as 其余设备
+    A->>N: 运行全部能力检查
+    A->>O: 写 control/moved（state = migrating）
+    B->>O: 推送前读到 migrating，暂停推送（仍可拉取）
+    A->>N: 复制 repo/ 与 control/（不含 credentials 与 moved）
+    A->>O: 再次读取各项目 head，有变化则补复制
+    A->>N: 结构检查并比对对象清单
+    A->>O: 写 control/moved（state = done，含加密的新连接信息与访问密钥）
+    B->>O: 下次同步读到 done，切换本机配置与系统密钥库
+    B->>N: 在新存储更新设备登记
+```
+
+- 主密钥不变，迁移是对象级复制，不需要解密和重新加密；
+- 迁移失败或取消时删除 `moved`，一切照旧；
+- 原存储保留到所有设备都已切换（新存储的设备登记可见）后，由用户确认删除。
+
+### 10.6 校验与恢复演练（v0.2）
+
+| 作业 | 内容 | 默认频率 |
+| --- | --- | --- |
+| 结构检查 | 索引、数据包与快照树互相一致；控制对象都能解密；每个 `head` 和恢复点引用的快照都存在 | 每周 |
+| 抽样读取 | 随机读取 5% 的数据包并校验哈希 | 每月 |
+| 恢复演练 | 把最新恢复点还原到临时目录，逐文件比对快照树中的哈希，对 git bundle 运行 `git bundle verify`，结束后删除临时目录 | 手动 |
+
+主存储与每个备份目标都由维护设备校验，结果写入 `control/backups`，因此每台设备都能在“检查”页看到并触发托盘警示。`workroam verify [--target <名称>] [--drill]` 可随时运行，发现损坏时以退出码 22 结束。
+
+## 11. 代码仓库同步
 
 每台机器各自维护 `.git`；git 操作一律调用本机 git 命令行。
 
-### 10.1 bundle 模式（v0.1）
+### 11.1 bundle 模式（v0.1）
 
 - 首次：生成完整 bundle（按历史档位裁剪后）放入快照；另一端从该文件 `git clone`；
 - 之后：只打包“上次交换点”之后的新提交与 WIP 提交，另一端 `git fetch` 后快进；
 - 交换点记录在清单 `repos.<name>.exchanged`；
 - 仓库目录不走文件同步，只有 `extras` 中的被忽略文件走文件同步。
 
-### 10.2 历史档位
+### 11.2 历史档位
 
 | 档位 | 家里能看到什么 | 首次传输量 | 回到内网设备时 |
 | --- | --- | --- | --- |
@@ -598,7 +734,7 @@ sequenceDiagram
 
 默认值：内网仓库 `recent:50`；高度敏感仓库 `snapshot`；自己的项目与公开仓库 `full`。
 
-### 10.3 WIP 提交
+### 11.3 WIP 提交
 
 ```bash
 GIT_INDEX_FILE=.git/workroam-index git add -A
@@ -608,31 +744,31 @@ wip=$(git commit-tree "$tree" -p HEAD -m "workroam wip")
 
 用临时索引生成，不碰用户暂存区和业务分支；未跟踪但未被忽略的新文件也包含在内。bundle 模式一并打包；remote 模式推到 `workroam/wip/<分支名>`。到达后还原为未提交改动，再删除 WIP。
 
-### 10.4 remote 模式（v0.2）
+### 11.4 remote 模式（v0.2）
 
 - origin 两地都能连：直接用 origin 中转；
 - origin 是内网仓库：增加中转远端（Gitea 或私有托管仓库）；家里只与中转库交互，回到内网设备后先从中转库拉取，再推送 origin；
 - Gitea 的 LFS 与附件存储可配置为 S3，指向同一个存储。
 
-### 10.5 files 模式（v0.2）
+### 11.5 files 模式（v0.2）
 
 - `git ls-files -co --exclude-standard` 列文件，自动遵守 `.gitignore`；
 - 离开时记录分支与 HEAD 作为基线；回来时若 HEAD 与工作区都没动则直接覆盖，否则以基线为共同祖先用 `git merge-file` 逐文件合并；
 - 可生成只含基线的影子仓库供 Agent 查看 diff，环境块注明“不要提交”。
 
-### 10.6 模式推荐
+### 11.6 模式推荐
 
 `workroam init` 根据 origin 主机名和各设备 `reachable`：两地都能连 origin → `remote`；内网仓库 → `bundle` + `recent:50`；标记为敏感 → `bundle` + `snapshot`；无远端或轻量 → `files`。推荐结果写入环境块，告诉 Agent 每个仓库在本机能否推送。
 
-### 10.7 注意事项
+### 11.7 注意事项
 
 - 统一仓库级 `user.email`：内网 git 服务器常校验提交邮箱域名；
 - 各仓库统一 `.gitattributes`（`* text=auto eol=lf`），各机器 `core.autocrlf=false`；
 - 不会被带走：stash、未选中的分支、hooks、`.git/config`。
 
-## 11. Agent 适配层
+## 12. Agent 适配层
 
-### 11.1 适配器数据文件
+### 12.1 适配器数据文件
 
 每个 Agent 一个 TOML 文件，放在 `adapters/` 并编译进二进制；用户可在 `~/.workroam/adapters/` 覆盖。
 
@@ -667,7 +803,7 @@ rewrite_fields = ["cwd"]
 paths = ["~/.claude/.credentials.json"]
 ```
 
-### 11.2 适配矩阵（实现时逐项实测确认）
+### 12.2 适配矩阵（实现时逐项实测确认）
 
 | Agent | 规则 | 项目级 Skills | 项目级 MCP | 会话位置 | 版本 |
 | --- | --- | --- | --- | --- | --- |
@@ -678,20 +814,20 @@ paths = ["~/.claude/.credentials.json"]
 | ZCode | 项目根 `AGENTS.md` | 实现时实测 | 实现时实测 | 实现时实测 | v0.2 |
 | Pi | `AGENTS.md` | 实现时实测 | 实现时实测 | 实现时实测 | v0.2 |
 
-### 11.3 导入、生成与剥离
+### 12.3 导入、生成与剥离
 
 - **导入**（`workroam init`）：读取适配器 `import` 声明的已有文件，合并进 `AGENTS.md`、`.workroam/mcp.toml`、`.agents/skills/`，冲突时列出差异让用户选择；
 - **生成**（每次拉取后）：渲染环境块；按当前系统合并 MCP 覆盖项、解析 `${secret:xxx}`，为每个目标 Agent 写原生配置；创建 Skills 链接；生成规则引用文件；全部记入本机排除列表；
 - **剥离**（每次推送前）：去掉环境块，忽略全部生成文件。
 
-### 11.4 会话迁移（v0.2）
+### 12.4 会话迁移（v0.2）
 
 - 机器的 `root` 定义逻辑根路径映射，例如 `D:\projects` ↔ `/Users/me/projects`；
 - 推送时按适配器白名单收集本项目相关会话，放入快照的 `.workroam-snapshot/sessions/`；
 - 拉取时按适配器的路径键规则换成本机路径对应的目录，并改写 `rewrite_fields` 中的工作目录字段；
 - 迁移失败只记录警告，不影响同步。
 
-## 12. 自动同步与触发（v0.3）
+## 13. 自动同步与触发（v0.3）
 
 | 触发 | 检测方式 | 动作 |
 | --- | --- | --- |
@@ -701,7 +837,7 @@ paths = ["~/.claude/.credentials.json"]
 
 档位决定是否弹出授权卡片：关闭（不触发）、询问（弹卡片）、全自动（直接执行，完成后提醒）。拉取会覆盖本地未同步改动时一律先询问。
 
-## 13. 跨平台层
+## 14. 跨平台层
 
 | 问题 | 处理 | 时机 |
 | --- | --- | --- |
@@ -717,7 +853,7 @@ paths = ["~/.claude/.credentials.json"]
 
 平台相关的 git 配置（`core.filemode`、`core.ignorecase`、worktree 绝对路径等）留在每台机器自己的 `.git` 中。
 
-## 14. 进程间通信协议
+## 15. 进程间通信协议
 
 桌面应用、CLI、MCP server 与 `workroamd` 之间使用语言无关的协议，桌面应用的实现可以独立替换（ADR-0002）。
 
@@ -737,11 +873,15 @@ paths = ["~/.claude/.credentials.json"]
 | `job.start` / `job.cancel` | 客户端 → 服务端 | 启动或取消作业 |
 | `approval.respond` | 客户端 → 服务端 | 同意 / 稍后 / 拒绝，可带“1 小时内不再询问” |
 | `history.list` | 客户端 → 服务端 | 同步历史 |
+| `backup.add` / `backup.list` / `backup.remove` / `backup.run` / `backup.points` / `backup.set_maintainer` | 客户端 → 服务端 | 备份目标管理、立即备份、列出恢复点、改派维护设备（v0.2） |
+| `verify.run` | 客户端 → 服务端 | 校验主存储或备份目标，可带恢复演练（v0.2） |
+| `storage.migrate` | 客户端 → 服务端 | 迁移到新的主存储（v0.3） |
 | `subscribe` | 客户端 → 服务端 | 订阅事件流 |
 | `setup.check_result` | 服务端 → 客户端 | 单项检查结果（逐项推送，界面实时刷新） |
 | `approval.requested` | 服务端 → 客户端 | 需要授权（卡片内容） |
 | `job.progress` / `job.finished` / `job.failed` | 服务端 → 客户端 | 进度与结果 |
 | `arrival` | 服务端 → 客户端 | 服务器上有更新的快照 |
+| `maintenance.alert` | 服务端 → 客户端 | 备份或校验失败、超过 3 天未成功备份、存储迁移进行中 |
 
 ### CLI 退出码
 
@@ -756,11 +896,13 @@ paths = ["~/.claude/.credentials.json"]
 | 14 | 存在需要处理的冲突 |
 | 15 | git 仓库处于 rebase / merge 中途 |
 | 16 | 只读设备不能执行此操作 |
+| 17 | 存储迁移进行中，暂不能推送 |
 | 20 | 网络或存储错误（可重试） |
 | 21 | 检查未通过（初始化或 doctor） |
+| 22 | 校验发现数据损坏 |
 | 30 | 后台服务不可用 |
 
-## 15. Agent 用 MCP server（v0.3）
+## 16. Agent 用 MCP server（v0.3）
 
 `workroam mcp` 以 stdio 运行，接入项目时自动加入各 Agent 的项目级 MCP 配置。
 
@@ -774,7 +916,7 @@ paths = ["~/.claude/.credentials.json"]
 
 MCP 调用只是另一个 IPC 客户端，授权规则与 CLI 完全相同。
 
-## 16. 轻量服务端（可选，v0.3）
+## 17. 轻量服务端（可选，v0.3）
 
 ```mermaid
 flowchart LR
@@ -790,9 +932,9 @@ flowchart LR
 - **Web 界面**：`apps/web` 是静态页面，快照读取与解密逻辑编译为 WASM，在浏览器中用加密密码解锁仓库并直接从 S3 读取密文（浏览器使用只读密钥，存储需配置 CORS）；服务端只提供页面与配对，永远看不到明文；
 - 服务端是单个容器，`install.sh --with-server` 时与存储、Caddy 一起部署。
 
-## 17. 安全架构
+## 18. 安全架构
 
-### 17.1 密钥层次
+### 18.1 密钥层次
 
 ```mermaid
 flowchart TB
@@ -801,19 +943,23 @@ flowchart TB
     K1 --> M["仓库主密钥"]
     K2 --> M
     M --> E["数据加密（rustic 仓库）"]
+    M -- 同一主密钥，另包装两个密钥文件 --> BK["备份仓库"]
     M -- HKDF --> C["控制子密钥：控制对象加密、项目 ID HMAC"]
     P -- scrypt + 随机盐 --> Q["配对码加密密钥"]
 ```
 
 - rustic 仓库支持多个密钥文件包装同一主密钥：恢复密钥即额外的一个密钥文件，修改密码无需重新加密数据；
+- 每个备份仓库使用同一个主密钥，由加密密码和恢复密钥各包装一个密钥文件；修改加密密码时，维护设备同时更新各备份仓库中的密钥文件；
 - 访问密钥与加密密码只保存在系统密钥库；可选“每次同步都询问加密密码”。
 
-### 17.2 威胁与对策
+### 18.2 威胁与对策
 
 | 威胁 | 对策 |
 | --- | --- |
 | 存储被入侵或存储服务商可见数据 | 端到端加密；控制对象加密；对象键不含项目名与设备名 |
 | 访问密钥泄露 | 只授权单个桶或前缀；移除设备即轮换；配合服务端时每设备独立凭证 |
+| 主存储损坏、桶被误删或服务商停服 | 备份目标（建议不同服务商或本地）；从备份恢复整个工作区；定期校验与恢复演练 |
+| 主存储密钥被盗后数据被删除或被勒索 | 备份目标的凭证只在维护设备的密钥库和加密的 `control/backups` 中，主存储密钥无法读取；建议备份桶开启版本控制或对象锁定 |
 | 管理员凭证泄露 | 客户端只在初始化或轮换时短暂使用，不落盘；服务端部署时仅存在于服务端容器 |
 | 配对码泄露 | 配对码以加密密码加密；服务端配对码一次性且 10 分钟过期 |
 | Agent 误操作或被项目文件诱导执行同步 | 默认人工确认；卡片显示发起方；超时按“稍后” |
@@ -822,7 +968,7 @@ flowchart TB
 | 传输被窃听 | 全部 HTTPS |
 | 内网代码外流的合规风险 | 按项目开启；`snapshot` 历史档位；文档明确提示 |
 
-## 18. 部署架构
+## 19. 部署架构
 
 ```mermaid
 flowchart LR
@@ -839,14 +985,14 @@ flowchart LR
 - 没有公网 IP：Cloudflare Tunnel 暴露 443（v0.2）；Kubernetes：Helm Chart（v0.2）；remote 模式中转库：附带 Gitea 的 Compose（v0.2）；
 - Garage 等 AGPL 存储只作为独立容器启动，属于并列分发，不影响 Workroam 代码的许可证。
 
-## 19. 可观测性
+## 20. 可观测性
 
 - 本地结构化日志（`tracing`），按天滚动，默认保留 14 天，不记录文件内容与密钥；
-- `workroam status`：后台服务、租约持有者、最新快照、本地未同步改动、最近一次作业结果；
+- `workroam status`：后台服务、租约持有者、最新快照、本地未同步改动、最近一次作业结果、最近一次备份与校验；
 - `workroam doctor` 与桌面“检查”页：§7.5 全部检查项；
-- 托盘图标三态：正常 / 同步中 / 警示。
+- 托盘图标三态：正常 / 同步中 / 警示；同步失败、备份或校验失败、超过 3 天未成功备份时进入警示。
 
-## 20. 测试策略
+## 21. 测试策略
 
 | 层次 | 内容 | 环境 |
 | --- | --- | --- |
@@ -854,19 +1000,21 @@ flowchart LR
 | 初始化检查 | 每个检查项在“通过 / 警告 / 失败”下的结果与修复建议；不支持条件写的模拟存储 | Linux CI，Docker 启动 RustFS，另用代理注入故障 |
 | 集成测试 | 推送 / 拉取 / 租约 / 降级路径 / 密钥轮换 | Linux CI，RustFS；定期跑 Garage、SeaweedFS |
 | git 场景 | bundle 增量、`recent:N` 重建与回变基、WIP 还原、remote 与 files 模式 | 三系统 CI |
-| 故障注入 | 推送 / 拉取中随机终止进程、断网，验证可恢复且无数据丢失 | Linux CI |
+| 备份与恢复 | 恢复到原位置与其他目录、增量备份、保留清理、从备份恢复整个工作区（提升与复制两种）、恢复演练、修改密码后备份仍可解锁 | Linux CI，两个 RustFS 实例分别作主存储与备份目标 |
+| 存储迁移 | 迁移中途终止、迁移期间其他设备推送、全部设备切换 | Linux CI |
+| 故障注入 | 推送 / 拉取 / 备份中随机终止进程、断网，验证可恢复且无数据丢失 | Linux CI |
 | 跨平台端到端 | Windows 推送 → macOS 拉取 → 修改 → Windows 拉取 | GitHub Actions 三系统矩阵，共用一个 RustFS |
 | 适配器一致性 | 生成结果与快照文件比对；Agent 版本识别 | 三系统 CI |
 | 桌面应用 | 向导与卡片的端到端测试 | 三系统 CI |
 | 许可证 | `cargo-deny` | CI |
 
-## 21. 技术选型
+## 22. 技术选型
 
 | 领域 | 选型 | 理由 |
 | --- | --- | --- |
 | 语言 | Rust | 单文件跨平台二进制；对文件系统细节的掌控力强 |
 | 存储访问 | Apache OpenDAL | 多后端；支持 `If-Match` / `If-None-Match` 条件写；rustic 后端同样基于它 |
-| 快照引擎 | rustic_core | 内容寻址分块、去重、加密、快照历史成熟；restic 兼容格式可用官方工具应急恢复（ADR-0003） |
+| 快照引擎 | rustic_core | 内容寻址分块、去重、加密、快照历史成熟；restic 兼容格式可用官方工具应急恢复（ADR-0003）；快照复制、检查与清理直接用于备份（ADR-0007） |
 | git 操作 | 本机 git 命令行 | 行为与用户本地 git 完全一致 |
 | 桌面应用 | Tauri v2 + tray、notification、autostart、positioner 插件 | 体积小、三系统、与 Rust 同栈（ADR-0002） |
 | IPC | JSON-RPC 2.0（换行分隔）over UDS / 命名管道 | 语言无关 |
@@ -879,6 +1027,6 @@ flowchart LR
 | Web 界面 | WASM（复用快照读取代码） | 浏览器内解密 |
 | 依赖许可证检查 | cargo-deny | CI 自动检查 |
 
-## 22. 架构决策记录
+## 23. 架构决策记录
 
 见 [adr/README.md](adr/README.md)。

@@ -73,8 +73,9 @@ flowchart LR
 # Server: deploy storage and HTTPS with one command
 curl -fsSL https://<project-domain>/install.sh | sh -s -- --domain sync.example.com --storage rustfs
 
-# Client: log in and initialize a project
-workroam login sync.example.com
+# Client: the desktop app opens a setup wizard on first launch
+# (headless machines: run the same steps in the terminal)
+workroam setup
 cd ~/projects/proj-a && workroam init
 
 # Hand off
@@ -86,12 +87,11 @@ workroam pull --acquire     # when arriving
 
 | Version | Theme | Gate |
 | --- | --- | --- |
-| **v0.1** | Dogfooding: CLI, snapshots, lease, encryption, bundle mode, Claude Code & Codex adapters, tray cards | Two weeks of daily Windows ↔ Mac handoffs without data loss |
-| v0.2 | More agents: Grok Build, Antigravity, ZCode, Pi; session migration; remote & files modes | Six agents work right after switching machines |
-| v0.3 | Hands-free: automatic triggers, arrival notices, mobile push, optional web UI | Almost no manual commands |
-| v1.0 | Stable formats: frozen repository format and adapter spec, full OS × agent CI matrix | Safe to recommend to others |
+| **v0.1** | Dogfooding: setup wizard & checks, pairing codes, CLI, snapshots, lease, encryption, bundle mode, Claude Code & Codex adapters, approval cards | Two weeks of daily Windows ↔ Mac handoffs without data loss |
+| v0.2 | More agents: Grok Build, Antigravity, ZCode, Pi; session migration; remote & files modes; scoped keys, read-only devices, key rotation | Six agents work right after switching machines |
+| **v0.3** | Hands-free (target product): automatic sync, arrival cards, sync history, MCP server for agents, mobile push, optional server with pairing codes and a web UI | Almost no manual commands |
 
-See [PRD · Roadmap](docs/prd.md#9-版本规划与验收门槛) for details.
+See [PRD · Roadmap](docs/prd.md#10-版本规划与验收门槛) for details.
 
 ## Repository layout
 

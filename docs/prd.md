@@ -355,7 +355,7 @@ CLI 必须区分终端（进度条）与非终端（Agent 调用，每约 10% �
 
 | ID | 问题 | 默认方案 | 状态 |
 | --- | --- | --- | --- |
-| D-01 | 项目名称：原仓库名 `botan` 与设计稿中的 Baton 在 crates.io 均已被占用 | 定名 **Workroam**（工作区漫游）：命令 `workroam`，后台服务 `workroamd`，crate 前缀 `workroam-`；crates.io / npm / GitHub 均未被占用。仓库建议同步改名为 `workroam` | 已决定 |
+| D-01 | 项目名称：原仓库名 `botan` 与设计稿中的 Baton 在 crates.io 均已被占用 | 定名 **Workroam**（工作区漫游）：命令 `workroam`，后台服务 `workroamd`，crate 前缀 `workroam-`；crates.io / npm / GitHub 均未被占用；仓库已改名为 `kverona-ai/workroam` | 已决定 |
 | D-02 | v0.1 服务端只有 S3 + Caddy，无法兑换配对码、动态签发每设备凭证 | v0.1：安装脚本输出一个“配对串”（端点、bucket、只授权该 bucket 的密钥），`workroam login --pair <配对串>` 粘贴登录；所有设备共用该密钥。配对码与每设备独立凭证随 v0.3 轻量服务端提供 | 待确认 |
 | D-03 | 快照引擎：rustic_core 还是 kopia | rustic_core（Rust 库可直接嵌入；restic 格式成熟，可用 restic 官方工具应急恢复）。kopia 为 Go，需另带二进制，不再作为备选 | 已决定（ADR-0003） |
 | D-04 | v0.1 适配器是否同步 Agent 会话 | v0.1 只负责规则、Skills、MCP 生成与凭证排除；会话不同步，上下文靠 HANDOFF.md；会话迁移在 v0.2 | 待确认 |

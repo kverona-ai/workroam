@@ -4,114 +4,114 @@
 
 # Workroam
 
-**在多台电脑之间接力 AI Agent 的工作区。**
+**Hand off your AI agent workspace between machines.**
 
-一台自己的 S3 存储，在任何电脑上对任何 Agent 说一句“同步下来”，<br>
-项目、代码、规则、MCP / Skills 和上下文就都能接上。
+One S3 bucket of your own. Tell any agent on any computer to "sync down",<br>
+and your projects, code, rules, MCP / Skills and context pick up where you left off.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-design%20phase-orange.svg)](docs/prd.md#9-版本规划与验收门槛)
+[![Status](https://img.shields.io/badge/status-design%20phase-orange.svg)](docs/prd.md)
 [![Rust](https://img.shields.io/badge/Rust-stable-dea584.svg?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](#)
-[![Storage](https://img.shields.io/badge/storage-any%20S3--compatible-4F46E5.svg)](docs/architecture.md#5-存储布局)
+[![Storage](https://img.shields.io/badge/storage-any%20S3--compatible-4F46E5.svg)](docs/architecture.md)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-0EA5A4.svg)](CONTRIBUTING.md)
 
-**简体中文** · [English](README.en.md)
+**English** · [简体中文](README.zh-CN.md)
 
-[产品需求](docs/prd.md) · [技术架构](docs/architecture.md) · [架构决策](docs/adr/README.md) · [参与贡献](CONTRIBUTING.md)
+[Requirements](docs/prd.md) · [Architecture](docs/architecture.md) · [Decisions](docs/adr/README.md) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
 > [!NOTE]
-> 项目处于**设计阶段**，还没有可用的版本。欢迎阅读文档、提 Issue 讨论设计。
+> Workroam is in the **design phase** and has no usable release yet. Feedback on the design is welcome via issues. The design documents are currently written in Chinese.
 
 ---
 
-## 为什么需要 Workroam
+## Why Workroam
 
-你可能同时在用 Claude Code、Codex、Antigravity、Grok Build 等多个 Agent，并且在公司电脑和家里电脑之间来回切换：
+You probably use several coding agents (Claude Code, Codex, Antigravity, Grok Build, …) and switch between an office machine and a home machine:
 
-- 只有公司电脑能连内网和内网 git，**远程开发行不通**，必须本地优先；
-- 网盘、Syncthing、rclone **不理解** Agent 的规则、MCP、Skills 和会话，也不理解 git，直接同步 `.git` 还会损坏仓库；
-- Windows、macOS、Linux 之间的路径、换行符、大小写、符号链接**处处是坑**；
-- 换了机器，Agent 就**忘了**上次做到哪里。
+- only the office machine can reach the intranet and internal git, so **remote development is not an option**: work has to stay local;
+- cloud drives, Syncthing and rclone **don't understand** agent rules, MCP, Skills, sessions or git, and syncing `.git` directly corrupts repositories;
+- Windows, macOS and Linux disagree on paths, line endings, case sensitivity and symlinks;
+- after switching machines, your agent **forgets** where it left off.
 
-Workroam 把“下班 → 回家 → 接着干 → 回公司推送”变成两句话的事。
+Workroam turns "leave the office → get home → keep going → push at the office" into two sentences.
 
-## 特性
+## Features
 
 |  |  |
 | --- | --- |
-| 🔐 **端到端加密** | 数据在客户端加密，服务器只存密文；凭证永远不同步 |
-| 🪶 **服务端极简** | 任意 S3 兼容存储（RustFS、Garage、SeaweedFS、AWS S3、R2、OSS），一条命令部署 |
-| 🏃 **接力而非实时** | 租约保证同一时间只有一台机器在写，从不静默覆盖 |
-| 🌿 **懂 git** | 每台机器自有 `.git`；bundle / remote / files 三种模式；内网仓库可只带最近 N 次提交，回公司自动变基回真实历史 |
-| 🤖 **懂 Agent** | 一份 `AGENTS.md`、一份 MCP 定义、一份 Skills，为每个 Agent 生成原生配置；`HANDOFF.md` 让下一个 Agent 接着干 |
-| 🖥️ **跨平台** | 推送前就检查大小写冲突、Windows 非法文件名、长路径；拉取时按本机系统处理链接与可执行位 |
-| 🙋 **人始终知情** | 同步前授权、同步中可见进度、完成或失败有提醒；Agent 发起的同步也要你确认 |
-| ⏪ **可回滚** | 每次同步都是一个不可变快照，随时回到任意一次 |
+| 🔐 **End-to-end encryption** | Data is encrypted on the client and the server only stores ciphertext. Credentials never sync. |
+| 🪶 **Minimal server** | Any S3-compatible storage (RustFS, Garage, SeaweedFS, AWS S3, R2, OSS), deployed with one command. |
+| 🏃 **Handoff, not real-time sync** | A lease ensures only one machine writes at a time. Nothing is ever silently overwritten. |
+| 🌿 **Git-aware** | Every machine keeps its own `.git`, with bundle, remote and files modes. Intranet repos can carry only the last N commits and are rebased back onto real history at the office. |
+| 🤖 **Agent-aware** | One `AGENTS.md`, one MCP definition and one Skills folder, rendered into each agent's native config. `HANDOFF.md` lets the next agent continue. |
+| 🖥️ **Cross-platform** | Case conflicts, invalid Windows file names and long paths are caught before you push. Links and executable bits are handled per OS on pull. |
+| 🙋 **You stay in the loop** | Approve every sync, including agent-initiated ones, watch progress, and get notified on success or failure. |
+| ⏪ **Rollback** | Every sync is an immutable snapshot you can return to. |
 
-## 工作方式
+## How it works
 
 ```mermaid
 flowchart LR
-    O["🏢 公司电脑<br/>workroam push --release"] -- 加密快照 --> S[("S3 兼容存储")]
-    S -- 增量拉取 --> H["🏠 家里电脑<br/>workroam pull --acquire"]
-    H -- 加密快照 --> S
-    S -- 拉取并变基 --> O
-    O -- git push --> G["内网 git"]
+    O["🏢 Office<br/>workroam push --release"] -- encrypted snapshot --> S[("S3-compatible storage")]
+    S -- incremental pull --> H["🏠 Home<br/>workroam pull --acquire"]
+    H -- encrypted snapshot --> S
+    S -- pull & rebase --> O
+    O -- git push --> G["Intranet git"]
 ```
 
-1. **下班**：对任一 Agent 说“我要下班了”。Agent 写好 `.handoff/HANDOFF.md`，执行 `workroam push --release`；你在弹出的卡片上点“同意”。
-2. **到家**：托盘提示“服务器上有新进度”。说一句“同步下来”，Workroam 拉取文件、导入提交，并为本机生成 MCP 配置、Skills 链接和环境说明。
-3. **继续**：打开任一 Agent，它读 `AGENTS.md` 和 `HANDOFF.md`，汇报进度后接着干。
-4. **回公司**：拉取家里的进度，家里的提交自动变基回真实历史，然后 `git push` 到内网。
+1. **Leaving the office**: tell any agent "I'm heading home". It updates `.handoff/HANDOFF.md` and runs `workroam push --release`, and you click "Approve" on the card that pops up.
+2. **Arriving home**: the tray tells you there is new progress on the server. Say "sync down" and Workroam pulls files, imports commits, and generates MCP configs, Skills links and an environment note for this machine.
+3. **Keep going**: open any agent. It reads `AGENTS.md` and `HANDOFF.md`, reports where things stand, and continues.
+4. **Back at the office**: pull the home progress. Home commits are rebased back onto real history, then you `git push` to the intranet.
 
-## 快速开始（规划中）
+## Quick start (planned)
 
 ```bash
-# 服务端：一条命令部署存储与 HTTPS
-curl -fsSL https://<项目域名>/install.sh | sh -s -- --domain sync.example.com --storage rustfs
+# Server: deploy storage and HTTPS with one command
+curl -fsSL https://<project-domain>/install.sh | sh -s -- --domain sync.example.com --storage rustfs
 
-# 客户端：登录并初始化项目
+# Client: log in and initialize a project
 workroam login sync.example.com
 cd ~/projects/proj-a && workroam init
 
-# 接力
-workroam push --release     # 离开时
-workroam pull --acquire     # 到达时
+# Hand off
+workroam push --release     # when leaving
+workroam pull --acquire     # when arriving
 ```
 
-## 路线图
+## Roadmap
 
-| 版本 | 主题 | 门槛 |
+| Version | Theme | Gate |
 | --- | --- | --- |
-| **v0.1** | 我自己每天在用：CLI、快照、租约、加密、bundle 模式、Claude Code 与 Codex 适配器、托盘卡片 | 公司 Windows ↔ 家里 Mac 连续使用两周不丢数据 |
-| v0.2 | 多 Agent：Grok Build、Antigravity、ZCode、Pi；会话迁移；remote 与 files 模式 | 六个 Agent 换机器后都能直接开工 |
-| v0.3 | 无感同步：自动触发、到达提醒、手机推送、可选 Web 界面 | 日常基本不用手动敲命令 |
-| v1.0 | 格式稳定：冻结仓库格式与适配器规范，三系统 × Agent 测试矩阵 | 可以放心推荐给别人用 |
+| **v0.1** | Dogfooding: CLI, snapshots, lease, encryption, bundle mode, Claude Code & Codex adapters, tray cards | Two weeks of daily Windows ↔ Mac handoffs without data loss |
+| v0.2 | More agents: Grok Build, Antigravity, ZCode, Pi; session migration; remote & files modes | Six agents work right after switching machines |
+| v0.3 | Hands-free: automatic triggers, arrival notices, mobile push, optional web UI | Almost no manual commands |
+| v1.0 | Stable formats: frozen repository format and adapter spec, full OS × agent CI matrix | Safe to recommend to others |
 
-详见 [PRD · 版本规划](docs/prd.md#9-版本规划与验收门槛)。
+See [PRD · Roadmap](docs/prd.md#9-版本规划与验收门槛) for details.
 
-## 仓库结构
+## Repository layout
 
 ```text
 .
-├── docs/            # 文档：PRD、技术架构、ADR、图片资源
-├── crates/          # Rust 代码（规划中，见 crates/README.md）
-├── .github/         # Issue / PR 模板
-├── CONTRIBUTING.md  # 贡献指南
+├── docs/            # Docs: PRD, architecture, ADRs, assets
+├── crates/          # Rust code (planned, see crates/README.md)
+├── .github/         # Issue / PR templates
+├── CONTRIBUTING.md  # Contribution guide
 └── LICENSE          # Apache-2.0
 ```
 
-## 参与贡献
+## Contributing
 
-欢迎任何形式的贡献，尤其是 **Agent 适配器**：它们是纯数据文件，门槛最低、价值最高。提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)，所有提交需要 `Signed-off-by`（DCO）。
+Contributions of every kind are welcome, especially **agent adapters**: they are plain data files, the easiest place to start and the most valuable. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. All commits require a DCO `Signed-off-by`.
 
-发现安全问题请按 [SECURITY.md](SECURITY.md) 私下报告，不要公开提 Issue。
+Report security issues privately as described in [SECURITY.md](SECURITY.md), not in public issues.
 
-## 许可证
+## License
 
-[Apache License 2.0](LICENSE)。将来单独发布的 Rust 库采用 `MIT OR Apache-2.0` 双许可。
+[Apache License 2.0](LICENSE). Standalone Rust libraries will be dual-licensed under `MIT OR Apache-2.0`.
 
-> 内网代码离开公司网络前，请先确认公司的相关规定。
+> Before taking intranet code off your company network, check your company's policies.

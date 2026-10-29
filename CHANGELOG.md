@@ -8,4 +8,4 @@
 
 - 产品需求文档（`docs/prd.md`）与技术架构文档（`docs/architecture.md`）
 - 架构决策记录 ADR-0001 至 ADR-0004
-- README（中英文）、贡献指南、行为准则、安全策略、Issue 与 PR 模板
+- README（默认英文，另有 `README.zh-CN.md` 中文版）、贡献指南、行为准则、安全策略、Issue 与 PR 模板

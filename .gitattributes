@@ -1,0 +1,7 @@
+# 统一使用 LF 换行，避免跨系统产生无意义 diff
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.icns binary

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 安全问题 / Security vulnerability
+    url: https://github.com/kverona-ai/workroam/security/advisories/new
+    about: 请私下报告安全问题，不要公开提 Issue。Please report security issues privately.
+  - name: 设计文档 / Design docs
+    url: https://github.com/kverona-ai/workroam/tree/main/docs
+    about: 提问前可以先看看 PRD 和技术架构。Read the PRD and architecture first.

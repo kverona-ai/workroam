@@ -27,7 +27,7 @@ This page lists every file, setting and environment variable Workroam reads. Mos
 | `~/.workroam/logs/` | `workroamd.log`, rotated daily |
 | `~/.workroam/state/` | Local state of the background service |
 | `~/.workroam/adapters/` | Your own agent adapters, which override the built-in ones with the same `id` |
-| System keychain | Storage access key, encryption password and other secrets: macOS Keychain, Windows Credential Manager, Linux Secret Service. They are never written to `machine.toml` |
+| System keychain | Storage access key, encryption password, MCP secrets (`workroam secret set`) and other secrets: macOS Keychain, Windows Credential Manager, Linux Secret Service. They are never written to `machine.toml` |
 | `~/.workroam/secrets.json` | Only when no keychain is available, or with `WORKROAM_SECRETS=file` (mode 0600) |
 
 The background service listens on a local socket: `~/Library/Application Support/Workroam/workroamd.sock` on macOS, `$XDG_RUNTIME_DIR/workroam/workroamd.sock` (or `~/.workroam/workroamd.sock`) on Linux, and the named pipe `\\.\pipe\workroam-<user>` on Windows.
@@ -267,6 +267,7 @@ In any value, `{project_dir}` becomes the project folder on this computer and `{
 | `WORKROAM_RECOVERY_KEY` | Recovery key for `password reset` (instead of `--recovery-key-stdin`) |
 | `WORKROAM_ADMIN_TOKEN` | Admin API token, when the storage needs one to create a scoped key |
 | `WORKROAM_BACKUP_SECRET_KEY` | Secret key of the off-site backup bucket for `backup add` |
+| `WORKROAM_SECRET_VALUE` | Value for `secret set` (instead of `--value-stdin`) |
 
 Prefer stdin or these variables to command-line arguments for secrets: arguments are visible to other users in the process list.
 

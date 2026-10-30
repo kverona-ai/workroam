@@ -335,6 +335,8 @@ url = "https://jira.example.com/mcp"
 headers = { Authorization = "Bearer ${secret:jira_token}" }
 ```
 
+`${secret:名称}` 只在本机解析：每台电脑用 `workroam secret set jira_token` 把密钥保存到系统密钥库一次，`workroam secret list` 查看项目引用了哪些密钥、哪些还没设置；密钥不进入快照（ADPT-06）。
+
 ### 6.5 快照清单
 
 每个快照内附带 `.workroam-snapshot/manifest.json`：

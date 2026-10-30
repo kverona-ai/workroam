@@ -77,6 +77,9 @@ pub const METHODS: &[Method] = &[
     m("credentials.update", true, false),
     m("password.change", true, false),
     m("password.reset", true, false),
+    m("secret.set", true, false),
+    m("secret.remove", true, false),
+    m("secret.list", true, true),
     m("sync.pause", true, false),
     m("sync.resume", true, false),
     // Agents.

@@ -16,6 +16,7 @@ A full review of the code base after v0.1.0 (performance, design, security, feat
 - `workroamd` stops in order on `SIGTERM` (logout / shutdown) or the Windows shutdown / logoff event: with `sync.on_sleep = auto` it pushes first, then waits up to 20 seconds for running jobs
 - Recovery after an interrupted pull (crash, power loss; architecture §9.3): the service replays the operation log at start and finishes the remaining steps; steps already done (including conflict copies already written) are not repeated; until then a push is refused with a hint to pull first, and `workroam pull` picks up where it stopped
 - The `.workroam/SYNCING` marker records the process that wrote it and is cleared once that process is gone, so agents are no longer paused forever
+- MCP secrets: the values that `${secret:name}` in `.workroam/mcp.toml` refers to can now be saved in this computer's keychain, listed per project and removed, with `workroam secret set / remove / list` and Settings → Agent → MCP secrets in the desktop app; the earlier hint pointed at a command that did not exist
 
 ### Changed
 
@@ -32,6 +33,7 @@ A full review of the code base after v0.1.0 (performance, design, security, feat
 - `workroam-server`: a signed request in full mode cannot be replayed within its 5-minute window; open OAuth authorization requests are capped (20 in total, 3 per client) so an unauthenticated caller cannot flood the approval cards; the unused attempt counter on pairing codes is gone
 - Duration parsing (for example `sync.approval_timeout`) reports an error on overflow instead of crashing
 - `doctor` really probes the system keychain when deciding whether it is usable instead of always reporting "system keychain"
+- Desktop app: a builder wrapped as an action returned a promise instead of an element, so the Settings page showed `[object Promise]` where the Agent section (agents, MCP switch, connections, webhook, default device) and the off-site backup section belong, the add-project sheet listed no repositories, the archive restore sheet had no preference control, and the setup wizard's "workspace found" and "broad key" notices failed to show
 
 ## [0.1.0] - 2026-10-30
 

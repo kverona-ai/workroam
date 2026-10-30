@@ -27,7 +27,7 @@
 | `~/.workroam/logs/` | `workroamd.log`，按天滚动 |
 | `~/.workroam/state/` | 后台服务的本地状态 |
 | `~/.workroam/adapters/` | 自定义 Agent 适配器，与内置适配器 `id` 相同时覆盖内置版本 |
-| 系统密钥库 | 存储访问密钥、加密密码等机密：macOS Keychain、Windows 凭据管理器、Linux Secret Service。不会写入 `machine.toml` |
+| 系统密钥库 | 存储访问密钥、加密密码、MCP 密钥（`workroam secret set`）等机密：macOS Keychain、Windows 凭据管理器、Linux Secret Service。不会写入 `machine.toml` |
 | `~/.workroam/secrets.json` | 只在没有可用的系统密钥库，或设置了 `WORKROAM_SECRETS=file` 时使用（权限 0600） |
 
 后台服务监听本地套接字：macOS 为 `~/Library/Application Support/Workroam/workroamd.sock`，Linux 为 `$XDG_RUNTIME_DIR/workroam/workroamd.sock`（或 `~/.workroam/workroamd.sock`），Windows 为命名管道 `\\.\pipe\workroam-<用户名>`。
@@ -267,6 +267,7 @@ headers = { X-Project = "{project}" }
 | `WORKROAM_RECOVERY_KEY` | `password reset` 使用的恢复密钥（代替 `--recovery-key-stdin`） |
 | `WORKROAM_ADMIN_TOKEN` | 存储创建专用密钥时需要的管理 API 令牌 |
 | `WORKROAM_BACKUP_SECRET_KEY` | `backup add` 使用的异地备份存储 Secret Key |
+| `WORKROAM_SECRET_VALUE` | `secret set` 的密钥值（代替 `--value-stdin`） |
 
 机密请通过标准输入或上述环境变量传递，不要写在命令行参数里：其他用户可以在进程列表中看到参数。
 

@@ -188,6 +188,11 @@ pub enum Cmd {
         #[command(subcommand)]
         cmd: CredentialsCmd,
     },
+    /// Secrets that `${secret:name}` in .workroam/mcp.toml refers to, saved in this computer's keychain.
+    Secret {
+        #[command(subcommand)]
+        cmd: SecretCmd,
+    },
     /// Workspace encryption password.
     Password {
         #[command(subcommand)]
@@ -480,6 +485,21 @@ pub enum AgentCmd {
         #[arg(long)]
         secret_stdin: bool,
     },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum SecretCmd {
+    /// Save a secret: asks for the value, or reads it from stdin.
+    Set {
+        name: String,
+        /// Read the value from stdin.
+        #[arg(long)]
+        value_stdin: bool,
+    },
+    /// Forget a secret.
+    Remove { name: String },
+    /// The secrets the project's MCP servers refer to, and whether each is set here.
+    List,
 }
 
 #[derive(Debug, Subcommand)]

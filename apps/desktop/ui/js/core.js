@@ -106,13 +106,17 @@ export async function notify(title, body) {
  * checks that each id in apps/desktop/actions.json is wired here.
  */
 export const actions = new Set();
+// A synchronous `fn` (a section renderer) keeps returning its value
+// synchronously; an async one gets its errors shown.
 export function act(id, fn) {
   actions.add(id);
-  return async (...args) => {
+  return (...args) => {
     try {
-      return await fn(...args);
+      const r = fn(...args);
+      return r && typeof r.then === "function" ? r.catch((e) => showError(e)) : r;
     } catch (e) {
       showError(e);
+      return undefined;
     }
   };
 }

@@ -272,6 +272,41 @@ pub async fn handle(d: &Arc<Daemon>, ctx: &Ctx, method: &str, p: Value) -> Resul
         "credentials.update" => credentials_update(d, &p).await,
         "password.change" => password_change(d, &p).await,
         "password.reset" => password_reset(d, &p).await,
+        "secret.set" => {
+            let name = secret_name(&p)?;
+            let value =
+                p_str(&p, "value").ok_or_else(|| Error::invalid("the secret value is empty"))?;
+            secrets::set(&secrets::keys::secret(&name), &value)?;
+            Ok(json!({"name": name, "backend": secrets::backend_name()}))
+        }
+        "secret.remove" => {
+            let name = secret_name(&p)?;
+            let key = secrets::keys::secret(&name);
+            if secrets::get(&key)?.is_none() {
+                return Err(Error::invalid(format!(
+                    "secret `{name}` is not set on this computer"
+                )));
+            }
+            secrets::delete(&key)?;
+            Ok(json!({"name": name}))
+        }
+        "secret.list" => {
+            let m = crate::load_machine()?;
+            let project = project_name(&p)?;
+            let dir = project_root(&m, &project)?;
+            let mcp = workroam_core::config::McpConfig::load(&dir)?;
+            let list: Vec<Value> = workroam_adapters::generate::secret_refs(&mcp)
+                .into_iter()
+                .map(|(name, servers)| {
+                    let set = secrets::get(&secrets::keys::secret(&name))
+                        .ok()
+                        .flatten()
+                        .is_some();
+                    json!({"name": name, "set": set, "servers": servers})
+                })
+                .collect();
+            Ok(json!({"project": project, "secrets": list}))
+        }
         "sync.pause" => {
             let dur =
                 workroam_core::duration::parse(&p_str(&p, "for").unwrap_or_else(|| "1h".into()))?;
@@ -339,6 +374,26 @@ pub fn project_name(p: &Value) -> Result<String> {
         Error::invalid("this directory is not inside a Workroam project")
             .with_hint("cd into a project, or pass -p <project>"),
     )
+}
+
+/// `name` of a `${secret:name}` reference, validated.
+fn secret_name(p: &Value) -> Result<String> {
+    let name = p_req(p, "name")?;
+    if !workroam_adapters::generate::is_secret_name(&name) {
+        return Err(Error::invalid(format!(
+            "`{name}` is not a valid secret name (letters, digits, `_`, `-` and `.`, at most 64 characters)"
+        )));
+    }
+    Ok(name)
+}
+
+/// Folder of a project on this computer.
+fn project_root(m: &MachineConfig, project: &str) -> Result<std::path::PathBuf> {
+    let b = m.projects.get(project).ok_or_else(|| {
+        Error::invalid(format!("{project} is not synced on this device"))
+            .with_hint("workroam project list")
+    })?;
+    Ok(workroam_core::paths::expand_tilde(&b.path))
 }
 
 pub fn project_for_dir(m: &MachineConfig, dir: &Path) -> Option<String> {

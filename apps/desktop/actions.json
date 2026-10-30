@@ -83,6 +83,7 @@
     { "id": "agent.disconnect", "since": "0.1" },
     { "id": "settings.remote", "since": "0.1" },
     { "id": "agent.webhook", "since": "0.1" },
+    { "id": "secret.set", "since": "0.1" },
     { "id": "credentials.update", "since": "0.1" },
     { "id": "password.change", "since": "0.1" },
     { "id": "password.reset", "since": "0.1" },

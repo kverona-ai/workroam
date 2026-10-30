@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  SignPath 产物配置（Artifact configuration）。
+  在 SignPath 项目中新建产物配置并粘贴本文件内容，设为默认。
+  发布流水线会提交两种压缩包（GitHub Actions artifact）：
+    windows-unsigned-executables  各目录下的 .exe（命令行、服务端、桌面应用与随附二进制）
+    windows-unsigned-installers   .msi 与 -setup.exe 安装程序
+  同一份配置覆盖两种：压缩包里所有 .exe 与 .msi 都做 Authenticode 签名。
+  说明见 docs/signing.md。
+-->
+<artifact-configuration xmlns="http://signpath.io/artifact-configuration/v1">
+  <zip-file>
+    <pe-file-set>
+      <include path="**/*.exe" min-matches="0" max-matches="unbounded" />
+      <for-each>
+        <authenticode-sign />
+      </for-each>
+    </pe-file-set>
+    <msi-file-set>
+      <include path="**/*.msi" min-matches="0" max-matches="unbounded" />
+      <for-each>
+        <authenticode-sign />
+      </for-each>
+    </msi-file-set>
+  </zip-file>
+</artifact-configuration>

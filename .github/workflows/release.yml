@@ -6,7 +6,7 @@ name: Release
 #   tag 留空：只构建，不发布，产物在本次运行的 Artifacts 中（用于发布前演练）
 #   tag 填写已存在的 tag：重新构建并发布或更新该版本
 #   tag 填写尚不存在的 tag：在所选分支的最新提交上创建该 tag 后发布（无法推送 tag 时使用）
-# 步骤与需要配置的 secrets 见 docs/release.md。
+# 步骤见 docs/release.md；签名需要配置的 secrets 见 docs/signing.md。
 
 on:
   push:
@@ -42,6 +42,7 @@ jobs:
       ref: ${{ steps.meta.outputs.ref }}
       publish: ${{ steps.meta.outputs.publish }}
       prerelease: ${{ steps.meta.outputs.prerelease }}
+      signpath: ${{ steps.signing.outputs.signpath }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -60,7 +61,7 @@ jobs:
               git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
               git tag -a "$tag" -m "Workroam $tag" "$GITHUB_SHA"
               git push origin "$ref"
-              echo "::notice::已在 $GITHUB_REF_NAME（${GITHUB_SHA::7}）上创建 tag $tag"
+              echo "::notice::已在 ${GITHUB_REF_NAME}（${GITHUB_SHA::7}）上创建 tag $tag"
             fi
             git checkout -q "$ref"
           else
@@ -89,6 +90,33 @@ jobs:
             echo "publish=$publish"
             echo "prerelease=$prerelease"
           } | tee -a "$GITHUB_OUTPUT"
+
+      - name: Signing status
+        id: signing
+        env:
+          APPLE_CERT: ${{ secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_SIGNING_IDENTITY != '' }}
+          APPLE_API: ${{ secrets.APPLE_API_KEY != '' && secrets.APPLE_API_ISSUER != '' && secrets.APPLE_API_PRIVATE_KEY != '' }}
+          APPLE_IDPW: ${{ secrets.APPLE_ID != '' && secrets.APPLE_PASSWORD != '' && secrets.APPLE_TEAM_ID != '' }}
+          SIGNPATH: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+          GPG: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        run: |
+          yes_no() { if [ "$1" = true ]; then echo "✅ $2"; else echo "— $3"; fi; }
+          if [ "$APPLE_API" = true ]; then notary="✅ App Store Connect API 密钥"
+          elif [ "$APPLE_IDPW" = true ]; then notary="✅ Apple ID + App 专用密码"
+          else notary="— 未配置，不公证"; fi
+          {
+            echo "### 签名状态"
+            echo
+            echo "| 平台 | 状态 |"
+            echo "| --- | --- |"
+            echo "| macOS 签名 | $(yes_no "$APPLE_CERT" "Developer ID" "未配置，ad-hoc 签名") |"
+            echo "| macOS 公证 | $notary |"
+            echo "| Windows | $(yes_no "$SIGNPATH" "SignPath" "未配置，不签名") |"
+            echo "| Linux（SHA256SUMS） | $(yes_no "$GPG" "GPG" "未配置，只有校验和与构建来源证明") |"
+            echo
+            echo "说明见 [docs/signing.md](https://github.com/$GITHUB_REPOSITORY/blob/main/docs/signing.md)。"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "signpath=$SIGNPATH" >> "$GITHUB_OUTPUT"
 
   binaries:
     name: CLI · ${{ matrix.target }}
@@ -138,23 +166,47 @@ jobs:
           [ "${{ matrix.server }}" = true ] && bins+=(--bin workroam-server)
           cargo build --release --locked --target "$TARGET" "${bins[@]}"
 
-      - name: Sign Windows binaries
-        if: runner.os == 'Windows'
-        shell: pwsh
+      - name: Sign macOS binaries
+        if: runner.os == 'macOS'
         env:
-          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          if (-not $env:WINDOWS_CERTIFICATE) { Write-Host '未配置 WINDOWS_CERTIFICATE，跳过签名'; exit 0 }
-          $pfx = Join-Path $env:RUNNER_TEMP 'cert.pfx'
-          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
-          $signtool = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe' | Sort-Object FullName | Select-Object -Last 1
-          $files = Get-ChildItem "target\$env:TARGET\release\*.exe" | Where-Object { $_.Name -match '^workroam(d|-server)?\.exe$' }
-          & $signtool.FullName sign /f $pfx /p $env:WINDOWS_CERTIFICATE_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256 $files.FullName
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Remove-Item $pfx
+          if [ -n "$APPLE_API_PRIVATE_KEY" ]; then
+            export APPLE_API_KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
+            printf '%s\n' "$APPLE_API_PRIVATE_KEY" > "$APPLE_API_KEY_PATH"
+          fi
+          files=()
+          [ "${{ matrix.cli }}" = true ] && files+=("target/$TARGET/release/workroam" "target/$TARGET/release/workroamd")
+          [ "${{ matrix.server }}" = true ] && files+=("target/$TARGET/release/workroam-server")
+          scripts/release/macos-sign.sh binaries "${files[@]}"
+          rm -f "$RUNNER_TEMP/AuthKey.p8"
+
+      # Windows 二进制先上传，由 windows-sign 任务统一交给 SignPath 签名后再打包
+      - name: Stage Windows binaries
+        if: runner.os == 'Windows'
+        run: |
+          mkdir -p "winbin/$TARGET"
+          for bin in workroam workroamd workroam-server; do
+            [ -f "target/$TARGET/release/$bin.exe" ] && cp "target/$TARGET/release/$bin.exe" "winbin/$TARGET/"
+          done
+          ls -l "winbin/$TARGET"
+      - uses: actions/upload-artifact@v7
+        if: runner.os == 'Windows'
+        with:
+          name: winbin-cli-${{ matrix.target }}
+          path: winbin/*
+          if-no-files-found: error
 
       - name: Package
+        if: runner.os != 'Windows'
         run: |
           [ "${{ matrix.cli }}" = true ] && scripts/release/package-bins.sh workroam "$VERSION" "$TARGET" dist workroam workroamd
           [ "${{ matrix.server }}" = true ] && scripts/release/package-bins.sh workroam-server "$VERSION" "$TARGET" dist workroam-server
@@ -181,6 +233,7 @@ jobs:
           cp "target/$TARGET/release/workroam-server" "dist-container/${{ matrix.docker }}/"
 
       - uses: actions/upload-artifact@v7
+        if: runner.os != 'Windows'
         with:
           name: bin-${{ matrix.target }}
           path: dist/*
@@ -240,66 +293,279 @@ jobs:
           target: ${{ matrix.target }}
           sidecars: build
 
-      - name: Windows signing certificate
-        id: wincert
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
-        run: |
-          if (-not $env:WINDOWS_CERTIFICATE) { Write-Host '未配置 WINDOWS_CERTIFICATE，安装程序不签名'; exit 0 }
-          $pfx = Join-Path $env:RUNNER_TEMP 'cert.pfx'
-          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE))
-          $password = ConvertTo-SecureString $env:WINDOWS_CERTIFICATE_PASSWORD -AsPlainText -Force
-          $cert = Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password
-          Remove-Item $pfx
-          "thumbprint=$($cert.Thumbprint)" >> $env:GITHUB_OUTPUT
-
       - name: Build
         working-directory: apps/desktop
         env:
           SECRET_APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           SECRET_APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           SECRET_APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          SECRET_APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          SECRET_APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           SECRET_APPLE_ID: ${{ secrets.APPLE_ID }}
           SECRET_APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           SECRET_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          SECRET_TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          SECRET_TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-          WINDOWS_THUMBPRINT: ${{ steps.wincert.outputs.thumbprint }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
         run: |
           # 只导出已配置的 secret：Tauri 看到空的 APPLE_CERTIFICATE 也会尝试导入证书
           for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY \
-                      APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID \
-                      TAURI_SIGNING_PRIVATE_KEY TAURI_SIGNING_PRIVATE_KEY_PASSWORD; do
+                      APPLE_API_KEY APPLE_API_ISSUER APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
             value="$(printenv "SECRET_$name" || true)"
             [ -n "$value" ] && export "$name=$value"
           done
+          if [ -n "$APPLE_API_PRIVATE_KEY" ]; then
+            export APPLE_API_KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
+            printf '%s\n' "$APPLE_API_PRIVATE_KEY" > "$APPLE_API_KEY_PATH"
+          fi
 
-          # 没有证书时：macOS 用 ad-hoc 签名（arm64 必须有签名才能运行），Windows 不签名
+          # 没有证书时 macOS 用 ad-hoc 签名（arm64 必须有签名才能运行）
           override='{}'
           if [ "${{ matrix.platform }}" = macos ] && [ -z "${APPLE_CERTIFICATE:-}" ]; then
             override='{"bundle":{"macOS":{"signingIdentity":"-"}}}'
           fi
-          if [ -n "$WINDOWS_THUMBPRINT" ]; then
-            override="$(jq -cn --arg t "$WINDOWS_THUMBPRINT" \
-              '{bundle:{windows:{certificateThumbprint:$t,digestAlgorithm:"sha256",timestampUrl:"http://timestamp.digicert.com"}}}')"
-          fi
           echo "$override" > "$RUNNER_TEMP/tauri.release.json"
 
-          npx --yes @tauri-apps/cli@^2 build \
-            --target "$TARGET" \
-            --bundles "${{ matrix.bundles }}" \
-            --config "$RUNNER_TEMP/tauri.release.json"
+          if [ "${{ matrix.platform }}" = windows ]; then
+            # Windows 只编译：exe 交给 SignPath 签名后，再由 windows-bundle 任务打安装包
+            npx --yes @tauri-apps/cli@^2.12 build --target "$TARGET" --no-bundle --ci
+          else
+            npx --yes @tauri-apps/cli@^2.12 build \
+              --target "$TARGET" \
+              --bundles "${{ matrix.bundles }}" \
+              --config "$RUNNER_TEMP/tauri.release.json" \
+              --ci
+          fi
+
+      - name: Notarize dmg and verify
+        if: matrix.platform == 'macos'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -n "$APPLE_API_PRIVATE_KEY" ]; then
+            export APPLE_API_KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
+            printf '%s\n' "$APPLE_API_PRIVATE_KEY" > "$APPLE_API_KEY_PATH"
+          fi
+          bundle="$CARGO_TARGET_DIR/$TARGET/release/bundle"
+          for app in "$bundle"/macos/*.app; do scripts/release/macos-sign.sh verify-app "$app"; done
+          for dmg in "$bundle"/dmg/*.dmg; do scripts/release/macos-sign.sh dmg "$dmg"; done
+          rm -f "$RUNNER_TEMP/AuthKey.p8"
+
+      - name: Stage Windows executables
+        if: matrix.platform == 'windows'
+        run: |
+          out="winbin/desktop-$TARGET"
+          mkdir -p "$out"
+          cp "$CARGO_TARGET_DIR/$TARGET/release/workroam-desktop.exe" "$out/"
+          # 随附二进制（bundle.externalBin），按原名保存，打包时再放回 src-tauri/binaries
+          for ext in $(jq -r '.bundle.externalBin // [] | .[]' apps/desktop/src-tauri/tauri.conf.json | tr -d '\r'); do
+            cp "apps/desktop/src-tauri/$ext-$TARGET.exe" "$out/$(basename "$ext").exe"
+          done
+          ls -l "$out"
+      - uses: actions/upload-artifact@v7
+        if: matrix.platform == 'windows'
+        with:
+          name: winbin-desktop-${{ matrix.target }}
+          path: winbin/*
+          if-no-files-found: error
 
       - name: Collect
+        if: matrix.platform != 'windows'
         run: scripts/release/collect-desktop.sh "$VERSION" "$TARGET" "${{ matrix.platform }}" "${{ matrix.arch }}" dist
 
       - uses: actions/upload-artifact@v7
+        if: matrix.platform != 'windows'
         with:
           name: desktop-${{ matrix.platform }}-${{ matrix.arch }}
           path: dist/*
+          if-no-files-found: error
+
+  # Windows 签名分两步，各提交一次 SignPath 签名请求：
+  #   1. windows-sign：命令行、服务端与桌面应用的 exe（含随附二进制）
+  #   2. windows-installers：用签好名的 exe 打出的 .msi 与 -setup.exe
+  # 没有配置 SignPath 时照常走这几个任务，只是原样传递文件。
+  windows-sign:
+    name: Windows · sign executables
+    needs: [prepare, binaries, desktop]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+      - uses: actions/download-artifact@v8
+        with:
+          path: unsigned
+          pattern: winbin-*
+          merge-multiple: true
+      - id: unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-unsigned-executables
+          path: unsigned/*
+          if-no-files-found: error
+      - name: Sign with SignPath
+        if: needs.prepare.outputs.signpath == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'workroam' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          # SignPath Foundation 的发布签名需要在 SignPath 网页上人工批准
+          wait-for-completion-timeout-in-seconds: ${{ vars.SIGNPATH_WAIT_SECONDS || '7200' }}
+          output-artifact-directory: signed
+      - name: Without SignPath
+        if: needs.prepare.outputs.signpath != 'true'
+        run: |
+          echo "::notice::未配置 SignPath（SIGNPATH_API_TOKEN 与 SIGNPATH_ORGANIZATION_ID），Windows 文件不签名"
+          cp -R unsigned signed
+      - name: Verify signatures
+        if: needs.prepare.outputs.signpath == 'true'
+        run: scripts/release/windows-verify.sh signed
+      - uses: actions/upload-artifact@v7
+        with:
+          name: windows-executables
+          path: signed/*
+          if-no-files-found: error
+
+  windows-bundle:
+    name: Windows · installers ${{ matrix.arch }}
+    needs: [prepare, windows-sign]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, target: x86_64-pc-windows-msvc, bundles: 'msi,nsis' }
+          # WiX 不支持 ARM64，Windows arm64 只出 NSIS 安装程序
+          - { arch: arm64, target: aarch64-pc-windows-msvc, bundles: 'nsis' }
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      TARGET: ${{ matrix.target }}
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      # 只构建前端并放占位的随附二进制，真正的 exe 来自 windows-sign
+      - uses: ./.github/actions/desktop-prepare
+        with:
+          target: ${{ matrix.target }}
+          sidecars: placeholder
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-executables
+          path: signed
+      - name: Place signed executables
+        run: |
+          src="signed/desktop-$TARGET"
+          mkdir -p "$CARGO_TARGET_DIR/$TARGET/release"
+          cp "$src/workroam-desktop.exe" "$CARGO_TARGET_DIR/$TARGET/release/"
+          for ext in $(jq -r '.bundle.externalBin // [] | .[]' apps/desktop/src-tauri/tauri.conf.json | tr -d '\r'); do
+            cp "$src/$(basename "$ext").exe" "apps/desktop/src-tauri/$ext-$TARGET.exe"
+          done
+      - name: Bundle
+        working-directory: apps/desktop
+        # --no-binary-patching：不改写主程序，保留它的签名（只有自动更新需要这个补丁）
+        run: |
+          npx --yes @tauri-apps/cli@^2.12 bundle \
+            --target "$TARGET" \
+            --bundles "${{ matrix.bundles }}" \
+            --no-binary-patching \
+            --ci
+      - name: Collect
+        run: scripts/release/collect-desktop.sh "$VERSION" "$TARGET" windows "${{ matrix.arch }}" dist
+      - uses: actions/upload-artifact@v7
+        with:
+          name: wininst-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  windows-installers:
+    name: Windows · sign installers
+    needs: [prepare, windows-sign, windows-bundle]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+      - uses: actions/download-artifact@v8
+        with:
+          path: unsigned
+          pattern: wininst-*
+          merge-multiple: true
+      - id: unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-unsigned-installers
+          path: unsigned/*
+          if-no-files-found: error
+      - name: Sign with SignPath
+        if: needs.prepare.outputs.signpath == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'workroam' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: ${{ vars.SIGNPATH_ARTIFACT_CONFIGURATION_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          # SignPath Foundation 的发布签名需要在 SignPath 网页上人工批准
+          wait-for-completion-timeout-in-seconds: ${{ vars.SIGNPATH_WAIT_SECONDS || '7200' }}
+          output-artifact-directory: installers
+      - name: Without SignPath
+        if: needs.prepare.outputs.signpath != 'true'
+        run: |
+          echo "::notice::未配置 SignPath（SIGNPATH_API_TOKEN 与 SIGNPATH_ORGANIZATION_ID），Windows 文件不签名"
+          cp -R unsigned installers
+      - uses: actions/download-artifact@v8
+        with:
+          name: windows-executables
+          path: exes
+      - name: Package CLI
+        run: |
+          for target in x86_64-pc-windows-msvc aarch64-pc-windows-msvc; do
+            mkdir -p "target/$target/release"
+            cp "exes/$target/"*.exe "target/$target/release/"
+            scripts/release/package-bins.sh workroam "$VERSION" "$target" dist-bin workroam workroamd
+            scripts/release/package-bins.sh workroam-server "$VERSION" "$target" dist-bin workroam-server
+          done
+      - name: Verify signatures
+        if: needs.prepare.outputs.signpath == 'true'
+        run: scripts/release/windows-verify.sh installers target
+      - uses: actions/upload-artifact@v7
+        with:
+          name: bin-windows
+          path: dist-bin/*
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          name: desktop-windows
+          path: installers/*
           if-no-files-found: error
 
   source:
@@ -321,7 +587,7 @@ jobs:
 
   assemble:
     name: Assemble release
-    needs: [prepare, binaries, desktop, source]
+    needs: [prepare, binaries, desktop, source, windows-installers]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -346,10 +612,14 @@ jobs:
           name: source
 
       - name: Install scripts, manifests, checksums
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
           scripts/release/install-scripts.sh dist "$VERSION"
           scripts/release/manifests.sh "$VERSION" dist
           (cd dist && sha256sum -- * > ../SHA256SUMS) && mv SHA256SUMS dist/
+          scripts/release/gpg-sign.sh dist
           scripts/release/notes.sh "$VERSION" dist > release-notes.md
           ls -l dist
           cat release-notes.md >> "$GITHUB_STEP_SUMMARY"
@@ -443,7 +713,7 @@ jobs:
         id: token
         run: |
           if [ -z "$TAP_TOKEN" ]; then
-            echo "::notice::未配置 HOMEBREW_TAP_TOKEN，跳过更新 $TAP_REPO；formula 与 cask 已作为 Release 附件发布"
+            echo "::notice::未配置 HOMEBREW_TAP_TOKEN，跳过更新 ${TAP_REPO}；formula 与 cask 已作为 Release 附件发布"
             echo "ok=false" >> "$GITHUB_OUTPUT"
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"

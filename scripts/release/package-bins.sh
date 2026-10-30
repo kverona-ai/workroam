@@ -38,7 +38,7 @@ for bin in "$@"; do
   case "$target" in *windows*) ;; *) chmod 0755 "$work/$stem/$bin" ;; esac
 done
 
-for doc in LICENSE README.md README.zh-CN.md CHANGELOG.md; do
+for doc in LICENSE README.md README.zh-CN.md CHANGELOG.md CHANGELOG.zh-CN.md; do
   if [ -f "$root/$doc" ]; then cp "$root/$doc" "$work/$stem/"; fi
 done
 

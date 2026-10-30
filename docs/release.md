@@ -15,7 +15,7 @@
 
 1. 确认 `main` 上 CI 全绿，PRD §10 的验收门槛都已达到；
 2. 修改根 `Cargo.toml` 中的 `[workspace.package] version`（以及 `apps/desktop/src-tauri/tauri.conf.json` 的 `version`，如果单独写了），`cargo check` 更新 `Cargo.lock`；
-3. 把 `CHANGELOG.md` 中的 `## [未发布]` 改为 `## [0.1.0] - YYYY-MM-DD`，并在上方留一个新的空 `## [未发布]`；
+3. 把英文 `CHANGELOG.md` 中的 `## [Unreleased]` 与中文 `CHANGELOG.zh-CN.md` 中的 `## [未发布]` 都改为 `## [0.1.0] - YYYY-MM-DD`，并在上方各留一个新的空段落。发布说明以英文为主（来自 `CHANGELOG.md`），中文完整版折叠在“简体中文”里（来自 `CHANGELOG.zh-CN.md`），两份要同时更新；
 4. 合并上述改动后打 tag 并推送：
 
    ```sh
@@ -30,6 +30,8 @@ tag 与 Cargo 版本不一致时，流水线在第一步失败，不会产出任
 **发布前演练。** 在 Actions → Release → Run workflow 中不填 tag 直接运行：会完整构建所有产物，但不创建 Release、不推送镜像。产物在本次运行的 Artifacts 中（`release-dist` 是汇总后的全部文件），发布说明显示在运行摘要里。
 
 **重新发布。** 某个平台失败、修复后需要重跑：Run workflow 并填写已存在的 tag，流水线会重新构建，并覆盖上传到同一个 Release。
+
+**刷新发布说明。** 修改了 CHANGELOG 或说明模板（`scripts/release/notes.sh`）后，Actions → Release notes → Run workflow 并填写 tag，会用 `main` 上的脚本与 CHANGELOG 重新生成该版本的说明，附件不变。
 
 **从网页发布。** 不方便推送 tag 时，在 Run workflow 中选择 `main` 并填写新的 tag（如 `v0.1.0`）：流水线会先在 `main` 的最新提交上创建 tag，再构建并发布。
 

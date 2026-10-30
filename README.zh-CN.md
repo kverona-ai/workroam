@@ -171,7 +171,7 @@ PRD 中的全部功能作为 **v0.1** 一次发布，每个范围都按最后一
 | 归档与备份 | 项目归档与恢复、归档包、快照清理、可选异地备份 | 归档项目恢复后直接可用 |
 | 云端个人 Agent 与可选服务端 | `workroam-server` 中继模式（可部署在 bot 的云端电脑上）与远程连接器（Grok Bot、Muse）；完整模式另有 6 位配对码、手机推送与 Web 界面 | 云端个人 Agent 2 分钟内连上 |
 
-详见 [PRD · 发布范围](docs/prd.md#10-发布范围与验收门槛)；每个版本的内容见 [CHANGELOG.md](CHANGELOG.md)。
+详见 [PRD · 发布范围](docs/prd.md#10-发布范围与验收门槛)；每个版本的内容见 [更新日志](CHANGELOG.zh-CN.md)。
 
 ## 仓库结构
 
@@ -182,7 +182,7 @@ PRD 中的全部功能作为 **v0.1** 一次发布，每个范围都按最后一
 ├── deploy/          # 自建存储与 workroam-server：install.sh、Compose、Helm、Dockerfile
 ├── scripts/         # 安装脚本与发布工具
 ├── .github/         # CI 与发布工作流、Issue / PR 模板
-├── CHANGELOG.md     # 版本变更记录
+├── CHANGELOG.md     # 版本变更记录（中文：CHANGELOG.zh-CN.md）
 ├── CONTRIBUTING.md  # 贡献指南
 └── LICENSE          # Apache-2.0
 ```

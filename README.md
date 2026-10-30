@@ -182,7 +182,7 @@ See [PRD · Release scope](docs/prd.md#10-发布范围与验收门槛) for detai
 ├── deploy/          # Self-hosted storage and workroam-server: install.sh, Compose, Helm, Dockerfile
 ├── scripts/         # Install scripts and release tooling
 ├── .github/         # CI and release workflows, issue / PR templates
-├── CHANGELOG.md     # Changes per release
+├── CHANGELOG.md     # Changes per release (Chinese: CHANGELOG.zh-CN.md)
 ├── CONTRIBUTING.md  # Contribution guide
 └── LICENSE          # Apache-2.0
 ```

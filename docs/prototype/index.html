@@ -637,8 +637,8 @@ input[type=range]{accent-color:var(--accent);width:150px}
   radial-gradient(40% 50% at 30% 20%,#B79CFF,transparent 65%),
   linear-gradient(160deg,#5D7BFF,#7FC8F2 55%,#9BE7D7)}
 :root{--desk-shade:0}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--desk-shade:.5}}
-:root[data-theme="dark"]{--desk-shade:.5}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--desk-shade:.4}}
+:root[data-theme="dark"]{--desk-shade:.4}
 .desk{position:relative}
 .desk-body{padding-bottom:96px}
 .dock{--r:22px;position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:7px}
@@ -1583,14 +1583,18 @@ function placeInd(box){
   ind.style.width=on.offsetWidth+'px'; ind.style.transform=`translateX(${on.offsetLeft}px)`;
   if(ind.classList.contains('instant')) requestAnimationFrame(()=>requestAnimationFrame(()=>ind.classList.remove('instant')));
 }
-const indIO=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)placeInd(e.target)}));
-function watchInd(root){ $$('.seg,.tabs',root).forEach(b=>{ if(!b.dataset.ind){b.dataset.ind='1';indIO.observe(b);} placeInd(b); }); }
+// Controls can be hidden when first measured (other scene, closed sheet), so re-place every
+// indicator after anything is shown, added or re-selected. There are only a couple of dozen.
+let indRaf=0;
+const syncInd=()=>{ if(indRaf) return; indRaf=requestAnimationFrame(()=>{ indRaf=0; $$('.seg,.tabs').forEach(placeInd); }); };
 new MutationObserver(ms=>{ for(const m of ms){
-  if(m.type==='attributes'){ const box=m.target.parentElement; if(box&&box.matches('.seg,.tabs')) placeInd(box); continue; }
-  for(const n of m.addedNodes) if(n.nodeType===1&&!n.matches('.ind')&&(n.matches('.seg,.tabs')||n.querySelector('.seg'))) watchInd(n.parentNode||n);
-}}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','aria-current']});
-addEventListener('resize',()=>$$('.has-ind').forEach(placeInd));
-document.fonts&&document.fonts.ready.then(()=>$$('.has-ind').forEach(placeInd));
+  if(m.type==='attributes'&&m.attributeName!=='hidden'){ const box=m.target.parentElement; if(box&&box.matches('.seg,.tabs')) placeInd(box); continue; }
+  if(m.type==='childList'&&![...m.addedNodes].some(n=>n.nodeType===1&&!n.matches('.ind'))) continue;
+  syncInd();
+}}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','aria-current','hidden']});
+addEventListener('resize',syncInd);
+document.fonts&&document.fonts.ready.then(syncInd);
+syncInd();
 
 /* ---------- pointer light on glass ---------- */
 let litEl=null;

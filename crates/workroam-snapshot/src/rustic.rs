@@ -495,6 +495,7 @@ impl SnapshotEngine for RusticEngine {
         parent: Option<&str>,
         hostname: &str,
         label: &str,
+        description: &str,
         progress: Option<ProgressFn>,
     ) -> Result<String> {
         let expected: BTreeSet<String> = entries.iter().map(|e| e.path.clone()).collect();
@@ -502,6 +503,9 @@ impl SnapshotEngine for RusticEngine {
         let mut so = SnapshotOptions::default();
         so.host = Some(hostname.to_string());
         so.label = Some(label.to_string());
+        if !description.is_empty() {
+            so.description = Some(description.to_string());
+        }
         let mut so = so;
         for t in tags {
             so = so.add_tags(t).map_err(rerr)?;
@@ -532,7 +536,7 @@ impl SnapshotEngine for RusticEngine {
             .collect();
         let missing: Vec<&String> = expected.difference(&got).collect();
         if !missing.is_empty() {
-            if let Err(e) = self.forget(&[id.clone()]) {
+            if let Err(e) = self.forget(std::slice::from_ref(&id)) {
                 tracing::warn!("could not remove incomplete snapshot {id}: {e}");
             }
             return Err(Error::internal(format!(
@@ -796,7 +800,7 @@ mod tests {
         ];
         let tags = vec!["workroam".to_string(), "workroam:project=abc".to_string()];
         let id = eng
-            .backup(entries, &tags, None, "dev1", "abc", None)
+            .backup(entries, &tags, None, "dev1", "abc", "", None)
             .unwrap();
         assert_eq!(eng.read_file(&id, "a.txt").unwrap().unwrap(), b"hello");
         assert_eq!(
@@ -818,6 +822,7 @@ mod tests {
                 Some(&id),
                 "dev1",
                 "abc",
+                "",
                 None,
             )
             .unwrap();
@@ -858,7 +863,7 @@ mod tests {
             mtime: None,
         }];
         assert!(eng
-            .backup(entries, &["workroam".into()], None, "h", "l", None)
+            .backup(entries, &["workroam".into()], None, "h", "l", "", None)
             .is_err());
         assert!(eng.list().unwrap().is_empty());
     }

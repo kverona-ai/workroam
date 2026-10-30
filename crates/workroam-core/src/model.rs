@@ -92,7 +92,7 @@ impl OsKind {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 pub struct DeviceRef {
     pub id: String,
     pub name: String,
@@ -131,12 +131,18 @@ impl Default for WorkspaceSettings {
 }
 
 /// Access key pair as stored in `control/credentials` and the pairing code.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema, Default)]
 pub struct AccessKey {
     pub access_key: String,
     pub secret_key: String,
     #[serde(default)]
     pub scope: Access,
+    /// Key provisioner that created it (`aws-iam`, `minio-admin`, `garage`).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider: Option<String>,
+    /// Provider handle used to revoke the key.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub provider_ref: Option<String>,
 }
 
 /// `control/credentials` (encrypted, architecture §8.3).

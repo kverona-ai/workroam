@@ -464,7 +464,7 @@ fn export_remote(
     local: &mut RepoLocal,
 ) -> Result<Export> {
     let via = o.cfg.via.clone().unwrap_or_else(|| "origin".into());
-    for (b, _) in &branches {
+    for b in branches.keys() {
         git.run(&[
             "push",
             "--quiet",
@@ -655,7 +655,7 @@ pub fn import(o: &ImportOptions) -> Result<ImportOutcome> {
     };
     let current = git.current_branch();
     let mut new_transported = BTreeMap::new();
-    for (b, _) in &o.man.branches {
+    for b in o.man.branches.keys() {
         let Some(incoming) = git.rev_parse(&format!("{IN}{b}")) else {
             continue;
         };

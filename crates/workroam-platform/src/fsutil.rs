@@ -20,10 +20,10 @@ pub fn replace_file(
             (None, _) => false,
         };
         if !ok {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("{} changed while syncing", path.display()),
-            ));
+            return Err(io::Error::other(format!(
+                "{} changed while syncing",
+                path.display()
+            )));
         }
     }
     let dir = path.parent().unwrap_or_else(|| Path::new("."));
@@ -34,10 +34,10 @@ pub fn replace_file(
         if meta.file_type().is_symlink() {
             std::fs::remove_file(path)?;
         } else if meta.is_dir() {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("{} is a directory", path.display()),
-            ));
+            return Err(io::Error::other(format!(
+                "{} is a directory",
+                path.display()
+            )));
         }
     }
     let tmp = temp_name(path);

@@ -121,6 +121,7 @@ pub trait SnapshotEngine: Send + Sync {
         parent: Option<&str>,
         hostname: &str,
         label: &str,
+        description: &str,
         progress: Option<ProgressFn>,
     ) -> Result<String>;
     fn read_file(&self, snapshot: &str, path: &str) -> Result<Option<Vec<u8>>>;

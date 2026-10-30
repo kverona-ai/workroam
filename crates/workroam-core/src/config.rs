@@ -260,6 +260,27 @@ pub struct MachineConfig {
 }
 
 impl MachineConfig {
+    /// A fresh configuration for this computer.
+    pub fn new(name: &str, root: &str, workspace: WorkspaceLocation) -> MachineConfig {
+        MachineConfig {
+            name: name.to_string(),
+            os: OsKind::current(),
+            device_id: crate::crypto::random_id("d"),
+            access: Access::ReadWrite,
+            root: root.to_string(),
+            reachable: Vec::new(),
+            autostart: true,
+            workspace,
+            sync: SyncConfig::default(),
+            notify: NotifyConfig::default(),
+            ui: UiConfig::default(),
+            mcp: McpSettings::default(),
+            remote: RemoteSettings::default(),
+            backup: None,
+            projects: BTreeMap::new(),
+        }
+    }
+
     pub fn load(path: &Path) -> Result<Option<MachineConfig>> {
         match std::fs::read_to_string(path) {
             Ok(s) => Ok(Some(toml::from_str(&s)?)),
@@ -321,6 +342,9 @@ pub struct ProjectSync {
     pub auto: Option<AutoMode>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_requires_approval: Option<bool>,
+    /// Migrate agent sessions with the project (default on).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sessions: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]

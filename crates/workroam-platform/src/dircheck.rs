@@ -190,7 +190,7 @@ mod tests {
     fn nested_projects() {
         let d = tempfile::tempdir().unwrap();
         let a = d.path().join("a");
-        let issues = check_project_dir(&a.join("b"), &[a.clone()]);
+        let issues = check_project_dir(&a.join("b"), std::slice::from_ref(&a));
         assert!(issues.iter().any(|i| i.kind == "nested" && i.blocking));
         let issues = check_project_dir(&a, &[a.join("b")]);
         assert!(issues.iter().any(|i| i.kind == "contains_project"));

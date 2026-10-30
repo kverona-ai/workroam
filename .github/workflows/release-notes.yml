@@ -1,0 +1,39 @@
+name: Release notes
+
+# 重新生成已发布版本的说明（例如修改了 CHANGELOG 或说明模板之后）：
+#   Actions → Release notes → Run workflow，填写 tag（如 v0.1.0）
+# 使用默认分支上的 scripts/release/notes.sh 与 CHANGELOG，只改说明，不动附件。
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 要刷新说明的 tag（如 v0.1.0）
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  notes:
+    name: Regenerate notes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Regenerate and update
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          case "$TAG" in v[0-9]*.[0-9]*.[0-9]*) ;; *) echo "::error::tag 应形如 v0.1.0"; exit 1 ;; esac
+          gh release view "$TAG" >/dev/null || { echo "::error::$TAG 还没有 Release"; exit 1; }
+          # 只需要文件名：按 Release 现有附件建空文件，下载表据此生成
+          mkdir -p dist
+          gh release view "$TAG" --json assets --jq '.assets[].name' | while IFS= read -r f; do : > "dist/$f"; done
+          # 文档链接优先指向该 tag；那时还没有这些文档时改指向默认分支
+          if git cat-file -e "$TAG:docs/deployment.md" 2>/dev/null; then ref="$TAG"; else ref="$GITHUB_REF_NAME"; fi
+          DOCS_REF="$ref" scripts/release/notes.sh "${TAG#v}" dist > release-notes.md
+          gh release edit "$TAG" --notes-file release-notes.md
+          cat release-notes.md >> "$GITHUB_STEP_SUMMARY"

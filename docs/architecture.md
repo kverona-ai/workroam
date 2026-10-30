@@ -2,7 +2,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 版本 | 1.2（新增命令行与界面一致性、命令行启动横幅） |
+| 版本 | 1.3（新增 Agent 接入；命令行与界面一致性、命令行启动横幅） |
 | 覆盖范围 | 产品最终形态 v0.3，各模块标注首次交付版本 |
 | 最后更新 | 2026-10-30 |
 | 关联文档 | [产品需求](prd.md) · [架构决策记录](adr/README.md) · [桌面应用与命令行功能对照](cli-ui-parity.md) |
@@ -26,8 +26,8 @@
 13. [自动同步与触发](#13-自动同步与触发v03)
 14. [跨平台层](#14-跨平台层)
 15. [进程间通信协议](#15-进程间通信协议)
-16. [命令行与界面一致性](#16-命令行与界面一致性)
-17. [Agent 用 MCP server](#17-agent-用-mcp-serverv03)
+16. [Agent 接入](#16-agent-接入)
+17. [命令行与界面一致性](#17-命令行与界面一致性)
 18. [轻量服务端（可选）](#18-轻量服务端可选v03)
 19. [安全架构](#19-安全架构)
 20. [部署架构](#20-部署架构)
@@ -47,7 +47,7 @@
 5. **先写数据、后写指针。** 对外可见的状态切换都是一次原子写，中断不会留下半成品。
 6. **人始终在环中。** 同步默认需要授权，Agent 发起的也一样。
 7. **差异用数据描述。** Agent 差异写在适配器数据文件里。
-8. **一套逻辑，多个入口。** 桌面应用、命令行和 MCP server 都通过同一个后台服务调用同一套核心逻辑；桌面应用与命令行功能对等，每项功能在两端都有入口（§16）。
+8. **一套逻辑，多个入口。** 桌面应用、命令行、本机 MCP server 和远程连接器都通过同一个后台服务调用同一套核心逻辑，授权规则相同；桌面应用与命令行功能对等，每项功能在两端都有入口（§17）。
 
 ## 2. 系统上下文
 
@@ -70,7 +70,8 @@ flowchart LR
         HA -- CLI / MCP --> HC
     end
     S[("S3 兼容存储<br/>加密快照 · 控制对象")]
-    W["workroam-server（可选）<br/>配对 · 推送 · Web"]
+    W["workroam-server（可选）<br/>配对 · 推送 · Web · 远程连接器"]
+    CA["云端个人 Agent<br/>Grok Bot · Muse"]
     P["手机"]
     G["内网 git"]
     OC <-- HTTPS 443 --> S
@@ -78,10 +79,12 @@ flowchart LR
     OC -. HTTPS .-> W
     HC -. HTTPS .-> W
     W -. 推送提醒 / Web .-> P
+    CA -. 远程 MCP .-> W
+    OC -. 设备中继（出站） .-> W
     OP -- 回公司后 git push --> G
 ```
 
-两台机器之间没有直连，只通过存储交换加密快照；内网 git 只在能访问内网的设备上推送。
+两台机器之间没有直连，只通过存储交换加密快照；内网 git 只在能访问内网的设备上推送。本机 Agent 通过 CLI 或本机 MCP 调用客户端；云端个人 Agent 只能经 `workroam-server` 的远程连接器，由在线设备代为执行（§16）。
 
 ## 3. 组件
 
@@ -92,13 +95,14 @@ flowchart TB
     subgraph Client["客户端（每台机器）"]
         CLI["workroam CLI"]
         App["桌面应用（Tauri v2）<br/>向导 · 卡片 · 设置"]
-        MCP["workroam mcp<br/>（Agent 用 MCP server）"]
+        MCP["workroam mcp<br/>（本机 MCP server）"]
         subgraph D["workroamd 后台服务"]
             API["IPC 服务端"]
             Jobs["作业调度"]
             Trig["触发检测"]
             Watch["文件监听"]
             Appr["授权管理"]
+            Relay["设备中继"]
         end
         subgraph Core["核心库"]
             Setup["初始化与检查"]
@@ -117,6 +121,7 @@ flowchart TB
     App <--> API
     MCP <--> API
     API --> Jobs
+    Relay --> API
     Watch --> Trig --> Jobs
     Jobs --> Appr
     Jobs --> Setup & Dev & Engine & Arc
@@ -132,9 +137,10 @@ flowchart TB
 | 组件 | 职责 |
 | --- | --- |
 | `workroamd` | 后台服务：作业调度、触发检测、文件监听、授权管理、事件推送；开启异地备份的设备上还负责定期镜像；以用户级服务开机自启（macOS launchd、Windows 登录任务、Linux systemd 用户服务） |
-| `workroam` CLI | 用户与 Agent 的命令行入口，与桌面应用功能对等（§16）；后台服务未运行时临时在前台启动一个实例；交互式启动时显示启动横幅（§16.3） |
+| `workroam` CLI | 用户与本机 Agent 的命令行入口，所有命令支持 `--json`，与桌面应用功能对等（§17）；后台服务未运行时临时在前台启动一个实例；交互式启动时显示启动横幅（§17.3） |
 | 桌面应用 | 托盘图标、初始化与项目接入向导、四种卡片、主窗口与设置界面；只负责展示和转达用户选择 |
 | `workroam mcp` | stdio MCP server，把 MCP 工具调用转成 IPC 请求（v0.3） |
+| 设备中继 | `workroamd` 内的模块：开启远程连接时与 `workroam-server` 保持出站连接，把云端 Agent 的工具调用作为 IPC 请求执行（v0.3） |
 
 ### 3.2 服务端
 
@@ -142,7 +148,7 @@ flowchart TB
 | --- | --- | --- |
 | S3 兼容存储 | 是 | RustFS（默认）、Garage、SeaweedFS，或 AWS S3、Cloudflare R2、阿里云 OSS 等 |
 | Caddy | 自建时 | TLS 终结与自动证书，单一域名 443 |
-| `workroam-server` | 否 | 配对码与每设备凭证、推送转发、Web 界面静态资源（v0.3） |
+| `workroam-server` | 否 | 配对码与每设备凭证、推送转发、Web 界面静态资源、远程连接器与设备中继（v0.3） |
 
 ### 3.3 四层数据
 
@@ -174,12 +180,12 @@ flowchart TB
 │   ├── workroam-ipc/          # IPC 协议定义与传输，导出 JSON Schema
 │   ├── workroam-engine/       # 推送 / 拉取 / 恢复流程编排、触发策略
 │   ├── workroamd/             # 后台服务（二进制）
-│   ├── workroam-cli/          # 命令行与 MCP server（二进制，名为 workroam）
+│   ├── workroam-cli/          # 命令行与本机 MCP server（二进制，名为 workroam）
 │   └── workroam-server/       # 可选服务端（二进制，v0.3）
 ├── apps/
 │   ├── desktop/               # Tauri v2 桌面应用
 │   └── web/                   # Web 界面（浏览器内解密，WASM，v0.3）
-├── adapters/                  # 适配器数据文件
+├── adapters/                  # 适配器数据文件；skills/workroam/ 为 Workroam Skill 模板
 └── deploy/                    # install.sh、Compose、Caddyfile、Helm Chart
 ```
 
@@ -268,7 +274,7 @@ ntfy = ""                        # 可选：ntfy 主题地址
 on_success = true                # 同步完成时提醒
 
 [ui]
-banner = true                    # 命令行启动横幅（§16.3）
+banner = true                    # 命令行启动横幅（§17.3）
 lang = ""                        # 空为跟随系统
 
 [projects.proj-a]
@@ -407,7 +413,7 @@ stateDiagram-v2
 
 ### 7.1 入口与共用逻辑
 
-桌面向导与 `workroam setup` 都调用 `workroamd` 的 `setup.*` 方法，步骤、检查项和结果完全一致。`workroam setup` 有交互式问答与非交互两种模式：标准输入是终端且没有给 `--yes` 时为交互模式，逐步提问，选项、默认值、校验规则和提示文本与向导相同（§16.1）；否则为非交互模式，缺少必要参数时以退出码 2 结束并列出缺少的参数。
+桌面向导与 `workroam setup` 都调用 `workroamd` 的 `setup.*` 方法，步骤、检查项和结果完全一致。`workroam setup` 有交互式问答与非交互两种模式：标准输入是终端且没有给 `--yes` 时为交互模式，逐步提问，选项、默认值、校验规则和提示文本与向导相同（§17.1）；否则为非交互模式，缺少必要参数时以退出码 2 结束并列出缺少的参数。
 
 ```bash
 # 新建工作区
@@ -857,6 +863,35 @@ rewrite_fields = ["cwd"]
 
 [exclude]
 paths = ["~/.claude/.credentials.json"]
+
+[connect]
+kind = "local"
+skill = true                  # 链接 Workroam Skill（经 [skills].link）
+mcp = "stdio"                 # 可选：把 workroam mcp 写入 [mcp].path
+```
+
+云端个人 Agent 的适配器只有 `[connect]` 段，没有规则、Skills、MCP 与会话的生成，因为它们不在本机读写项目：
+
+```toml
+# adapters/grok-bot.toml
+id = "grok-bot"
+name = "Grok Bot"
+adapter_version = 1
+
+[connect]
+kind = "cloud"
+transport = "streamable-http"
+auth = "oauth"
+setup = { open_url = "https://grok.com/connectors" }   # 打开连接器设置页
+skill_upload = "manual"                                # 提示用户上传 Workroam Skill
+webhook = "optional"                                   # 支持例行任务 webhook 触发
+
+# adapters/muse.toml（节选）
+# [connect]
+# kind = "cloud"
+# transport = "streamable-http"
+# auth = "oauth"
+# setup = { chat_prompt = "connect-remote-mcp" }      # 生成一段粘贴给 Agent 的设置说明
 ```
 
 ### 12.2 适配矩阵（实现时逐项实测确认）
@@ -869,6 +904,8 @@ paths = ["~/.claude/.credentials.json"]
 | Antigravity | `AGENTS.md`；`.agents/rules` 引用 | `.agents/skills` 原生 | `.agents/mcp_config.json` | 实现时实测 | v0.2 |
 | ZCode | 项目根 `AGENTS.md` | 实现时实测 | 实现时实测 | 实现时实测 | v0.2 |
 | Pi | `AGENTS.md` | 实现时实测 | 实现时实测 | 实现时实测 | v0.2 |
+
+云端个人 Agent（Grok Bot、Muse）的接入方式见 §16.4，首次交付 v0.3。
 
 ### 12.3 导入、生成与剥离
 
@@ -911,11 +948,11 @@ paths = ["~/.claude/.credentials.json"]
 
 ## 15. 进程间通信协议
 
-桌面应用、CLI、MCP server 与 `workroamd` 之间使用语言无关的协议，桌面应用的实现可以独立替换（ADR-0002）。
+桌面应用、CLI、本机 MCP server、设备中继与 `workroamd` 之间使用语言无关的协议，桌面应用的实现可以独立替换（ADR-0002）。
 
 - **传输**：macOS / Linux 使用 Unix domain socket（`$XDG_RUNTIME_DIR/workroam/workroamd.sock`；macOS 为 `~/Library/Application Support/Workroam/workroamd.sock`，权限 0600）；Windows 使用命名管道 `\\.\pipe\workroam-<用户 SID>`，ACL 仅当前用户；
 - **编码**：每行一个 UTF-8 JSON 对象，遵循 JSON-RPC 2.0；服务端事件为无 `id` 的通知；
-- **握手**：客户端先发 `hello { protocol: 1, client: "desktop" | "cli" | "mcp", version }`，主版本不同则拒绝；
+- **握手**：客户端先发 `hello { protocol: 1, client: "desktop" | "cli" | "mcp" | "relay", version }`，主版本不同则拒绝；设备中继发来的请求另带 `origin: { connection_id, agent }`，用于授权和卡片上的发起方；
 - **定义**：`workroam-ipc` 中的类型同时导出 JSON Schema。
 
 | 方法 / 事件 | 方向 | 说明 |
@@ -936,11 +973,12 @@ paths = ["~/.claude/.credentials.json"]
 | `archive.export` / `archive.import` | 客户端 → 服务端 | 归档包（v0.3） |
 | `backup.configure` / `backup.run` / `verify.run` | 客户端 → 服务端 | 异地备份与完整性校验（v0.3） |
 | `prune.run` | 客户端 → 服务端 | 按保留策略清理快照（v0.2） |
-| `config.list` / `config.get` / `config.set` | 客户端 → 服务端 | 读写本机、项目与工作区设置（§16.2） |
-| `agent.list` | 客户端 → 服务端 | 检测到的 Agent、版本与适配器匹配情况 |
+| `config.list` / `config.get` / `config.set` | 客户端 → 服务端 | 读写本机、项目与工作区设置（§17.2） |
+| `agent.webhook` | 客户端 → 服务端 | 配置云端 Agent 的事件 webhook（v0.3） |
 | `credentials.update` | 客户端 → 服务端 | 验证并更新本机密钥库中的访问密钥 |
 | `password.change` / `password.reset` | 客户端 → 服务端 | 修改加密密码；用恢复密钥重设（替换仓库密钥文件，不重新加密数据） |
 | `sync.pause` / `sync.resume` | 客户端 → 服务端 | 暂停 / 恢复自动同步（v0.3） |
+| `agent.list` / `agent.connect` / `agent.disconnect` | 客户端 → 服务端 | 本机 Agent 检测与补齐配置；云端 Agent 连接的创建、授权与撤销（§16） |
 | `subscribe` | 客户端 → 服务端 | 订阅事件流 |
 | `setup.check_result` | 服务端 → 客户端 | 单项检查结果（逐项推送，界面实时刷新） |
 | `approval.requested` | 服务端 → 客户端 | 需要授权（卡片内容） |
@@ -967,18 +1005,141 @@ paths = ["~/.claude/.credentials.json"]
 | 22 | 校验发现数据损坏 |
 | 30 | 后台服务不可用 |
 
-## 16. 命令行与界面一致性
+## 16. Agent 接入
 
-桌面应用与命令行功能对等（PRD §8.22、ADR-0008）。逐项对照见 [cli-ui-parity.md](cli-ui-parity.md)。
+Agent 分两类（ADR-0008）。本机 Agent 与项目在同一台电脑上，能执行命令，命令行就够用；云端个人 Agent 运行在服务商的云端，碰不到用户电脑，只能添加远程 MCP 连接器，因此由可选的 `workroam-server` 提供远程连接器，再由用户在线的设备代为执行。
 
-### 16.1 实现原则
+```mermaid
+flowchart LR
+    subgraph Dev["用户设备"]
+        LA["本机 Agent<br/>Claude Code · Codex · Grok Build …"]
+        CLI["workroam CLI（--json）"]
+        M["workroam mcp（stdio，可选）"]
+        D["workroamd"]
+        LA -- 执行命令 --> CLI --> D
+        LA -. MCP 工具 .-> M --> D
+    end
+    CA["云端个人 Agent<br/>Grok Bot · Muse"] -- 远程 MCP · OAuth --> SV["workroam-server<br/>/mcp"]
+    D -- 出站连接（设备中继） --> SV
+```
+
+| 入口 | 适用 | 传输 | 首次交付 |
+| --- | --- | --- | --- |
+| CLI + `--json` + Workroam Skill | 本机 Agent（基础接口） | 子进程 | v0.1 |
+| `workroam mcp` | 偏好工具调用的本机 Agent | stdio | v0.3 |
+| 远程连接器 | 云端个人 Agent | Streamable HTTP + OAuth，经设备中继 | v0.3 |
+
+所有入口最终都是 `workroamd` 的 IPC 客户端，授权规则一致；远程入口在此基础上更严格（§16.4）。
+
+### 16.1 CLI 与 JSON 输出（v0.1）
+
+- 所有命令支持 `--json`：标准输出只输出一个 JSON 对象（长时间作业为每行一个 JSON 事件，最后一行为结果），带 `schema_version`；人类可读的提示改走标准错误；
+- 等待授权时输出 `{"event":"approval_pending","job_id":…,"timeout_s":600}`，Agent 据此提示用户去卡片上确认；
+- 退出码与 §15 一致，JSON 结果中的 `code` 字段与退出码相同；
+- JSON 结构由 `workroam-ipc` 的类型生成 JSON Schema，作为公开接口保持向后兼容。
+
+### 16.2 Workroam Skill（v0.1）
+
+- 模板在 `adapters/skills/workroam/SKILL.md`，随二进制发布；接入项目时写入 `.agents/skills/workroam/`（共享源文件，参与同步），按各适配器的 `[skills]` 链接到 Agent 的 Skills 目录；
+- 内容：触发语（“我要下班了”“同步下来”等）、推送前先更新 `HANDOFF.md`、调用哪条命令与参数、怎样等待确认、怎样解读 JSON 结果与退出码、冲突时怎么办；
+- `AGENTS.md` 中的“工作区同步”约定只保留几行并指向该 Skill，供不支持 Skills 的 Agent 使用；
+- 同一份 Skill 也提供给云端个人 Agent 上传，云端版本把命令换成远程工具名。
+
+### 16.3 本机 MCP server（v0.3）
+
+`workroam mcp` 以 stdio 运行；接入项目时按适配器的 `[connect].mcp` 写入各 Agent 的项目级 MCP 配置，用户可关闭。
+
+| 工具 | 参数 | 行为 |
+| --- | --- | --- |
+| `status` | — | 返回租约、最新快照、本地未同步改动、本机能推送的仓库 |
+| `push` | `release: bool` | 发起推送；等待用户在卡片上确认，返回结果或“被拒绝 / 超时” |
+| `pull` | — | 发起拉取；同样需要确认 |
+| `history` | `limit` | 返回最近的快照列表 |
+| `handoff_template` | — | 返回 HANDOFF.md 模板与本次需要填写的提示 |
+
+MCP 调用只是另一个 IPC 客户端，授权规则与 CLI 完全相同。
+
+### 16.4 远程连接器与设备中继（v0.3）
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as 云端个人 Agent
+    participant SV as workroam-server
+    participant D as workroamd（目标设备）
+    actor U as 用户
+    D->>SV: 建立出站连接（WebSocket，每设备凭证）
+    A->>SV: tools/call request_push {project}（Bearer 令牌）
+    SV->>SV: 校验令牌、权限与项目范围，选目标设备
+    SV->>D: 转发调用
+    D->>U: 授权卡片（发起方：Grok Bot）
+    U->>D: 同意
+    D->>D: 执行推送
+    D->>SV: 结果
+    SV->>A: 结果
+```
+
+**端点与传输**
+
+- `https://<域名>/mcp`：MCP Streamable HTTP；`https://<域名>/oauth/*`：OAuth 2.1 授权服务器（授权码 + PKCE，支持动态客户端注册）；经 Caddy 走同一个 443 端口；
+- 设备中继：开启远程连接的设备由 `workroamd` 主动连接 `wss://<域名>/relay`，用每设备凭证认证（§8.4），断线指数退避重连；设备不需要公网地址。
+
+**授权（服务端没有用户账号，授权在设备上完成）**
+
+1. 用户在桌面“设置 → Agent”中选择要连接的云端 Agent，桌面应用调用 `agent.connect`，服务端生成该连接的地址；
+2. 云端 Agent 发起 OAuth 授权，服务端授权页显示 6 位确认码，并通过中继通知在线设备；
+3. 设备弹出授权卡片：Agent 名称、确认码、权限（只读 / 可请求同步）、可访问的项目（默认不选）；
+4. 用户核对确认码并同意，设备用设备凭证签名授权记录发给服务端，服务端发放访问令牌（1 小时）与刷新令牌（30 天，可撤销）；
+5. 授权记录（连接 ID、Agent、权限、项目范围）加密保存为控制对象，所有设备可见；撤销在任一设备上操作，服务端立即作废令牌。
+
+**工具**
+
+| 工具 | 权限 | 行为 |
+| --- | --- | --- |
+| `list_projects` | 只读 | 连接可访问的项目及各项目的租约持有设备、最近同步时间 |
+| `status` | 只读 | 指定项目的状态（同 CLI `status`），并标注目标设备是否在线 |
+| `history` | 只读 | 最近的快照列表（编号、时间、设备、变更概要） |
+| `read_handoff` | 只读 | 返回该项目最新快照中的 `HANDOFF.md` |
+| `request_push` | 可请求同步 | 请求持有租约的设备推送，可选释放租约；每次都弹出确认卡片 |
+| `request_pull` | 可请求同步 | 请求指定设备拉取；每次都弹出确认卡片 |
+
+**目标设备与离线**
+
+- 默认目标为持有该项目租约的设备；没有租约时为用户在设置中指定的“默认代理设备”；
+- 目标设备离线时，只读工具返回“设备离线”及最后在线时间；`request_push` / `request_pull` 由服务端排队，最多 24 小时，设备上线后弹出卡片，过期即丢弃；
+- 服务端只在内存中转发调用，不持久化参数与结果；日志只记录连接 ID、工具名、目标设备与结果码。
+
+**数据边界**
+
+- TLS 在服务端终止，调用参数和结果经过用户自托管的服务端；返回给云端 Agent 的内容会进入服务商云端，不受端到端加密保护；
+- 远程连接默认关闭，在设备上按项目开启；只返回状态摘要和 `HANDOFF.md`，不返回其他文件内容，不传任何密钥；
+- 远程发起的推送与拉取不受“1 小时内不再询问”影响，每次都要确认。
+
+### 16.5 一键接入
+
+| Agent 类型 | 用户操作 | Workroam 做的事 |
+| --- | --- | --- |
+| 本机 Agent | 接入项目（`workroam init` 或桌面“接入项目”）；之后新装的 Agent 在“设置 → Agent”点“接入” | 按适配器生成规则引用、MCP 配置、Skills 链接与 Workroam Skill，覆盖本机所有已接入项目 |
+| 云端个人 Agent | “设置 → Agent → 连接 <Agent>”，在对方添加连接器，回到卡片核对确认码 | 生成连接地址；按适配器 `[connect].setup` 打开对方的连接器页面，或复制一段可直接粘贴给 Agent 的设置说明；提供 Workroam Skill 文件；完成授权 |
+
+### 16.6 事件 webhook（可选，v0.3）
+
+- 用户可为某个云端 Agent 配置 webhook 地址与密钥（例如 Grok Bot 例行任务的 webhook 触发器），密钥存系统密钥库；
+- 推送完成、失败、到达时，由产生事件的设备直接 POST，内容只有项目名、事件类型、设备、时间与变更概要；
+- 发送失败只记录，不重试超过 3 次，不影响同步。
+
+## 17. 命令行与界面一致性
+
+桌面应用与命令行功能对等（PRD §8.22、ADR-0009）。逐项对照见 [cli-ui-parity.md](cli-ui-parity.md)。
+
+### 17.1 实现原则
 
 - **一项功能，一个 IPC 方法。** 功能的业务逻辑、校验与默认值都在 `workroamd` 一侧；桌面应用与命令行只是两个 IPC 客户端，只负责收集输入和展示结果。任何一侧都不允许自行实现另一侧没有的逻辑。
 - **同一份文本。** 选项文字、校验提示、检查项的修复建议、确认提示放在 `workroam-core` 的中英双语文本资源中，桌面应用通过 IPC 结果中的文本键取用，命令行直接链接同一资源。
 - **同样的确认。** 桌面上需要用户确认的操作（授权、删除归档、移除设备、权限过宽的密钥），命令行在交互模式下给出同样的提示；非交互模式必须用显式参数（`--confirm`、`--accept-broad-key` 等）确认。`--yes` 只回答命令内的一般确认，不能代替同步授权与需要输入名称的确认。
 - **同一版本交付。** 一项功能的两端入口在同一版本发布；一侧未完成时，这项功能整体推迟。
 
-### 16.2 命令结构与设置键
+### 17.2 命令结构与设置键
 
 命令按“名词 + 动词”组织（`project add`、`archive restore`），日常高频命令保留顶层动词（`push`、`pull`、`status`、`approve`）。命令默认作用于当前目录所在的项目；`-p, --project` 指定其他项目，`--all` 作用于本机全部项目。全局参数见 PRD §8.17.2。
 
@@ -991,11 +1152,13 @@ paths = ["~/.claude/.credentials.json"]
 | `sync.idle_minutes`、`sync.on_sleep`、`sync.on_wake`、`sync.approval_timeout` | 本机 | `machine.toml` |
 | `notify.ntfy`、`notify.on_success` | 本机 | `machine.toml` |
 | `ui.banner`、`ui.lang` | 本机 | `machine.toml` |
+| `mcp.enabled` | 本机，项目可覆盖 | `machine.toml` / `workroam.toml`（v0.3） |
+| `remote.enabled`、`remote.default_device` | 项目 / 工作区 | 连接授权记录所在的控制对象（§16.4，v0.3） |
 | `retention.days`、`retention.weekly` | 工作区 | `control/settings`（加密） |
 
 访问密钥与加密密码不经过 `config`：分别用 `workroam credentials update` 与 `workroam password change / reset`（桌面设置“存储”与“加密”），只写系统密钥库与仓库密钥文件。
 
-### 16.3 启动横幅
+### 17.3 启动横幅
 
 **显示条件**（PRD CLI-01、CLI-02）：
 
@@ -1038,7 +1201,7 @@ show_banner =
 
 **示例**：彩色效果见 [assets/cli-banner.svg](assets/cli-banner.svg)（`workroam` 无参数时横幅与状态摘要的完整首屏）。
 
-### 16.4 一致性检查
+### 17.4 一致性检查
 
 `crates/workroam-ipc/parity.toml` 是功能清单，每个面向用户的功能一条：
 
@@ -1067,20 +1230,6 @@ CI 中的 `cargo test -p workroam-ipc parity` 检查：
 
 任何一项不通过，构建失败。
 
-## 17. Agent 用 MCP server（v0.3）
-
-`workroam mcp` 以 stdio 运行，接入项目时自动加入各 Agent 的项目级 MCP 配置。
-
-| 工具 | 参数 | 行为 |
-| --- | --- | --- |
-| `status` | — | 返回租约、最新快照、本地未同步改动、本机能推送的仓库 |
-| `push` | `release: bool` | 发起推送；等待用户在卡片上确认，返回结果或“被拒绝 / 超时” |
-| `pull` | — | 发起拉取；同样需要确认 |
-| `history` | `limit` | 返回最近的快照列表 |
-| `handoff_template` | — | 返回 HANDOFF.md 模板与本次需要填写的提示 |
-
-MCP 调用只是另一个 IPC 客户端，授权规则与 CLI 完全相同。
-
 ## 18. 轻量服务端（可选，v0.3）
 
 ```mermaid
@@ -1090,11 +1239,14 @@ flowchart LR
     B -- 直接读取密文 --> S[("S3 存储")]
     SV -- 管理接口：签发 / 吊销设备密钥 --> S
     SV -- 推送 --> N["ntfy"]
+    CA["云端个人 Agent"] -- 远程 MCP --> SV
+    D -- 设备中继 --> SV
 ```
 
 - **配对与设备凭证**：见 §8.4；
 - **推送转发**：客户端把完成、失败、到达事件发给服务端，服务端转发到配置的 ntfy 主题；未部署服务端时客户端直接调用 ntfy；
 - **Web 界面**：`apps/web` 是静态页面，快照读取与解密逻辑编译为 WASM，在浏览器中用加密密码解锁仓库并直接从 S3 读取密文（浏览器使用只读密钥，存储需配置 CORS）；服务端只提供页面与配对，永远看不到明文；
+- **远程连接器与设备中继**：见 §16.4；服务端只转发调用，不持久化内容；
 - 服务端是单个容器，`install.sh --with-server` 时与存储、Caddy 一起部署。
 
 ## 19. 安全架构
@@ -1130,6 +1282,9 @@ flowchart TB
 | Agent 误操作或被项目文件诱导执行同步 | 默认人工确认；卡片显示发起方；超时按“稍后” |
 | 凭证被同步到其他机器 | 适配器强制排除；MCP 密钥 `${secret:xxx}` 本机解析，生成文件不同步 |
 | 本机其他用户调用后台服务 | socket 权限 0600 / 命名管道 ACL 仅当前用户 |
+| 云端个人 Agent 被提示注入或令牌泄露 | 远程工具最小化、不返回文件内容；连接限定项目与权限；推送与拉取每次在设备上确认；令牌短期有效、可随时撤销 |
+| 未经同意连接远程连接器 | OAuth 授权必须在设备卡片上核对确认码；服务端无法自行发放令牌 |
+| 内容经云端 Agent 外流 | 远程连接默认关闭、按项目开启并明确提示；只返回状态摘要与 `HANDOFF.md` |
 | 传输被窃听 | 全部 HTTPS |
 | 内网代码外流的合规风险 | 按项目开启；`snapshot` 历史档位；文档明确提示 |
 
@@ -1171,7 +1326,7 @@ flowchart LR
 | 跨平台端到端 | Windows 推送 → macOS 拉取 → 修改 → Windows 拉取 | GitHub Actions 三系统矩阵，共用一个 RustFS |
 | 适配器一致性 | 生成结果与快照文件比对；Agent 版本识别 | 三系统 CI |
 | 桌面应用 | 向导、主窗口与卡片的端到端测试 | 三系统 CI |
-| 界面与命令行一致性 | 功能清单检查（§16.4）；同一场景分别经桌面与命令行执行，IPC 请求与结果一致 | Linux CI |
+| 界面与命令行一致性 | 功能清单检查（§17.4）；同一场景分别经桌面与命令行执行，IPC 请求与结果一致 | Linux CI |
 | 启动横幅 | 四种颜色级别 × 完整 / 单行的快照测试；显示条件矩阵；管道与 `--json` 输出中不含横幅 | 三系统 CI |
 | 许可证 | `cargo-deny` | CI |
 
@@ -1186,7 +1341,8 @@ flowchart LR
 | 桌面应用 | Tauri v2 + tray、notification、autostart、positioner 插件 | 体积小、三系统、与 Rust 同栈（ADR-0002） |
 | IPC | JSON-RPC 2.0（换行分隔）over UDS / 命名管道 | 语言无关 |
 | 命令行交互 | clap + dialoguer + indicatif + anstream / anstyle + terminal_size | 参数解析、交互式向导、进度条；终端能力检测与颜色降级（含 Windows 控制台）、终端宽度 |
-| MCP server | rmcp | Rust 官方 MCP SDK |
+| MCP server | rmcp（stdio 与 Streamable HTTP） | Rust 官方 MCP SDK；本机 MCP server 与远程连接器共用 |
+| 远程连接器授权 | OAuth 2.1（授权码 + PKCE） | MCP 规范要求的授权方式，云端 Agent 普遍支持 |
 | 密钥库 | keyring | 统一访问三系统密钥库 |
 | 配对码加密 | scrypt + XChaCha20-Poly1305 | 与仓库密钥派生方式一致，抗暴力破解 |
 | 异步运行时 | Tokio | 生态成熟 |

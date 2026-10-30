@@ -2,7 +2,7 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 版本 | 1.2（新增界面与命令行一致性、命令行启动横幅） |
+| 版本 | 1.3（新增 Agent 接入；界面与命令行一致性、命令行启动横幅） |
 | 覆盖范围 | 产品最终形态 v0.3，按 v0.1 → v0.2 → v0.3 分阶段交付 |
 | 状态 | 已定稿，进入实现阶段 |
 | 最后更新 | 2026-10-30 |
@@ -100,7 +100,11 @@ v0.3 是本文定义的产品最终形态，用户可以：
 | 本机生成文件 | 拉取后按本机系统和 Agent 生成、不参与同步的文件：各 Agent 原生 MCP 配置、Skills 链接、环境块 |
 | 本机环境块 | `AGENTS.md` 末尾由 Workroam 写入的一段，描述当前机器（系统、Shell、能否访问内网、哪些仓库能推送），同步时剥离 |
 | 交接文档 | `.handoff/HANDOFF.md`，推送前由当前 Agent 写的结构化进度说明，是跨 Agent 继续工作的可靠依据 |
-| 适配器（adapter） | 描述某个 Agent 的规则、Skills、MCP、会话位置和生成方式的声明式数据文件 |
+| 适配器（adapter） | 描述某个 Agent 的规则、Skills、MCP、会话位置、生成方式和接入方式的声明式数据文件 |
+| 本机 Agent | 运行在项目所在电脑上、能读写文件和执行命令的 Agent，例如 Claude Code、Codex、Grok Build |
+| 云端个人 Agent | 运行在服务商云端、通过手机或网页对话使用的 Agent，例如 Grok Bot、Muse；碰不到用户电脑上的文件和命令，只能通过远程连接器接入 |
+| Workroam Skill | 接入项目时生成的 `.agents/skills/workroam/SKILL.md`，告诉 Agent 何时、怎样调用 Workroam |
+| 远程连接器 | `workroam-server` 提供的远程 MCP 地址，云端个人 Agent 通过它查询状态、请求同步，请求由用户在线的设备执行 |
 | 代码同步模式 | 每个仓库可选 `bundle`、`remote`、`files` 三种之一 |
 | 配对码 | 把新设备加入工作区的一段字符串或二维码，内含用加密密码保护的连接信息 |
 | 恢复密钥 | 首次初始化时生成的备用密钥，加密密码丢失时用它解锁工作区 |
@@ -114,9 +118,10 @@ v0.3 是本文定义的产品最终形态，用户可以：
 | `workroam` 命令行 | 单文件二进制 | 给人和 Agent 使用：与桌面应用功能对等（§8.22），桌面上能做的事都有等价命令；交互式启动时显示启动横幅 |
 | `workroamd` 后台服务 | 用户级服务，开机自启 | 同步引擎、租约、触发检测、文件监听、授权管理、事件推送 |
 | Workroam 桌面应用 | 托盘图标 + 卡片 + 窗口（Tauri v2） | 首次初始化向导、项目接入向导、授权 / 进度 / 完成 / 到达卡片、设置与设备管理 |
-| Agent 用 MCP server | `workroam mcp`（stdio） | 让 Agent 通过 MCP 工具查询状态、发起推送 / 拉取、读写交接文档 |
+| Workroam Skill | 接入项目时生成的 `SKILL.md` | 告诉本机 Agent 何时、怎样用命令行查询状态、发起推送 / 拉取、写交接文档 |
+| 本机 MCP server | `workroam mcp`（stdio，可选） | 给偏好工具调用的本机 Agent 使用，能力与命令行相同 |
 | 存储 | 任意 S3 兼容存储 | 保存加密快照、租约和控制对象；默认部署 RustFS + Caddy |
-| `workroam-server`（可选） | 单个容器 | 设备配对码与每设备独立凭证、手机推送、Web 界面（浏览器内解密查看快照与交付物） |
+| `workroam-server`（可选） | 单个容器 | 设备配对码与每设备独立凭证、手机推送、Web 界面（浏览器内解密查看快照与交付物）、给云端个人 Agent 用的远程连接器 |
 
 ## 7. 用户旅程
 
@@ -330,6 +335,60 @@ flowchart TD
 - 主存储中删除的内容在镜像中延迟 30 天才删除，误删或被恶意删除后仍有时间找回；
 - 存储整体丢失时，在初始化向导中选择“从异地备份恢复”：连接镜像、输入加密密码或恢复密钥，镜像即成为新的主存储，然后其他设备用新的配对码重新加入，本地已有的文件只补齐差异。
 
+### 7.8 接入 Agent
+
+Agent 接入 Workroam 的目的有两个：让 Agent 自己发起推送和拉取，以及让下一个 Agent 读到 `HANDOFF.md` 接着干。按 Agent 运行的位置分两类，接入方式不同：
+
+| | 本机 Agent | 云端个人 Agent |
+| --- | --- | --- |
+| 例子 | Claude Code、Codex、Grok Build、Antigravity、ZCode、Pi | Grok Bot、Muse |
+| 运行位置 | 项目所在的电脑 | 服务商的云端，用户在手机或网页上对话 |
+| 能否执行本机命令 | 能 | 不能 |
+| 接入方式 | 命令行（`--json`）+ Workroam Skill；可选本机 MCP server | `workroam-server` 提供的远程连接器（远程 MCP）+ 上传 Workroam Skill |
+| 能做什么 | 查询状态、推送、拉取、读写 `HANDOFF.md`、恢复 | 查询状态与历史、读 `HANDOFF.md`、请求某台设备推送或拉取 |
+| 前提 | 安装 Workroam 客户端 | 部署了 `workroam-server`，且至少一台设备在线 |
+| 首次交付 | v0.1 | v0.3 |
+
+**本机 Agent：接入项目即接入 Agent，不需要额外操作。**
+
+1. 初始化时 Workroam 检测本机已安装的 Agent，列在“设置 → Agent”中；
+2. 接入项目（`workroam init` 或桌面“接入项目”）时，Workroam 为本机每个 Agent 生成规则引用、MCP 配置和 Skills 链接，其中包括 Workroam Skill；
+3. 用户对任何 Agent 说“我要下班了”或“同步下来”，Agent 按 Workroam Skill 写好 `HANDOFF.md`，执行 `workroam push --release --json` 或 `workroam pull --json`，并在等待期间告诉用户“请在 Workroam 卡片上确认”；
+4. 用户在卡片上确认，Agent 读取 JSON 结果，向用户汇报。
+
+只要 Agent 能执行命令，用命令行就能完成全部操作；本机 MCP server（v0.3）只是给偏好工具调用的 Agent 的另一种入口，能力相同。之后装了新的 Agent，在“设置 → Agent”中点“接入”，Workroam 为已接入的项目补齐这个 Agent 的配置。
+
+**云端个人 Agent：在设置中一键连接（v0.3）。**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as 用户
+    participant D as 桌面应用（任一在线设备）
+    participant SV as workroam-server
+    participant A as 云端个人 Agent（如 Grok Bot）
+    U->>D: 设置 → Agent → 连接 Grok Bot
+    D-->>U: 生成连接器地址，打开 Grok Bot 的连接器页面（或复制设置说明）
+    U->>A: 添加自定义连接器，粘贴地址
+    A->>SV: 发起 OAuth 授权
+    SV-->>U: 授权页显示确认码
+    D-->>U: 授权卡片：Grok Bot 请求连接，确认码、权限、可访问的项目
+    U->>D: 核对确认码，同意
+    D->>SV: 签发授权，服务端发放令牌
+    U->>A: “公司电脑上的 proj-a 进度怎样？帮我推送一下”
+    A->>SV: 调用 status / request_push
+    SV->>D: 转发给持有 proj-a 的设备
+    D-->>U: 推送授权卡片（发起方：Grok Bot）
+    U->>D: 同意
+    D-->>A: 返回结果
+```
+
+- 桌面应用按适配器提供每个云端 Agent 的接入方式：能直接打开对方连接器页面的就打开；需要在对话中添加连接器的（例如 Muse），复制一段可以直接粘贴给 Agent 的设置说明；同时提供 Workroam Skill 文件，供上传到对方的 Skills；
+- 远程连接默认关闭，开启时提示：返回给云端 Agent 的状态摘要和 `HANDOFF.md` 会进入服务商的云端，不再受端到端加密保护；
+- 每个连接可选“只读”或“可请求同步”，并限定可访问的项目，可随时在设置中撤销；
+- 远程发起的推送和拉取每次都要在设备卡片上确认；目标设备离线时，请求最多排队 24 小时，设备上线后弹出卡片；
+- 可选：把完成、失败、到达事件发到云端 Agent 的 webhook（例如 Grok Bot 例行任务的 webhook 触发器），让它在手机上提醒用户。
+
 ## 8. 功能需求
 
 “版本”列表示该需求首次交付的版本；v0.3 时全部可用。
@@ -468,7 +527,7 @@ flowchart TD
 
 | ID | 需求 | 版本 |
 | --- | --- | --- |
-| ADPT-01 | 每个 Agent 一个声明式适配器文件：规则、Skills、MCP、会话位置、排除项、生成模板、支持的版本范围 | v0.1 |
+| ADPT-01 | 每个 Agent 一个声明式适配器文件：规则、Skills、MCP、会话位置、排除项、生成模板、接入方式、支持的版本范围 | v0.1 |
 | ADPT-02 | 适配器：Claude Code、Codex | v0.1 |
 | ADPT-03 | 适配器：Grok Build、Antigravity、ZCode、Pi | v0.2 |
 | ADPT-04 | `.workroam/mcp.toml` 是 MCP 唯一定义，含各系统覆盖项；拉取后为每个 Agent 生成原生配置 | v0.1 |
@@ -552,13 +611,14 @@ flowchart TD
 | `workroam doctor` | 运行全部检查 | v0.1 |
 | `workroam verify [--backup] [--read-data <百分比>]` | 完整性校验 | v0.3 |
 | `workroam config list` / `get <键>` / `set <键> <值>` | 读写本机设置，加 `-p` 读写项目覆盖；与桌面“设置”页同一组键 | v0.1 |
-| `workroam agent list` | 检测到的 Agent、版本与适配器匹配情况 | v0.1 |
+| `workroam agent list` / `connect <agent>` / `disconnect <agent>` | 检测到的 Agent、版本与适配器匹配情况；接入本机 Agent，连接或撤销云端个人 Agent（见 8.18） | v0.1（本机）/ v0.3（云端） |
+| `workroam agent webhook <agent> --url <地址> --secret-stdin` | 配置云端 Agent 的事件 webhook | v0.3 |
 | `workroam credentials update` | 更新本机保存的访问密钥 | v0.1 |
 | `workroam password change` / `password reset --recovery-key-stdin` | 修改加密密码；忘记密码时用恢复密钥重设 | v0.1 |
 | `workroam pause [--for <时长>]` / `resume` | 暂停（默认 1 小时）/ 恢复自动同步 | v0.3 |
 | `workroam prune` | 按保留策略清理快照 | v0.2 |
 | `workroam backup add / list / remove / run` | 异地备份 | v0.3 |
-| `workroam mcp` | 启动给 Agent 用的 MCP server | v0.3 |
+| `workroam mcp` | 启动给本机 Agent 用的 MCP server | v0.3 |
 | `workroam completions <shell>` | 生成 shell 补全脚本 | v0.1 |
 
 #### 8.17.2 全局参数与输出
@@ -566,7 +626,7 @@ flowchart TD
 | 参数 | 说明 |
 | --- | --- |
 | `-p, --project <项目>` | 指定项目；默认取当前目录所在的项目 |
-| `--json` | 输出 JSON（字段与 IPC 结果一致），不显示进度条与横幅 |
+| `--json` | 输出带版本号的稳定 JSON（AGT-01、技术架构 §16.1），不显示进度条与横幅 |
 | `-q, --quiet` | 只输出错误与最终结果，不显示横幅 |
 | `-y, --yes` | 对本命令内的确认提示回答“是”；不能代替同步授权（SEC-05），也不能代替删除归档等需要输入名称的确认 |
 | `--color auto\|always\|never` | 颜色，默认 `auto`；遵守 `NO_COLOR` |
@@ -610,13 +670,22 @@ flowchart TD
 
 <img src="assets/cli-banner.svg" width="600" alt="workroam 命令行启动横幅示例">
 
-### 8.18 Agent 用 MCP server（MCPS）
+### 8.18 Agent 接入（AGT）
 
 | ID | 需求 | 版本 |
 | --- | --- | --- |
-| MCPS-01 | `workroam mcp` 以 stdio 方式提供工具：`status`、`push`、`pull`、`history`、`handoff_template` | v0.3 |
-| MCPS-02 | 通过 MCP 发起的推送与拉取同样需要用户在卡片上确认 | v0.3 |
-| MCPS-03 | 接入项目时自动把该 MCP server 加入各 Agent 的项目级 MCP 配置 | v0.3 |
+| AGT-01 | 命令行是本机 Agent 的基础接口：所有命令支持 `--json`，输出带版本号的稳定结构；配合稳定退出码，非交互可用 | v0.1 |
+| AGT-02 | 接入项目时生成 Workroam Skill（`.agents/skills/workroam/SKILL.md`）：何时推送 / 拉取、怎样写 `HANDOFF.md`、怎样等待确认与解读结果；按适配器链接到各 Agent；`AGENTS.md` 中的“工作区同步”约定指向它 | v0.1 |
+| AGT-03 | “设置 → Agent”：列出检测到的本机 Agent 与已连接的云端 Agent；为新装的本机 Agent 一键补齐已接入项目的配置；`workroam agent list / connect <agent> / disconnect <agent>` 等价 | v0.1（本机）/ v0.3（云端） |
+| AGT-04 | 本机 MCP server：`workroam mcp` 以 stdio 方式提供工具 `status`、`push`、`pull`、`history`、`handoff_template`；接入项目时按适配器加入各 Agent 的项目级 MCP 配置（可关闭） | v0.3 |
+| AGT-05 | 远程连接器：`workroam-server` 在 `https://<域名>/mcp` 提供 Streamable HTTP 的远程 MCP 端点，自身作为 OAuth 授权服务器 | v0.3 |
+| AGT-06 | 设备中继：开启远程连接的设备与服务端保持出站连接；服务端把工具调用转发给目标设备（默认为持有该项目租约的设备，其次为用户指定的设备）执行；服务端不保存调用内容 | v0.3 |
+| AGT-07 | 远程工具只包括 `list_projects`、`status`、`history`、`read_handoff`、`request_push`、`request_pull`；不返回其他项目文件内容，不暴露任何密钥 | v0.3 |
+| AGT-08 | 连接授权在设备上完成：OAuth 授权页显示确认码，用户在设备卡片上核对并选择权限（只读 / 可请求同步）与可访问的项目；每个连接独立、可撤销，卡片上显示为发起方 | v0.3 |
+| AGT-09 | 远程发起的推送与拉取每次都需在设备卡片上确认，不受“1 小时内不再询问”影响；目标设备离线时请求最多排队 24 小时 | v0.3 |
+| AGT-10 | 一键连接云端 Agent：按适配器打开对方的连接器设置页，或复制可直接粘贴给 Agent 的设置说明；提供 Workroam Skill 文件供上传 | v0.3 |
+| AGT-11 | 云端 Agent 适配器：Grok Bot、Muse | v0.3 |
+| AGT-12 | 可选事件 webhook：把完成、失败、到达事件（只含项目名、设备、时间与变更概要）发到云端 Agent 的 webhook，由设备直接发送 | v0.3 |
 
 ### 8.19 轻量服务端（SRV，可选）
 
@@ -626,6 +695,7 @@ flowchart TD
 | SRV-02 | 6 位一次性配对码与每设备独立凭证（见 DEV-05） | v0.3 |
 | SRV-03 | 手机推送：通过 ntfy 等自建推送服务发送完成、失败、到达提醒；不部署服务端时客户端也可直接推送到 ntfy | v0.3 |
 | SRV-04 | Web 界面：浏览快照、同步历史与交付物；数据在浏览器内用加密密码解密，服务器看不到明文 | v0.3 |
+| SRV-05 | 远程连接器与设备中继（见 AGT-05 ～ AGT-09） | v0.3 |
 
 ### 8.20 部署（DEP）
 
@@ -647,6 +717,7 @@ flowchart TD
 | SEC-05 | Agent 发起的推送和拉取默认需要在卡片上确认，可按项目放宽 | v0.1 |
 | SEC-06 | 全部流量 HTTPS | v0.1 |
 | SEC-07 | 文档中明确合规提示：内网代码离开公司网络前需确认公司规定 | v0.1 |
+| SEC-08 | 云端个人 Agent 的远程连接默认关闭，按项目开启；开启时明确提示返回给云端 Agent 的内容（状态摘要、`HANDOFF.md`）不受端到端加密保护；加密密码与密钥永远不交给云端 Agent | v0.3 |
 
 ### 8.22 界面与命令行一致性（PAR）
 
@@ -657,7 +728,7 @@ flowchart TD
 | PAR-03 | 同一功能在两端同一版本交付 | v0.1 |
 | PAR-04 | 命令行交互式提问与桌面界面的选项文字、默认值、校验规则与修复建议来自同一份中英双语文本 | v0.1 |
 | PAR-05 | 桌面上的确认步骤（授权、删除归档时输入项目名、移除设备、权限过宽的密钥）在命令行中有同样的确认；非交互模式必须用显式参数确认，不能静默跳过 | v0.1 |
-| PAR-06 | 功能清单随代码维护：CI 检查每个面向用户的 IPC 方法都登记了命令行命令与桌面入口，缺一侧时构建失败（ADR-0008） | v0.1 |
+| PAR-06 | 功能清单随代码维护：CI 检查每个面向用户的 IPC 方法都登记了命令行命令与桌面入口，缺一侧时构建失败（ADR-0009） | v0.1 |
 
 ## 9. 非功能需求
 
@@ -680,9 +751,9 @@ flowchart TD
 
 | 版本 | 主题 | 主要内容 | 门槛 |
 | --- | --- | --- | --- |
-| **v0.1** | 我自己每天在用 | 初始化向导与 `workroam setup`；能力检查与 `doctor`；配对码加入设备；CLI：init / push / pull / status / history / restore，与桌面应用功能对等，交互式启动显示横幅；快照、租约、端到端加密；恢复到原位置或其他目录（桌面同步历史与命令行同步交付）；项目文件同步与跨平台检查；bundle 模式；环境块与 HANDOFF.md；Claude Code、Codex 适配器；授权 / 进度 / 完成卡片 | 公司 Windows 与家里 Mac 之间连续使用两周，没有丢过数据 |
+| **v0.1** | 我自己每天在用 | 初始化向导与 `workroam setup`；能力检查与 `doctor`；配对码加入设备；CLI：init / push / pull / status / history / restore，与桌面应用功能对等，交互式启动显示横幅；快照、租约、端到端加密；恢复到原位置或其他目录（桌面同步历史与命令行同步交付）；项目文件同步与跨平台检查；bundle 模式；环境块与 HANDOFF.md；Claude Code、Codex 适配器；命令行 `--json` 与 Workroam Skill；授权 / 进度 / 完成卡片 | 公司 Windows 与家里 Mac 之间连续使用两周，没有丢过数据 |
 | **v0.2** | 多 Agent | Grok Build、Antigravity、ZCode、Pi 适配器；会话迁移；remote 与 files 模式；创建专用密钥、只读设备、移除设备与密钥轮换；快照清理；项目归档与恢复（桌面归档页与命令行同步交付）；包管理器分发；Gitea 与 Tunnel 部署方案 | 六个 Agent 换机器后都能直接开工 |
-| **v0.3** | 无感同步（最终形态） | 自动同步三档与触发；到达卡片；暂停自动同步；Agent 用 MCP server；手机推送；归档包；可选异地备份；可选 `workroam-server`：配对码、每设备凭证、Web 界面 | 日常基本不用手动敲命令 |
+| **v0.3** | 无感同步（最终形态） | 自动同步三档与触发；到达卡片；暂停自动同步；本机 MCP server；云端个人 Agent 远程连接器（Grok Bot、Muse）；手机推送；归档包；可选异地备份；可选 `workroam-server`：配对码、每设备凭证、Web 界面 | 日常基本不用手动敲命令 |
 
 v0.3 之后的方向：冻结仓库格式与适配器规范发布 1.0、团队交接（把项目连同 Agent 上下文交给同事）、托管版。
 
@@ -695,6 +766,7 @@ v0.3 之后的方向：冻结仓库格式与适配器规范发布 1.0、团队�
 | 首次初始化耗时（已有存储） | ≤ 10 分钟 |
 | 每次接力的手动操作 | v0.1：推送与拉取各 1 句话 + 1 次确认；v0.3：拉取 1 次点击，推送零操作或 1 次确认 |
 | 换机器后 Agent 能直接汇报进度并继续 | v0.1：Claude Code、Codex；v0.2 起：六个 Agent |
+| 云端个人 Agent 首次连接耗时 | ≤ 2 分钟（v0.3，已部署 `workroam-server`） |
 | 中断后自动续传成功率 | 100% |
 | 归档项目恢复成功率 | 100%：恢复后代码仓库、规则与 Agent 配置直接可用（任何一次失败都按严重缺陷处理） |
 
@@ -711,4 +783,6 @@ v0.3 之后的方向：冻结仓库格式与适配器规范发布 1.0、团队�
 | 存储整体丢失 | 云对象存储由服务商保证多副本；自建单盘存储建议开启异地备份（v0.3） |
 | 归档多年后 Agent 与配置格式已变化 | 归档只保存规则、MCP 与 Skills 的定义源，恢复时按当前适配器重新生成；代码仓库打包为标准 git 包 |
 | 访问密钥泄露 | 最小权限；移除设备即轮换密钥；配合服务端时每设备独立凭证 |
+| 云端 Agent 的连接器入口与认证方式由服务商决定、变化快 | 接入方式写在适配器数据里，随适配器更新；远程连接器遵循标准 MCP 与 OAuth，不依赖某个服务商的私有接口 |
+| 云端 Agent 被提示注入后滥用连接 | 远程工具最小化；推送与拉取每次在设备上确认；连接可限定项目、可随时撤销 |
 | 快照引擎依赖尚未 1.0 | 锁定版本并封装在接口之后（ADR-0003） |

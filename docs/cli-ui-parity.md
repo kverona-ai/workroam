@@ -4,11 +4,11 @@
 | --- | --- |
 | 版本 | 1.0 |
 | 最后更新 | 2026-10-30 |
-| 关联文档 | [产品需求 §8.17 命令行 · §8.22 一致性](prd.md#822-界面与命令行一致性par) · [技术架构 §16](architecture.md#16-命令行与界面一致性) · [ADR-0008](adr/0008-desktop-cli-feature-parity.md) · [高保真原型](prototype/README.md) |
+| 关联文档 | [产品需求 §8.17 命令行 · §8.22 一致性](prd.md#822-界面与命令行一致性par) · [技术架构 §17](architecture.md#17-命令行与界面一致性) · [ADR-0009](adr/0009-desktop-cli-feature-parity.md) · [高保真原型](prototype/README.md) |
 
 **规则：** 每一项面向用户的功能，在桌面应用（向导、主窗口、卡片、托盘）和 `workroam` 命令行里都必须有入口，两边调用同一个 IPC 方法，选项、默认值、校验规则和结果完全一致（PAR-01）。只在一侧存在的能力必须列在本文 [§11 豁免清单](#11-豁免清单) 中。
 
-本表是唯一的对照依据：新增或修改功能时同时更新桌面应用、命令行与本表；实现阶段由 `crates/workroam-ipc/parity.toml` 承载同样的内容，并由 CI 检查（[技术架构 §16.4](architecture.md#164-一致性检查)）。
+本表是唯一的对照依据：新增或修改功能时同时更新桌面应用、命令行与本表；实现阶段由 `crates/workroam-ipc/parity.toml` 承载同样的内容，并由 CI 检查（[技术架构 §17.4](architecture.md#174-一致性检查)）。
 
 表中“命令行”一列省略了全局参数：命令默认作用于当前目录所在的项目，`-p, --project <项目>` 指定其他项目；`--json`、`-q, --quiet`、`--yes` 等见 [PRD §8.17.2](prd.md#8172-全局参数与输出)。
 
@@ -140,6 +140,12 @@
 | Agent 发起的同步需要确认 | 开关，可在项目中放宽 | `workroam config set sync.agent_requires_approval true\|false [-p <项目>]` | `sync.agent_requires_approval` | v0.1 |
 | 通知 | 手机推送（ntfy）、同步完成时提醒 | `workroam config set notify.ntfy <地址>` / `notify.on_success true\|false` | `notify.*` | v0.1（完成提醒）/ v0.3（ntfy） |
 | Agent 与适配器 | 设置“Agent”：版本、适配器版本、匹配状态 | `workroam agent list` | — | v0.1 |
+| 接入新装的本机 Agent | 设置“Agent”→“接入” | `workroam agent connect <agent>` | — | v0.1 |
+| 本机 MCP server 开关 | 设置“Agent”中每个 Agent 的 MCP 开关 | `workroam config set mcp.enabled true\|false [-p <项目>]` | `mcp.enabled` | v0.3 |
+| 连接云端个人 Agent | 设置“Agent”→“连接 <Agent>”：打开对方连接器页或复制设置说明；授权卡片核对确认码、选择权限与项目 | `workroam agent connect <agent>`：输出连接地址与设置说明；授权在终端核对确认码并选择权限与项目，或 `workroam approve <id> --access read-only\|sync --project <项目>` | — | v0.3 |
+| 撤销云端 Agent 连接 | 设置“Agent”→连接行“撤销” | `workroam agent disconnect <agent>` | — | v0.3 |
+| 远程连接开关（按项目）、默认代理设备 | 项目详情“允许远程连接”；设置“Agent”→“默认代理设备” | `workroam config set remote.enabled true\|false -p <项目>`；`config set remote.default_device <设备>` | `remote.*` | v0.3 |
+| 事件 webhook | 设置“Agent”→连接行“webhook” | `workroam agent webhook <agent> --url <地址> --secret-stdin` | 系统密钥库 | v0.3 |
 | 更新访问密钥 | 设置“存储”→“更新访问密钥” | `workroam credentials update --access-key <ID> --secret-key-stdin` | 系统密钥库 | v0.1 |
 | 修改加密密码 | 设置“加密”→“修改加密密码” | `workroam password change` | 仓库密钥文件 | v0.1 |
 | 忘记密码时用恢复密钥重设 | 设置“加密”→“使用恢复密钥重设密码” | `workroam password reset --recovery-key-stdin` | 仓库密钥文件 | v0.1 |
@@ -168,7 +174,7 @@
 
 | 只在命令行 | 原因 / 桌面应用中的对应 |
 | --- | --- |
-| `workroam mcp` | 给 Agent 用的 stdio 接口，不面向人；设置“Agent”中显示是否已加入各 Agent 的项目配置 |
+| `workroam mcp` | 给本机 Agent 用的 stdio 接口，不面向人；是否加入各 Agent 的项目配置由设置“Agent”中的 MCP 开关控制 |
 | `--json`、退出码、非终端输出格式 | 给脚本与 Agent 的机器接口 |
 | `workroam completions <shell>`、`help`、`--version` | 命令行自身的辅助功能；版本号在桌面“关于”中显示 |
 | 启动横幅 | 命令行的品牌标识，对应桌面的应用图标 |
@@ -192,7 +198,7 @@
 | 11 | 桌面同步历史 v0.3、桌面归档页 v0.3，命令行分别在 v0.1、v0.2 交付 | 桌面同步历史提前到 v0.1，桌面归档页提前到 v0.2，与命令行同版本 |
 | 12 | 恢复归档的场景选择、删除归档的项目名确认只在桌面 | `archive restore --dry-run --prefer`、`archive delete --confirm` |
 | 13 | 设置页的全部选项在命令行没有入口 | `workroam config list/get/set`，与设置页读写同一组键 |
-| 14 | Agent 列表与适配器匹配只在设置页 | `workroam agent list` |
+| 14 | 云端 Agent 连接的权限与项目范围、按项目的远程连接开关、默认代理设备、webhook、本机 MCP 开关只在桌面描述 | `agent connect` 的终端授权与 `approve --access --project`、`config set remote.* / mcp.enabled`、`agent webhook` |
 | 15 | PRD 7.5 写了“用恢复密钥解锁并设置新密码”，两边都没有入口 | `password change` / `password reset`；设置“加密” |
 | 16 | 存储密钥失效后只能“检查”，两边都没有更新密钥的入口 | `credentials update`；设置“存储”→“更新访问密钥” |
 | 17 | `prune`、`verify`、归档包导出导入只有命令行 | 设置“存储”保留策略与“立即清理”、检查页“校验数据完整性…”、归档页“导出 / 导入归档包” |

@@ -22,7 +22,7 @@ and your projects, code, rules, MCP / Skills and context pick up where you left 
 
 <br>
 
-<img src="docs/assets/screenshots/main-window.webp" width="860" alt="Workroam main window with an approval card in the corner">
+<img src="docs/assets/screenshots/main-window.webp" width="860" alt="Workroam main window: the relay strip shows the workspace on this machine with 12 changes waiting to push, and an approval card in the corner">
 
 </div>
 
@@ -53,20 +53,35 @@ Workroam turns "leave the office → get home → keep going → push at the off
 | 🤖 **Agent-aware** | One `AGENTS.md`, one MCP definition and one Skills folder, rendered into each agent's native config. `HANDOFF.md` lets the next agent continue. |
 | 🖥️ **Cross-platform** | Case conflicts, invalid Windows file names and long paths are caught before you push. Links and executable bits are handled per OS on pull. |
 | 🙋 **You stay in the loop** | Approve every sync, including agent-initiated ones, watch progress, and get notified on success or failure. |
+| 🪟 **A calm desktop app** | Lives in the tray, shows which machine holds your workspace, and asks only when it needs you. Every desktop action has an equivalent command. |
 | ⏪ **Rollback & archive** | Every sync is an immutable snapshot you can return to. When you decide a project is done, archive it: syncing stops, a self-contained copy is kept forever, and you can resume it any time. Local files are never touched. |
 
-## Product preview
+## The desktop app
 
-High-fidelity designs from the [clickable prototype](docs/prototype/README.md) (open `docs/prototype/index.html` in a browser). Light and dark themes, Liquid Glass style; the prototype UI is currently in Chinese.
+Workroam lives in your tray and pops up only when something needs you. Everything below comes from the [clickable prototype](docs/prototype/README.md) (open `docs/prototype/index.html` in a browser); the prototype UI is currently in Chinese.
+
+- **See where your work is.** Each project opens with a relay strip, office → your storage → home. The amber orb, your workspace, sits on whichever machine holds the lease. Pending pushes and pulls flow along the line, and the key numbers sit underneath.
+- **Approve before anything moves.** Agent-initiated syncs raise a card in the screen corner that never steals keyboard focus. "Details" lists every changed file and commit.
+- **Set up once.** A guided wizard connects your storage, scopes the access key, runs 16 capability checks and sets up encryption. Joining a second machine takes a pairing code.
+- **Everything the CLI can do.** Settings, checks, data verification, archive packs, key and password changes and off-site backup all have a desktop entry point, and the reverse holds too.
+- **Liquid Glass, light and dark.** Translucent glass with depth, concentric corners, and motion that never gets in your way. The rules are in [DESIGN.md](docs/prototype/DESIGN.md).
 
 <table>
 <tr>
-<td width="50%"><img src="docs/assets/screenshots/setup-wizard.webp" alt="First-run setup: 16 storage capability checks"><br><sub>First-run setup: 16 storage capability checks</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/project-relay-dark.webp" alt="The relay strip: which machine holds the workspace, and what is waiting to move (dark)"><br><sub>The relay strip: which machine holds the workspace, and what is waiting to move (dark)</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/approval-details.webp" alt="Approval details: every file and commit before you agree"><br><sub>Approval details: every file and commit before you agree</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/assets/screenshots/setup-welcome.webp" alt="First run: create, join, or restore a workspace"><br><sub>First run: create, join, or restore a workspace</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/setup-wizard.webp" alt="Setup checks: 16 storage capability tests"><br><sub>Setup checks: 16 storage capability tests</sub></td>
+</tr>
+<tr>
 <td width="50%"><img src="docs/assets/screenshots/corner-cards.webp" alt="Corner cards: approve, progress, done, failed, arrival, lease conflict"><br><sub>Corner cards: approve, progress, done, failed, arrival, lease conflict</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/tray-menu-dark.webp" alt="Tray menu: pending approvals, push, pull, pause (dark)"><br><sub>Tray menu: pending approvals, push, pull, pause (dark)</sub></td>
 </tr>
 <tr>
 <td width="50%"><img src="docs/assets/screenshots/archive-restore-dark.webp" alt="Restoring an archive: what happens to your local folder (dark)"><br><sub>Restoring an archive: what happens to your local folder (dark)</sub></td>
-<td width="50%"><img src="docs/assets/screenshots/tray-menu-dark.webp" alt="Tray menu and icon states (dark)"><br><sub>Tray menu and icon states (dark)</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/settings-dark.webp" alt="Settings: this device, auto-sync, storage, encryption, off-site backup (dark)"><br><sub>Settings: this device, auto-sync, storage, encryption, off-site backup (dark)</sub></td>
 </tr>
 </table>
 

@@ -22,7 +22,7 @@
 
 <br>
 
-<img src="docs/assets/screenshots/main-window.webp" width="860" alt="Workroam 主窗口与角落的授权卡片">
+<img src="docs/assets/screenshots/main-window.webp" width="860" alt="Workroam 主窗口：接力路线显示工作区在本机、12 个改动待推送，角落是授权卡片">
 
 </div>
 
@@ -53,20 +53,35 @@ Workroam 把“下班 → 回家 → 接着干 → 回公司推送”变成两�
 | 🤖 **懂 Agent** | 一份 `AGENTS.md`、一份 MCP 定义、一份 Skills，为每个 Agent 生成原生配置；`HANDOFF.md` 让下一个 Agent 接着干 |
 | 🖥️ **跨平台** | 推送前就检查大小写冲突、Windows 非法文件名、长路径；拉取时按本机系统处理链接与可执行位 |
 | 🙋 **人始终知情** | 同步前授权、同步中可见进度、完成或失败有提醒；Agent 发起的同步也要你确认 |
+| 🪟 **安静的桌面应用** | 平时待在托盘，随时看到工作区在哪台机器上，只在需要你时才打扰；每个桌面操作都有对应的命令 |
 | ⏪ **回滚与归档** | 每次同步都是一个不可变快照，随时回到任意一次；项目做完后由你决定是否归档：停止同步、永久留存，随时恢复继续开发，本地文件一律不动 |
 
-## 产品预览
+## 桌面应用
 
-以下来自[可点击的高保真原型](docs/prototype/README.md)（用浏览器打开 `docs/prototype/index.html` 即可操作），Liquid Glass 风格，支持浅色与深色。
+Workroam 平时待在托盘里，只在需要你的时候弹出来。以下截图来自[可点击的高保真原型](docs/prototype/README.md)，用浏览器打开 `docs/prototype/index.html` 即可操作。
+
+- **一眼看到工作区在哪**：每个项目顶部是一条“公司电脑 → 你的存储 → 家里电脑”的接力路线。琥珀色光点就是你的工作区，停在持有租约的那台机器上。等待推送或拉取的数据沿路线流动，下方是关键数字。
+- **先确认，再同步**：Agent 发起的同步会在屏幕角落弹出卡片，不抢键盘焦点。点“查看详情”可以看到每个改动的文件和提交。
+- **一次设置**：向导会连接存储、收窄访问密钥权限、跑 16 项能力检查并设置加密。第二台电脑用配对码就能加入。
+- **命令行能做的，桌面都能做**：设置、检查、数据完整性校验、归档包、密钥与密码更换、异地备份都有桌面入口，反过来也一样。
+- **Liquid Glass 风格，浅色与深色**：有厚度的半透明玻璃、同心圆角、不打扰的动效，设计规范见 [DESIGN.md](docs/prototype/DESIGN.md)。
 
 <table>
 <tr>
-<td width="50%"><img src="docs/assets/screenshots/setup-wizard.webp" alt="首次初始化：16 项存储能力检查"><br><sub>首次初始化：16 项存储能力检查</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/project-relay-dark.webp" alt="接力路线：工作区在哪台机器、有什么在等着传（深色）"><br><sub>接力路线：工作区在哪台机器、有什么在等着传（深色）</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/approval-details.webp" alt="授权详情：同意前看清每个文件和提交"><br><sub>授权详情：同意前看清每个文件和提交</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/assets/screenshots/setup-welcome.webp" alt="首次启动：新建、加入或从异地备份恢复工作区"><br><sub>首次启动：新建、加入或从异地备份恢复工作区</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/setup-wizard.webp" alt="初始化检查：16 项存储能力测试"><br><sub>初始化检查：16 项存储能力测试</sub></td>
+</tr>
+<tr>
 <td width="50%"><img src="docs/assets/screenshots/corner-cards.webp" alt="角落卡片：授权、进度、完成、失败、到达、租约冲突"><br><sub>角落卡片：授权、进度、完成、失败、到达、租约冲突</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/tray-menu-dark.webp" alt="托盘菜单：待确认授权、推送、拉取、暂停（深色）"><br><sub>托盘菜单：待确认授权、推送、拉取、暂停（深色）</sub></td>
 </tr>
 <tr>
 <td width="50%"><img src="docs/assets/screenshots/archive-restore-dark.webp" alt="恢复归档：按本地目录情况说明会做什么（深色）"><br><sub>恢复归档：按本地目录情况说明会做什么（深色）</sub></td>
-<td width="50%"><img src="docs/assets/screenshots/tray-menu-dark.webp" alt="托盘菜单与图标状态（深色）"><br><sub>托盘菜单与图标状态（深色）</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/settings-dark.webp" alt="设置：本机、自动同步、存储、加密、异地备份（深色）"><br><sub>设置：本机、自动同步、存储、加密、异地备份（深色）</sub></td>
 </tr>
 </table>
 

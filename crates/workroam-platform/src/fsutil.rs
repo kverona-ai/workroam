@@ -254,18 +254,13 @@ pub fn link_dir(link: &Path, target: &Path) -> io::Result<()> {
 
 #[cfg(windows)]
 fn junction(link: &Path, target: &Path) -> io::Result<()> {
-    let status = std::process::Command::new("cmd")
-        .args(["/C", "mklink", "/J"])
-        .arg(link)
-        .arg(target)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .status()?;
-    if status.success() {
-        Ok(())
+    // Junctions need an absolute target; `\\?\` verbatim prefixes are fine for the API.
+    let target = if target.is_absolute() {
+        target.to_path_buf()
     } else {
-        Err(io::Error::new(io::ErrorKind::Other, "mklink /J failed"))
-    }
+        std::env::current_dir()?.join(target)
+    };
+    junction::create(&target, link)
 }
 
 pub fn is_junction(path: &Path) -> bool {
@@ -289,6 +284,10 @@ pub fn remove_any(path: &Path) -> io::Result<()> {
     if meta.file_type().is_symlink() {
         std::fs::remove_file(path).or_else(|_| std::fs::remove_dir(path))
     } else if is_junction(path) {
+        #[cfg(windows)]
+        {
+            junction::delete(path).ok();
+        }
         std::fs::remove_dir(path)
     } else if meta.is_dir() {
         std::fs::remove_dir_all(path)

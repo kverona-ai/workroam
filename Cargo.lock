@@ -2232,6 +2232,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "junction"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cfc352a66ba903c23239ef51e809508b6fc2b0f90e3476ac7a9ff47e863ae95"
+dependencies = [
+ "scopeguard",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
 name = "keyring"
 version = "3.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5971,6 +5981,7 @@ name = "workroam-platform"
 version = "0.1.0"
 dependencies = [
  "dirs",
+ "junction",
  "keyring",
  "serde",
  "serde_json",
@@ -5988,6 +5999,24 @@ version = "0.1.0"
 [[package]]
 name = "workroam-setup"
 version = "0.1.0"
+dependencies = [
+ "chrono",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "url",
+ "workroam-adapters",
+ "workroam-core",
+ "workroam-device",
+ "workroam-engine",
+ "workroam-git",
+ "workroam-platform",
+ "workroam-snapshot",
+ "workroam-store",
+]
 
 [[package]]
 name = "workroam-snapshot"

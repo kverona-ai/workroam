@@ -7,4 +7,15 @@ updates:
     groups:
       actions:
         patterns: ['*']
-  # cargo（/）与 npm（/apps/desktop）在产品代码合入后再加：清单文件不存在时 Dependabot 每次都会报错
+  - package-ecosystem: cargo
+    directories:
+      - /
+      # 桌面应用是独立的 Cargo workspace，有自己的 Cargo.lock
+      - /apps/desktop/src-tauri
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  # 桌面前端没有 package.json（纯静态 apps/desktop/ui），不需要 npm

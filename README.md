@@ -75,7 +75,7 @@ High-fidelity designs from the [clickable prototype](docs/prototype/README.md) (
 ```mermaid
 flowchart LR
     O["🏢 Office<br/>workroam push --release"] -- encrypted snapshot --> S[("S3-compatible storage")]
-    S -- incremental pull --> H["🏠 Home<br/>workroam pull --acquire"]
+    S -- incremental pull --> H["🏠 Home<br/>workroam pull"]
     H -- encrypted snapshot --> S
     S -- pull & rebase --> O
     O -- git push --> G["Intranet git"]
@@ -93,13 +93,14 @@ flowchart LR
 curl -fsSL https://<project-domain>/install.sh | sh -s -- --domain sync.example.com --storage rustfs
 
 # Client: the desktop app opens a setup wizard on first launch
-# (headless machines: run the same steps in the terminal)
+# (headless machines: run the same steps in the terminal;
+#  every desktop action has an equivalent workroam command)
 workroam setup
 cd ~/projects/proj-a && workroam init
 
 # Hand off
 workroam push --release     # when leaving
-workroam pull --acquire     # when arriving
+workroam pull               # when arriving (takes the lease)
 ```
 
 ## Roadmap

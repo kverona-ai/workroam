@@ -25,4 +25,4 @@ Workroam 会接触源代码、Agent 会话与存储凭证，我们非常重视�
 - 各 Agent 的登录凭证、OAuth 令牌与 `.env` 中的密钥永不同步；
 - Agent 发起的同步默认需要用户在卡片上确认。
 
-详见 [技术架构 · 安全架构](docs/architecture.md#18-安全架构)。
+详见 [技术架构 · 安全架构](docs/architecture.md#19-安全架构)。

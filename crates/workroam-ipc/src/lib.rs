@@ -5,6 +5,7 @@
 
 pub mod client;
 pub mod methods;
+pub mod parity;
 pub mod protocol;
 pub mod relay;
 pub mod transport;

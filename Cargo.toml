@@ -60,6 +60,7 @@ workroam-engine = { path = "crates/workroam-engine" }
 workroam-archive = { path = "crates/workroam-archive" }
 workroam-ipc = { path = "crates/workroam-ipc" }
 workroamd = { path = "crates/workroamd" }
+workroam-cli = { path = "crates/workroam-cli" }
 
 anyhow = "1"
 thiserror = "2"
@@ -110,6 +111,13 @@ axum = { version = "0.8", features = ["ws"] }
 tokio-tungstenite = { version = "0.26", features = ["rustls-tls-webpki-roots"] }
 fs4 = { version = "0.13", features = ["sync"] }
 keyring = { version = "3", features = ["apple-native", "windows-native", "async-secret-service", "tokio", "crypto-rust"] }
+
+# Small debug builds: the test binaries link every crate.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
 
 [profile.release]
 lto = "thin"

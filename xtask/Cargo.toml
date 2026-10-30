@@ -5,5 +5,4 @@ edition.workspace = true
 publish = false
 
 [dependencies]
-toml.workspace = true
-serde.workspace = true
+workroam-ipc.workspace = true

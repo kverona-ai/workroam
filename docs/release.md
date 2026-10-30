@@ -47,7 +47,7 @@ tag 与 Cargo 版本不一致时，流水线在第一步失败，不会产出任
 | 源码 | `workroam-0.1.0-source.{tar.gz,zip}`、`workroam-0.1.0-source-vendored.tar.gz` |
 | 安装脚本 | `install-cli.sh`、`install-cli.ps1`、`install-server.sh`、`install-server.ps1`；存储一键部署 `install.sh`（`deploy/install.sh` 存在时） |
 | 包管理器清单 | `workroam.rb`（Homebrew formula）、`workroam-desktop.rb`（Homebrew cask）、`workroam.json`（Scoop）、`winget-manifests-0.1.0.zip` |
-| 校验 | `SHA256SUMS`；每个文件的构建来源证明可用 `gh attestation verify` 验证 |
+| 校验 | `SHA256SUMS`；配置了 GPG 时还有 `SHA256SUMS.asc` 与公钥 `workroam-release-key.asc`；每个文件的构建来源证明可用 `gh attestation verify` 验证 |
 
 Windows arm64 只有 NSIS 安装程序（WiX 不支持 ARM64）。Linux 命令行在 Ubuntu 22.04 上构建，要求 glibc 2.35 及以上；`workroam-server` 是静态二进制，没有这个限制。
 
@@ -58,6 +58,8 @@ Windows arm64 只有 NSIS 安装程序（WiX 不支持 ARM64）。Linux 命令�
 | Linux x64 / arm64 | `ubuntu-22.04` / `ubuntu-22.04-arm` | 原生构建 |
 | macOS arm64 / x64 | `macos-14` | arm64 原生，x64 交叉编译 |
 | Windows x64 / arm64 | `windows-latest` | x64 原生，arm64 交叉编译 |
+
+Windows 的文件分两步签名：各平台编译完成后，`windows-sign` 把所有 exe 提交给 SignPath，`windows-bundle` 用签好名的 exe 打安装包，`windows-installers` 再提交安装包签名并打命令行压缩包。没有配置 SignPath 时这几个任务照常运行，只是不签名。详见 [代码签名](signing.zh-CN.md)。
 
 ## 代码约定
 
@@ -73,22 +75,15 @@ Windows arm64 只有 NSIS 安装程序（WiX 不支持 ARM64）。Linux 命令�
 
 全部可选：没有配置时照常发布，只是对应的文件不签名或对应的渠道不更新。在 [Settings → Secrets and variables → Actions](https://github.com/kverona-ai/workroam/settings/secrets/actions) 中添加。
 
+**代码签名**的 Secrets 与 Variables（macOS 的 `APPLE_*`、Windows 的 `SIGNPATH_*`、Linux 的 `GPG_*`）、获取方法与验证步骤见 [代码签名](signing.zh-CN.md)。每次运行 Release 时，Prepare 任务的摘要里会显示哪些签名已配置。
+
 | Secret | 用途 | 没有时 |
 | --- | --- | --- |
-| `APPLE_CERTIFICATE` | Developer ID Application 证书（`.p12` 的 base64） | macOS 应用使用 ad-hoc 签名，首次打开需右键 → 打开 |
-| `APPLE_CERTIFICATE_PASSWORD` | 上述 `.p12` 的密码 | |
-| `APPLE_SIGNING_IDENTITY` | 例如 `Developer ID Application: Name (TEAMID)` | |
-| `APPLE_ID`、`APPLE_PASSWORD`、`APPLE_TEAM_ID` | 公证（notarization）；`APPLE_PASSWORD` 为 App 专用密码 | 不公证 |
-| `WINDOWS_CERTIFICATE` | 代码签名证书（`.pfx` 的 base64），用于安装程序与 `.exe` | 不签名，SmartScreen 会提示 |
-| `WINDOWS_CERTIFICATE_PASSWORD` | 上述 `.pfx` 的密码 | |
-| `TAURI_SIGNING_PRIVATE_KEY`、`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | 桌面应用自动更新的签名（`npx @tauri-apps/cli signer generate` 生成） | 不生成 `.sig` 更新签名 |
 | `HOMEBREW_TAP_TOKEN` | 对 tap 仓库有写权限的 fine-grained token | 不更新 tap，formula 与 cask 仍作为 Release 附件发布 |
 
 | Variable | 用途 | 默认 |
 | --- | --- | --- |
 | `HOMEBREW_TAP_REPO` | Homebrew tap 仓库 | `kverona-ai/homebrew-tap` |
-
-生成 base64：`base64 -i cert.p12 | pbcopy`（macOS）、`[Convert]::ToBase64String([IO.File]::ReadAllBytes("cert.pfx")) | Set-Clipboard`（Windows）。
 
 `GITHUB_TOKEN` 自带，用于创建 Release、推送 `ghcr.io` 镜像与构建来源证明，不需要配置。首次推送镜像后，到组织的 Packages 页面把 `workroam-server` 设为 Public，用户才能匿名拉取。
 

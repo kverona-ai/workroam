@@ -10,6 +10,7 @@
 | [部署指南](deployment.zh-CN.md)（[English](deployment.md)） | 云存储、一条命令自建存储、Kubernetes、云端 Agent 中继、完整模式服务端、运维与常见问题 |
 | [配置说明](configuration.zh-CN.md)（[English](configuration.md)） | 全部设置项、`machine.toml` / `workroam.toml` / `mcp.toml`、环境变量、命令行通用选项、`workroam-server` 参数 |
 | [持续集成与发布](release.md) | CI 检查项、发布流程、Release 产物、需要配置的 secrets 与包管理器渠道 |
+| [代码签名](signing.zh-CN.md)（[English](signing.md)） | macOS 签名与公证、Windows（SignPath）、Linux（GPG）：每个 Secret 怎么获取、配好后如何验证 |
 | [高保真原型](prototype/README.md) | 桌面应用的可点击原型（Liquid Glass 风格）与 Logo 设计说明 |
 
 ## 阅读顺序

@@ -48,6 +48,15 @@ link() {
   fi
 }
 
+# 有 GPG 签名时，校验部分多一行命令
+gpg_en=""; gpg_zh=""
+if [ -f "$dist/SHA256SUMS.asc" ]; then
+  gpg_en="gpg --import workroam-release-key.asc && gpg --verify SHA256SUMS.asc SHA256SUMS   # GPG signature of SHA256SUMS
+"
+  gpg_zh="gpg --import workroam-release-key.asc && gpg --verify SHA256SUMS.asc SHA256SUMS   # 验证 SHA256SUMS 的 GPG 签名
+"
+fi
+
 d="Workroam-$version"
 c="workroam-$version"
 s="workroam-server-$version"
@@ -148,7 +157,7 @@ See [Build from source]($docs/install.md#build-from-source).
 
 \`\`\`sh
 sha256sum -c SHA256SUMS --ignore-missing          # on macOS: shasum -a 256 -c
-gh attestation verify <file> --repo $repo         # check build provenance (SLSA)
+${gpg_en}gh attestation verify <file> --repo $repo         # check build provenance (SLSA)
 \`\`\`
 
 Full guides: [Install]($docs/install.md) · [Deployment]($docs/deployment.md) · [Configuration]($docs/configuration.md)
@@ -220,7 +229,7 @@ Kubernetes 可用 Helm Chart：[\`deploy/helm/workroam\`](https://github.com/$re
 
 \`\`\`sh
 sha256sum -c SHA256SUMS --ignore-missing          # macOS 用 shasum -a 256 -c
-gh attestation verify <文件> --repo $repo         # 验证构建来源（SLSA provenance）
+${gpg_zh}gh attestation verify <文件> --repo $repo         # 验证构建来源（SLSA provenance）
 \`\`\`
 
 完整文档：[安装]($docs/install.zh-CN.md) · [部署指南]($docs/deployment.zh-CN.md) · [配置说明]($docs/configuration.zh-CN.md)

@@ -1545,6 +1545,22 @@ async fn device(out: &Out, cmd: &DeviceCmd) -> Result<i32> {
                 if let Some(w) = v["warning"].as_str() {
                     println!("{} {w}", o.yellow("!"));
                 }
+                if let Some(code) = v["short_code"]["code"].as_str() {
+                    let server = s(&v["short_code"], "server");
+                    println!(
+                        "{} {}  {}",
+                        o.bold("Or the 6-digit code:"),
+                        o.amber(code),
+                        o.dim("(10 minutes, a new key for that device)")
+                    );
+                    println!(
+                        "{}",
+                        o.dim(&format!(
+                            "On the new computer: workroam setup --join --server {server}"
+                        ))
+                    );
+                    return;
+                }
                 println!("{}", o.dim("On the new computer: workroam setup --join"));
             }))
         }
@@ -1555,7 +1571,7 @@ async fn device(out: &Out, cmd: &DeviceCmd) -> Result<i32> {
         } => {
             eprintln!(
                 "{}",
-                workroam_core::text::trf("device.remove.confirm", &[("name", device)])
+                workroam_core::text::trf("device.remove.confirm", &[("device", device)])
             );
             if !confirm(out, &format!("Remove {device}?"), false)? {
                 return Err(Error::new(Code::Denied, "cancelled")

@@ -1,6 +1,40 @@
 [package]
 name = "workroam-server"
+description = "Optional Workroam server: remote MCP connector and device relay; full mode adds pairing, push forwarding and the web reader"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+default = []
+# Pairing codes and per-device keys, ntfy forwarding and the web reader.
+# Needs the storage administrator key; only for your own server.
+full = ["dep:workroam-device", "dep:workroam-store"]
 
 [dependencies]
+workroam-core.workspace = true
+workroam-ipc.workspace = true
+workroam-device = { workspace = true, optional = true }
+workroam-store = { workspace = true, optional = true }
+axum.workspace = true
+tokio.workspace = true
+futures-util.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+clap.workspace = true
+chrono.workspace = true
+ed25519-dalek.workspace = true
+rand.workspace = true
+sha2.workspace = true
+hex.workspace = true
+base64.workspace = true
+url.workspace = true
+reqwest.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+[dev-dependencies]
+tokio-tungstenite.workspace = true
+tempfile.workspace = true

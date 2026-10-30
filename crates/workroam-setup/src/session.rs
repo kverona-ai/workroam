@@ -126,6 +126,11 @@ pub struct SetupSession {
     pub projects: Vec<(String, Option<String>)>,
     pub all_projects: bool,
     pub as_device: Option<String>,
+    /// Join through a full-mode server: the key it created for this device,
+    /// the device id it was created for, and the server to bind to.
+    pub redeemed: Option<(Creds, Access)>,
+    pub preset_device_id: Option<String>,
+    pub relay: Option<(String, String)>,
     workspace: Option<Workspace>,
 }
 
@@ -159,6 +164,9 @@ impl SetupSession {
             projects: vec![],
             all_projects: false,
             as_device: None,
+            redeemed: None,
+            preset_device_id: None,
+            relay: None,
             workspace: None,
         }
     }
@@ -542,6 +550,10 @@ impl SetupSession {
                 secret_key: payload.secret_key.clone(),
             });
             self.key_access = payload.scope;
+            if let Some((c, scope)) = &self.redeemed {
+                self.creds = Some(c.clone());
+                self.key_access = *scope;
+            }
             self.pairing = Some(payload);
         }
         let probe = MachineConfig::new(
@@ -607,6 +619,13 @@ impl SetupSession {
             m.autostart = a;
         }
         m.access = self.key_access;
+        if let Some(id) = &self.preset_device_id {
+            m.device_id = id.clone();
+        }
+        if let Some((url, id)) = &self.relay {
+            m.remote.relay_url = url.clone();
+            m.remote.relay_id = id.clone();
+        }
         m
     }
 

@@ -510,8 +510,28 @@ async fn join(
         required(out, &None, &tr("setup.pairing.paste"), "", "pairing code")
             .map_err(|e| e.with_hint("pass --pairing-code-stdin"))?
     };
-    sess.step("pairing_code", json!({"code": code.trim()}))
-        .await?;
+    let code = code.trim().to_string();
+    let six = code.chars().filter(|c| c.is_ascii_digit()).count() == 6 && !code.starts_with("wr1:");
+    let server = if six {
+        Some(required(
+            out,
+            &a.server,
+            "Server address (https://…)",
+            "",
+            "server",
+        )?)
+    } else {
+        None
+    };
+    let device_name = a
+        .device_name
+        .clone()
+        .unwrap_or_else(|| s(&begin["defaults"], "device_name").to_string());
+    sess.step(
+        "pairing_code",
+        json!({"code": code, "server": server, "device_name": device_name}),
+    )
+    .await?;
     let root = machine(out, a, sess, begin).await?;
     let info = unlock(out, a, sess).await?;
     out.info(&format!(

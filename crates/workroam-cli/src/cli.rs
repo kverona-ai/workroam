@@ -44,6 +44,8 @@ pub enum ColorWhen {
     Never,
 }
 
+// Parsed once per process; boxing the setup flags buys nothing.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Subcommand)]
 pub enum Cmd {
     /// First-time setup, or join an existing workspace.
@@ -261,6 +263,9 @@ pub struct SetupArgs {
     pub recovery_key_out: Option<String>,
     #[arg(long)]
     pub pairing_code_stdin: bool,
+    /// Join with a 6-digit code from this full-mode workroam-server.
+    #[arg(long, value_name = "URL")]
+    pub server: Option<String>,
     /// Unlock with the recovery key instead of the password.
     #[arg(long)]
     pub recovery_key_stdin: bool,

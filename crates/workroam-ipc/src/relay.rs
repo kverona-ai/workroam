@@ -25,6 +25,21 @@ pub fn grant_message(
     .into_bytes()
 }
 
+/// Bytes a device signs for an HTTP request to a full-mode server
+/// (`X-Workroam-Device`, `X-Workroam-Time`, `X-Workroam-Signature`).
+pub fn http_message(method: &str, path: &str, time: i64, body: &[u8]) -> Vec<u8> {
+    format!(
+        "workroam-http\n{method}\n{path}\n{time}\n{}",
+        workroam_core::crypto::sha256_hex(body)
+    )
+    .into_bytes()
+}
+
+/// Headers of a device-signed HTTP request.
+pub const H_DEVICE: &str = "x-workroam-device";
+pub const H_TIME: &str = "x-workroam-time";
+pub const H_SIGNATURE: &str = "x-workroam-signature";
+
 /// One-time bind code the device gives the bot: `wrb1:` + base32(JSON).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BindCode {
@@ -104,6 +119,9 @@ pub enum ToDevice {
         relay_id: String,
         public_url: String,
         devices: Vec<String>,
+        /// Full-mode features this server offers: `pair`, `notify`, `web`.
+        #[serde(default)]
+        features: Vec<String>,
     },
     /// A tool call from a remote agent.
     Call {

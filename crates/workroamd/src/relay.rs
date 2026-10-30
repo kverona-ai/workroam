@@ -30,6 +30,8 @@ pub struct RelayStatus {
     pub connected: bool,
     pub last_error: Option<String>,
     pub public_url: Option<String>,
+    /// Full-mode features of the server (`pair`, `notify`, `web`).
+    pub features: Vec<String>,
 }
 
 #[derive(Default)]
@@ -165,11 +167,16 @@ async fn run_once(d: &Arc<Daemon>, url: &str, relay_id: &str) -> Result<()> {
                     bind_code: None,
                 });
             }
-            ToDevice::Welcome { public_url, .. } => {
+            ToDevice::Welcome {
+                public_url,
+                features,
+                ..
+            } => {
                 let mut s = d.relay.status.lock().unwrap();
                 s.connected = true;
                 s.last_error = None;
                 s.public_url = Some(public_url);
+                s.features = features;
                 drop(s);
                 let _ = tx.send(FromDevice::Presence {
                     projects: remote_projects().unwrap_or_default(),
@@ -237,6 +244,52 @@ async fn run_once(d: &Arc<Daemon>, url: &str, relay_id: &str) -> Result<()> {
     }
     writer.abort();
     Ok(())
+}
+
+/// Whether the server this device is bound to offers a full-mode feature.
+pub fn has_feature(d: &Daemon, f: &str) -> bool {
+    d.relay.status().features.iter().any(|x| x == f)
+}
+
+/// A device-signed request to the full-mode server.
+pub async fn signed_request(base: &str, method: &str, path: &str, body: &Value) -> Result<Value> {
+    let key = device_key()?;
+    let m = crate::load_machine()?;
+    let raw = serde_json::to_vec(body)?;
+    let t = Utc::now().timestamp();
+    let sig = key.sign(&proto::http_message(method, path, t, &raw));
+    let url = format!("{}{path}", base.trim_end_matches('/'));
+    let m2 = reqwest::Method::from_bytes(method.as_bytes())
+        .map_err(|e| Error::internal(e.to_string()))?;
+    let r = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| Error::internal(e.to_string()))?
+        .request(m2, &url)
+        .header(proto::H_DEVICE, &m.device_id)
+        .header(proto::H_TIME, t.to_string())
+        .header(proto::H_SIGNATURE, hex::encode(sig.to_bytes()))
+        .header("content-type", "application/json")
+        .body(raw)
+        .send()
+        .await
+        .map_err(|e| Error::network(format!("cannot reach the server at {base}: {e}")))?;
+    let status = r.status();
+    let v: Value = r.json().await.unwrap_or(Value::Null);
+    if !status.is_success() {
+        let msg = v["error"].as_str().unwrap_or("request failed").to_string();
+        return Err(Error::network(format!(
+            "server: {msg} (HTTP {})",
+            status.as_u16()
+        )));
+    }
+    Ok(v)
+}
+
+/// The bound server's base URL.
+pub fn server_base(d: &Daemon) -> Option<String> {
+    let s = d.relay.status();
+    s.public_url.or(s.url).filter(|u| !u.is_empty())
 }
 
 /// Projects on this device with remote access turned on.
@@ -461,8 +514,7 @@ async fn authorize(
     Ok((access, chosen, hex::encode(sig.to_bytes())))
 }
 
-const INSTALL_SERVER: &str =
-    "curl -fsSL https://github.com/kverona-ai/workroam/releases/latest/download/install.sh | sh -s -- --server-only";
+const INSTALL_SERVER: &str = "curl -fsSL https://github.com/kverona-ai/workroam/releases/latest/download/install-server.sh | sh\nexport PATH=\"$HOME/.local/bin:$PATH\"";
 
 /// `agent.connect`: local agents get their files; cloud agents get a relay.
 pub async fn connect(d: &Arc<Daemon>, _ctx: &Ctx, p: &Value) -> Result<Value> {
@@ -530,7 +582,7 @@ pub async fn connect(d: &Arc<Daemon>, _ctx: &Ctx, p: &Value) -> Result<Value> {
         }
         .encode();
         let text = format!(
-            "Please deploy my Workroam relay on your cloud computer and keep it running:\n\n{INSTALL_SERVER}\nworkroam-server --bind {code} --tunnel\n\nReport the public https:// address it prints. If the computer restarts, start it again with `workroam-server --tunnel`; tell me if the address changes."
+            "Please deploy my Workroam relay on your cloud computer and keep it running:\n\n{INSTALL_SERVER}\nnohup workroam-server --bind {code} --tunnel > ~/.workroam-server.log 2>&1 &\nsleep 15; cat ~/.workroam-server.log\n\nReport the public https:// address it prints. If the computer restarts, start it again with `workroam-server --tunnel`; tell me if the address changes."
         );
         return Ok(json!({
             "agent": a.id,

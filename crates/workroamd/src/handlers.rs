@@ -511,8 +511,17 @@ async fn setup_step(s: &mut SetupSession, p: &Value) -> Result<Value> {
             Ok(json!({"ok": true}))
         }
         "pairing_code" => {
-            s.set_pairing_code(&p_req(p, "code")?)?;
-            Ok(json!({"ok": true}))
+            let code = p_req(p, "code")?;
+            let digits: String = code.chars().filter(|c| c.is_ascii_digit()).collect();
+            match p_str(p, "server") {
+                Some(server) if digits.len() == 6 && !code.starts_with("wr1:") => {
+                    redeem(s, &server, &digits, p_str(p, "device_name")).await
+                }
+                _ => {
+                    s.set_pairing_code(&code)?;
+                    Ok(json!({"ok": true}))
+                }
+            }
         }
         "unlock" => to_value(
             &s.unlock(
@@ -561,6 +570,61 @@ async fn setup_step(s: &mut SetupSession, p: &Value) -> Result<Value> {
         }
         other => Err(Error::invalid(format!("unknown setup step {other}"))),
     }
+}
+
+/// A 6-digit code from a full-mode server: it creates a key for this device.
+async fn redeem(
+    s: &mut SetupSession,
+    server: &str,
+    code: &str,
+    name: Option<String>,
+) -> Result<Value> {
+    let base = server.trim_end_matches('/').to_string();
+    if !base.starts_with("https://")
+        && !base.starts_with("http://127.0.0.1")
+        && !base.starts_with("http://localhost")
+    {
+        return Err(Error::invalid("the server address must be https://"));
+    }
+    let id = workroam_core::crypto::random_id("d");
+    let key = crate::relay::device_key()?;
+    let name = name.unwrap_or_else(workroam_platform::sysinfo::default_device_name);
+    let r = reqwest::Client::new()
+        .post(format!("{base}/pair/redeem"))
+        .timeout(std::time::Duration::from_secs(60))
+        .json(&json!({"code": code, "device_name": name, "device_id": id, "pubkey": crate::relay::pubkey_hex(&key)}))
+        .send()
+        .await
+        .map_err(|e| Error::network(format!("cannot reach {base}: {e}")))?;
+    let ok = r.status().is_success();
+    let v: Value = r.json().await.unwrap_or(Value::Null);
+    if !ok {
+        return Err(Error::invalid(
+            v["error"]
+                .as_str()
+                .unwrap_or("the server refused the code")
+                .to_string(),
+        )
+        .with_hint("ask for a new code on a device that is already set up: workroam device add"));
+    }
+    s.set_pairing_code(v["pairing_code"].as_str().unwrap_or(""))?;
+    let scope = if v["scope"].as_str() == Some("read-only") {
+        Access::ReadOnly
+    } else {
+        Access::ReadWrite
+    };
+    s.redeemed = Some((
+        workroam_store::Creds {
+            access_key: v["access_key"].as_str().unwrap_or("").to_string(),
+            secret_key: v["secret_key"].as_str().unwrap_or("").to_string(),
+        },
+        scope,
+    ));
+    s.preset_device_id = Some(id);
+    if let (Some(u), Some(rid)) = (v["relay"]["url"].as_str(), v["relay"]["relay_id"].as_str()) {
+        s.relay = Some((u.to_string(), rid.to_string()));
+    }
+    Ok(json!({"ok": true, "own_key": true, "scope": scope}))
 }
 
 async fn doctor(d: &Arc<Daemon>) -> Result<Value> {
@@ -630,7 +694,30 @@ async fn pairing_code(d: &Arc<Daemon>, read_only: bool) -> Result<Value> {
     let payload = workroam_device::PairingPayload::from_location(ws.location(), &ak, &sk, scope);
     let code = workroam_device::PairingCode::encode(&payload, &password)?;
     let shared_key = read_only && creds.read_only.is_none() && !ws.location().is_local();
+    // With a full-mode server: a 6-digit code; the new device gets its own key.
+    let mut short = Value::Null;
+    if crate::relay::has_feature(d, "pair") {
+        if let Some(base) = crate::relay::server_base(d) {
+            let bare = workroam_device::PairingPayload::from_location(ws.location(), "", "", scope);
+            let blob = workroam_device::PairingCode::encode(&bare, &password)?;
+            match crate::relay::signed_request(
+                &base,
+                "POST",
+                "/pair",
+                &json!({"pairing_code": blob, "scope": scope.as_str(), "location": ws.location()}),
+            )
+            .await
+            {
+                Ok(v) => {
+                    short =
+                        json!({"code": v["code"], "server": base, "expires_in": v["expires_in"]})
+                }
+                Err(e) => tracing::warn!("short pairing code: {}", e.message),
+            }
+        }
+    }
     Ok(json!({
+        "short_code": short,
         "pairing_code": code,
         "qr_svg": workroam_device::qr::svg(&code),
         "qr_text": workroam_device::qr::terminal(&code),
@@ -710,6 +797,23 @@ async fn device_remove(d: &Arc<Daemon>, p: &Value) -> Result<Value> {
             }
         }
     }
+    // A key the full-mode server created for that device is revoked there.
+    let mut server_revoked = false;
+    if crate::relay::has_feature(d, "pair") {
+        if let Some(base) = crate::relay::server_base(d) {
+            match crate::relay::signed_request(
+                &base,
+                "DELETE",
+                &format!("/devices/{}", dev.id),
+                &json!({"location": ws.location()}),
+            )
+            .await
+            {
+                Ok(v) => server_revoked = v["key_revoked"].as_bool().unwrap_or(false),
+                Err(e) => tracing::warn!("server key revoke: {}", e.message),
+            }
+        }
+    }
     let mut rotation = false;
     if let (Some(ak), Some(sk)) = (p_str(p, "new_access_key"), p_str(p, "new_secret_key")) {
         workroam_device::rotation::begin(
@@ -727,7 +831,8 @@ async fn device_remove(d: &Arc<Daemon>, p: &Value) -> Result<Value> {
     Ok(json!({
         "removed": dev.name,
         "rotation_started": rotation,
-        "hint": if rotation { None } else { Some("rotate the storage key so the removed device loses access: workroam credentials update") },
+        "own_key_revoked": server_revoked,
+        "hint": if rotation || server_revoked { None } else { Some("rotate the storage key so the removed device loses access: workroam credentials update") },
     }))
 }
 

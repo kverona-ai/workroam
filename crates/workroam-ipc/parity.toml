@@ -128,9 +128,9 @@ since = "0.1"
 
 [[section.block.row]]
 id = "setup.pairing_code"
-cells = ["加入：配对码", "粘贴配对码，或用摄像头扫描二维码", "交互模式粘贴；非交互 `--pairing-code-stdin`（二维码扫描见豁免清单）"]
+cells = ["加入：配对码", "粘贴配对码，或用摄像头扫描二维码；完整模式服务端的 6 位配对码需同时填写服务端地址", "交互模式粘贴；非交互 `--pairing-code-stdin`；6 位配对码加 `--server <地址>`（二维码扫描见豁免清单）"]
 ipc = ["setup.step"]
-cli = ["workroam setup --join --pairing-code-stdin"]
+cli = ["workroam setup --join --pairing-code-stdin", "workroam setup --join --pairing-code-stdin --server https://workroam.example.com"]
 desktop = ["setup.pairing_code"]
 since = "0.1"
 
@@ -712,7 +712,7 @@ since = "0.1"
 id = "agent.connect_remote"
 cells = ["连接云端个人 Agent", "设置“Agent”→“连接 <Agent>”：打开对方连接器页或复制设置说明；授权卡片核对确认码、选择权限与项目", "`workroam agent connect <agent> [--relay <地址>]`：没有中继时输出给 bot 的部署说明与绑定码，再用 `--relay` 绑定 bot 回报的地址；输出连接地址与设置说明；授权在终端核对确认码并选择权限与项目，或 `workroam approve <id> --access read-only\\|sync --project <项目>`", "—"]
 ipc = ["agent.connect", "approval.respond"]
-cli = ["workroam agent connect grok", "workroam agent connect grok --relay https://relay.example.com", "workroam approve ap_1 --access read-only --project demo"]
+cli = ["workroam agent connect grok-bot", "workroam agent connect grok-bot --relay https://relay.example.com", "workroam approve ap_1 --access read-only --project demo"]
 desktop = ["agent.connect_remote"]
 since = "0.1"
 
@@ -720,7 +720,7 @@ since = "0.1"
 id = "agent.disconnect"
 cells = ["撤销云端 Agent 连接", "设置“Agent”→连接行“撤销”", "`workroam agent disconnect <agent>`", "—"]
 ipc = ["agent.disconnect"]
-cli = ["workroam agent disconnect grok"]
+cli = ["workroam agent disconnect grok-bot"]
 desktop = ["agent.disconnect"]
 since = "0.1"
 
@@ -736,7 +736,7 @@ since = "0.1"
 id = "agent.webhook"
 cells = ["事件 webhook", "设置“Agent”→连接行“webhook”", "`workroam agent webhook <agent> --url <地址> --secret-stdin`", "系统密钥库"]
 ipc = ["agent.webhook"]
-cli = ["workroam agent webhook grok --url https://example.com/hook --secret-stdin"]
+cli = ["workroam agent webhook grok-bot --url https://example.com/hook --secret-stdin"]
 desktop = ["agent.webhook"]
 since = "0.1"
 

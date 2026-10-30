@@ -51,7 +51,12 @@ pub async fn send(d: &Daemon, event: &str, project: &str, summary: Value) {
         "time": chrono::Utc::now(),
         "summary": summary,
     });
-    if !m.notify.ntfy.is_empty() && (event != "finished" || m.notify.on_success) {
+    let via_server = crate::relay::has_feature(d, "notify")
+        .then(|| crate::relay::server_base(d))
+        .flatten();
+    if (via_server.is_some() || !m.notify.ntfy.is_empty())
+        && (event != "finished" || m.notify.on_success)
+    {
         let title = match event {
             "finished" => format!("Workroam: {project} synced"),
             "failed" => format!("Workroam: {project} failed"),
@@ -63,14 +68,25 @@ pub async fn send(d: &Daemon, event: &str, project: &str, summary: Value) {
             .unwrap_or(event)
             .to_string();
         let url = m.notify.ntfy.clone();
-        tokio::spawn(async move {
-            post(
-                &url,
-                text.into_bytes(),
-                &[("Title", title), ("Tags", "workroam".into())],
-            )
-            .await
-        });
+        // A full-mode server forwards to its ntfy topic; otherwise post directly.
+        if let Some(base) = via_server {
+            let body = json!({"title": title, "message": text, "tags": "workroam", "priority": if event == "failed" { "high" } else { "default" }});
+            tokio::spawn(async move {
+                if let Err(e) = crate::relay::signed_request(&base, "POST", "/notify", &body).await
+                {
+                    tracing::warn!("notify via server: {}", e.message);
+                }
+            });
+        } else {
+            tokio::spawn(async move {
+                post(
+                    &url,
+                    text.into_bytes(),
+                    &[("Title", title), ("Tags", "workroam".into())],
+                )
+                .await
+            });
+        }
     }
     // Webhooks of remote agents allowed on this project.
     let Ok(ws) = d.ws().await else { return };

@@ -29,7 +29,7 @@ case "$mode" in
 esac
 
 if [ -z "${APPLE_CERTIFICATE:-}" ]; then
-  echo "未配置 APPLE_CERTIFICATE，跳过 macOS 签名（$mode）"
+  echo "未配置 APPLE_CERTIFICATE，跳过 macOS 签名（${mode}）"
   exit 0
 fi
 if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then

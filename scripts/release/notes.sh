@@ -165,7 +165,7 @@ Full guides: [Install]($docs/install.md) · [Deployment]($docs/deployment.md) ·
 <details>
 <summary><b>简体中文</b></summary>
 
-Workroam v$version：把 AI Agent 工作区带到每一台电脑上。
+Workroam v${version}：把 AI Agent 工作区带到每一台电脑上。
 
 ### 更新内容
 $(printf '%s\n' "$changes_zh" | sed 's/^### /#### /')

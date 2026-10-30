@@ -21,7 +21,7 @@ while IFS= read -r -d '' f; do
   count=$((count + 1))
   if osslsigncode verify -in "$f" > "$log" 2>&1; then
     signer="$(grep -m1 -E '^[[:space:]]*Subject:' "$log" | sed 's/^[[:space:]]*Subject:[[:space:]]*//' || true)"
-    echo "✓ $f ${signer:+（$signer）}"
+    echo "✓ ${f} ${signer:+（${signer}）}"
   else
     failed=$((failed + 1))
     echo "::error::$f 没有有效的签名"

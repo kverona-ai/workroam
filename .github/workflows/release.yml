@@ -61,7 +61,7 @@ jobs:
               git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
               git tag -a "$tag" -m "Workroam $tag" "$GITHUB_SHA"
               git push origin "$ref"
-              echo "::notice::已在 $GITHUB_REF_NAME（${GITHUB_SHA::7}）上创建 tag $tag"
+              echo "::notice::已在 ${GITHUB_REF_NAME}（${GITHUB_SHA::7}）上创建 tag $tag"
             fi
             git checkout -q "$ref"
           else
@@ -713,7 +713,7 @@ jobs:
         id: token
         run: |
           if [ -z "$TAP_TOKEN" ]; then
-            echo "::notice::未配置 HOMEBREW_TAP_TOKEN，跳过更新 $TAP_REPO；formula 与 cask 已作为 Release 附件发布"
+            echo "::notice::未配置 HOMEBREW_TAP_TOKEN，跳过更新 ${TAP_REPO}；formula 与 cask 已作为 Release 附件发布"
             echo "ok=false" >> "$GITHUB_OUTPUT"
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"

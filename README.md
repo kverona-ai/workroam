@@ -6,8 +6,9 @@
 
 **Hand off your AI agent workspace between machines.**
 
-One S3 bucket of your own. Tell any agent on any computer to "sync down",<br>
-and your projects, code, rules, MCP / Skills and context pick up where you left off.
+One private S3 bucket of your own. Tell any agent on any computer to "sync down",<br>
+and your projects, code, rules, MCP / Skills and context pick up where you left off,<br>
+even on a brand-new machine or a project you archived months ago.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/kverona-ai/workroam/actions/workflows/ci.yml/badge.svg)](https://github.com/kverona-ai/workroam/actions/workflows/ci.yml)
@@ -39,9 +40,14 @@ You probably use several coding agents (Claude Code, Codex, Antigravity, Grok Bu
 - only the office machine can reach the intranet and internal git, so **remote development is not an option**: work has to stay local;
 - cloud drives, Syncthing and rclone **don't understand** agent rules, MCP, Skills, sessions or git, and syncing `.git` directly corrupts repositories;
 - Windows, macOS and Linux disagree on paths, line endings, case sensitivity and symlinks;
-- after switching machines, your agent **forgets** where it left off.
+- after switching machines, your agent **forgets** where it left off;
+- finished projects pile up on local disks, and bringing one back months later, or setting up a new computer, means hunting for code, configs and context.
 
-Workroam turns "leave the office → get home → keep going → push at the office" into two sentences.
+Workroam keeps every project in **your own private cloud storage**, end-to-end encrypted, so your workspace follows you without you thinking about it:
+
+- **Hand off daily**: "leave the office → get home → keep going → push at the office" takes two sentences.
+- **Archive when done**: a finished project is archived to your storage, and the whole workspace comes back in one step whenever you need it.
+- **Any machine, any time**: on a new computer or a fresh environment, pull any project from your storage and keep working.
 
 ## Features
 
@@ -88,6 +94,8 @@ Workroam lives in your tray and pops up only when something needs you. Everythin
 
 ## How it works
 
+### 1. Hand off between machines
+
 ```mermaid
 flowchart LR
     O["🏢 Office<br/>workroam push --release"] -- encrypted snapshot --> S[("S3-compatible storage")]
@@ -101,6 +109,18 @@ flowchart LR
 2. **Arriving home**: the tray tells you there is new progress on the server. Say "sync down" and Workroam pulls files, imports commits, and generates MCP configs, Skills links and an environment note for this machine.
 3. **Keep going**: open any agent. It reads `AGENTS.md` and `HANDOFF.md`, reports where things stand, and continues.
 4. **Back at the office**: pull the home progress. Home commits are rebased back onto real history, then you `git push` to the intranet.
+
+### 2. Archive a finished project, restore it in one step
+
+1. **Archive**: when a project is done, click "Archive…" in the app or run `workroam archive create proj-a`. Syncing stops, and a self-contained, encrypted copy (files, git history, agent rules and `HANDOFF.md`) is kept in your storage permanently, until you delete it. Local files are never touched; delete the folder yourself if you want the space back.
+2. **Restore**: months later, maybe for a maintenance request, pick the project on the Archive page and click "Restore", or run `workroam archive restore proj-a`. This works on any machine in the workspace. Workroam first checks the target folder (empty, unchanged, changed locally, or a brand-new machine) and shows what will happen, and it never silently overwrites anything.
+3. **Continue**: open any agent. It reads `HANDOFF.md` and picks up where the project was left. Need to keep a copy offline too? Export the archive as a single encrypted pack and import it into any workspace later.
+
+### 3. New computer or fresh environment
+
+1. **Join**: install Workroam, choose "Join an existing workspace", and enter the pairing code from one of your machines plus your encryption password. On a headless machine, run `workroam setup`.
+2. **Pick a project**: every project in your storage is listed, including ones that have never been on this machine. Choose one and a local folder, then click "Add and pull", or run `workroam project add proj-b`.
+3. **Keep working**: files and commits arrive, and MCP configs, Skills links and the environment note are generated for this OS. Your agent reads `HANDOFF.md` and carries on. Projects you don't pull stay in storage until you need them.
 
 ## Install
 

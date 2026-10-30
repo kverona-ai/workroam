@@ -142,7 +142,7 @@
 | Agent 与适配器 | 设置“Agent”：版本、适配器版本、匹配状态 | `workroam agent list` | — | v0.1 |
 | 接入新装的本机 Agent | 设置“Agent”→“接入” | `workroam agent connect <agent>` | — | v0.1 |
 | 本机 MCP server 开关 | 设置“Agent”中每个 Agent 的 MCP 开关 | `workroam config set mcp.enabled true\|false [-p <项目>]` | `mcp.enabled` | v0.3 |
-| 连接云端个人 Agent | 设置“Agent”→“连接 <Agent>”：打开对方连接器页或复制设置说明；授权卡片核对确认码、选择权限与项目 | `workroam agent connect <agent>`：输出连接地址与设置说明；授权在终端核对确认码并选择权限与项目，或 `workroam approve <id> --access read-only\|sync --project <项目>` | — | v0.3 |
+| 连接云端个人 Agent | 设置“Agent”→“连接 <Agent>”：打开对方连接器页或复制设置说明；授权卡片核对确认码、选择权限与项目 | `workroam agent connect <agent> [--relay <地址>]`：没有中继时输出给 bot 的部署说明与绑定码，再用 `--relay` 绑定 bot 回报的地址；输出连接地址与设置说明；授权在终端核对确认码并选择权限与项目，或 `workroam approve <id> --access read-only\|sync --project <项目>` | — | v0.3 |
 | 撤销云端 Agent 连接 | 设置“Agent”→连接行“撤销” | `workroam agent disconnect <agent>` | — | v0.3 |
 | 远程连接开关（按项目）、默认代理设备 | 项目详情“允许远程连接”；设置“Agent”→“默认代理设备” | `workroam config set remote.enabled true\|false -p <项目>`；`config set remote.default_device <设备>` | `remote.*` | v0.3 |
 | 事件 webhook | 设置“Agent”→连接行“webhook” | `workroam agent webhook <agent> --url <地址> --secret-stdin` | 系统密钥库 | v0.3 |

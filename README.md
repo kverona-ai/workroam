@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/logo.svg" width="112" alt="Workroam logo">
+<img src="docs/assets/logo.svg" width="128" alt="Workroam logo">
 
 # Workroam
 
@@ -13,12 +13,16 @@ and your projects, code, rules, MCP / Skills and context pick up where you left 
 [![Status](https://img.shields.io/badge/status-design%20phase-orange.svg)](docs/prd.md)
 [![Rust](https://img.shields.io/badge/Rust-stable-dea584.svg?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](#)
-[![Storage](https://img.shields.io/badge/storage-any%20S3--compatible-4F46E5.svg)](docs/architecture.md)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-0EA5A4.svg)](CONTRIBUTING.md)
+[![Storage](https://img.shields.io/badge/storage-any%20S3--compatible-2F6BFF.svg)](docs/architecture.md)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-1FB6E8.svg)](CONTRIBUTING.md)
 
 **English** · [简体中文](README.zh-CN.md)
 
 [Requirements](docs/prd.md) · [Architecture](docs/architecture.md) · [Decisions](docs/adr/README.md) · [Contributing](CONTRIBUTING.md)
+
+<br>
+
+<img src="docs/assets/screenshots/main-window.webp" width="860" alt="Workroam main window with an approval card in the corner">
 
 </div>
 
@@ -50,6 +54,21 @@ Workroam turns "leave the office → get home → keep going → push at the off
 | 🖥️ **Cross-platform** | Case conflicts, invalid Windows file names and long paths are caught before you push. Links and executable bits are handled per OS on pull. |
 | 🙋 **You stay in the loop** | Approve every sync, including agent-initiated ones, watch progress, and get notified on success or failure. |
 | ⏪ **Rollback & archive** | Every sync is an immutable snapshot you can return to. When you decide a project is done, archive it: syncing stops, a self-contained copy is kept forever, and you can resume it any time. Local files are never touched. |
+
+## Product preview
+
+High-fidelity designs from the [clickable prototype](docs/prototype/README.md) (open `docs/prototype/index.html` in a browser). Light and dark themes, Liquid Glass style; the prototype UI is currently in Chinese.
+
+<table>
+<tr>
+<td width="50%"><img src="docs/assets/screenshots/setup-wizard.webp" alt="First-run setup: 16 storage capability checks"><br><sub>First-run setup: 16 storage capability checks</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/corner-cards.webp" alt="Corner cards: approve, progress, done, failed, arrival, lease conflict"><br><sub>Corner cards: approve, progress, done, failed, arrival, lease conflict</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/assets/screenshots/archive-restore-dark.webp" alt="Restoring an archive: what happens to your local folder (dark)"><br><sub>Restoring an archive: what happens to your local folder (dark)</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/tray-menu-dark.webp" alt="Tray menu and icon states (dark)"><br><sub>Tray menu and icon states (dark)</sub></td>
+</tr>
+</table>
 
 ## How it works
 
@@ -97,7 +116,7 @@ See [PRD · Roadmap](docs/prd.md#10-版本规划与验收门槛) for details.
 
 ```text
 .
-├── docs/            # Docs: PRD, architecture, ADRs, assets
+├── docs/            # Docs: PRD, architecture, ADRs, prototype, assets
 ├── crates/          # Rust code (planned, see crates/README.md)
 ├── .github/         # Issue / PR templates
 ├── CONTRIBUTING.md  # Contribution guide

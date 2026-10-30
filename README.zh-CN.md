@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/logo.svg" width="112" alt="Workroam logo">
+<img src="docs/assets/logo.svg" width="128" alt="Workroam logo">
 
 # Workroam
 
@@ -13,12 +13,16 @@
 [![Status](https://img.shields.io/badge/status-design%20phase-orange.svg)](docs/prd.md#10-版本规划与验收门槛)
 [![Rust](https://img.shields.io/badge/Rust-stable-dea584.svg?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](#)
-[![Storage](https://img.shields.io/badge/storage-any%20S3--compatible-4F46E5.svg)](docs/architecture.md#5-存储布局)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-0EA5A4.svg)](CONTRIBUTING.md)
+[![Storage](https://img.shields.io/badge/storage-any%20S3--compatible-2F6BFF.svg)](docs/architecture.md#5-存储布局)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-1FB6E8.svg)](CONTRIBUTING.md)
 
 [English](README.md) · **简体中文**
 
 [产品需求](docs/prd.md) · [技术架构](docs/architecture.md) · [架构决策](docs/adr/README.md) · [参与贡献](CONTRIBUTING.md)
+
+<br>
+
+<img src="docs/assets/screenshots/main-window.webp" width="860" alt="Workroam 主窗口与角落的授权卡片">
 
 </div>
 
@@ -50,6 +54,21 @@ Workroam 把“下班 → 回家 → 接着干 → 回公司推送”变成两�
 | 🖥️ **跨平台** | 推送前就检查大小写冲突、Windows 非法文件名、长路径；拉取时按本机系统处理链接与可执行位 |
 | 🙋 **人始终知情** | 同步前授权、同步中可见进度、完成或失败有提醒；Agent 发起的同步也要你确认 |
 | ⏪ **回滚与归档** | 每次同步都是一个不可变快照，随时回到任意一次；项目做完后由你决定是否归档：停止同步、永久留存，随时恢复继续开发，本地文件一律不动 |
+
+## 产品预览
+
+以下来自[可点击的高保真原型](docs/prototype/README.md)（用浏览器打开 `docs/prototype/index.html` 即可操作），Liquid Glass 风格，支持浅色与深色。
+
+<table>
+<tr>
+<td width="50%"><img src="docs/assets/screenshots/setup-wizard.webp" alt="首次初始化：16 项存储能力检查"><br><sub>首次初始化：16 项存储能力检查</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/corner-cards.webp" alt="角落卡片：授权、进度、完成、失败、到达、租约冲突"><br><sub>角落卡片：授权、进度、完成、失败、到达、租约冲突</sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/assets/screenshots/archive-restore-dark.webp" alt="恢复归档：按本地目录情况说明会做什么（深色）"><br><sub>恢复归档：按本地目录情况说明会做什么（深色）</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/tray-menu-dark.webp" alt="托盘菜单与图标状态（深色）"><br><sub>托盘菜单与图标状态（深色）</sub></td>
+</tr>
+</table>
 
 ## 工作方式
 
@@ -97,7 +116,7 @@ workroam pull --acquire     # 到达时
 
 ```text
 .
-├── docs/            # 文档：PRD、技术架构、ADR、图片资源
+├── docs/            # 文档：PRD、技术架构、ADR、原型、图片资源
 ├── crates/          # Rust 代码（规划中，见 crates/README.md）
 ├── .github/         # Issue / PR 模板
 ├── CONTRIBUTING.md  # 贡献指南

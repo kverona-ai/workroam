@@ -108,7 +108,7 @@ workroam pull --acquire     # when arriving
 | --- | --- | --- |
 | **v0.1** | Dogfooding: setup wizard & checks, pairing codes, CLI, snapshots, lease, encryption, bundle mode, Claude Code & Codex adapters, approval cards | Two weeks of daily Windows ↔ Mac handoffs without data loss |
 | v0.2 | More agents: Grok Build, Antigravity, ZCode, Pi; session migration; remote & files modes; scoped keys, read-only devices, key rotation; project archive & restore | Six agents work right after switching machines |
-| **v0.3** | Hands-free (target product): automatic sync, arrival cards, sync history, MCP server for agents, mobile push, optional server with pairing codes and a web UI; optional off-site mirror | Almost no manual commands |
+| **v0.3** | Hands-free (target product): automatic sync, arrival cards, sync history, MCP server for local agents, remote connector for cloud personal agents (Grok Bot, Muse), mobile push, optional server with pairing codes and a web UI; optional off-site mirror | Almost no manual commands |
 
 See [PRD · Roadmap](docs/prd.md#10-版本规划与验收门槛) for details.
 

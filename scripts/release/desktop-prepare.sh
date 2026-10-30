@@ -37,7 +37,8 @@ fi
 
 case "$target" in *windows*) exe=".exe" ;; *) exe="" ;; esac
 
-externals="$(jq -r '.bundle.externalBin // [] | .[]' "$conf")"
+# Windows 上的 jq 输出 CRLF，去掉 \r，否则文件名会带上回车
+externals="$(jq -r '.bundle.externalBin // [] | .[]' "$conf" | tr -d '\r')"
 [ -n "$externals" ] || exit 0
 
 bins=()

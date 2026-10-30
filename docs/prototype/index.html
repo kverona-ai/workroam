@@ -31,17 +31,20 @@
   --ok-bg:rgba(18,145,90,.11); --warn-bg:rgba(255,166,0,.15); --bad-bg:rgba(208,51,59,.10); --acc-bg:rgba(47,107,255,.10); --amb-bg:rgba(255,181,71,.20);
 
   /* glass */
-  --glass-top:rgba(255,255,255,.62); --glass-bot:rgba(255,255,255,.42);
+  --glass-top:rgba(255,255,255,.56); --glass-bot:rgba(255,255,255,.34);
   --glass-strong:rgba(255,255,255,.78); --pane:rgba(255,255,255,.46); --panel:rgba(255,255,255,.34);
   --rim:rgba(255,255,255,.9); --rim-soft:rgba(255,255,255,.35);
   --ring:rgba(13,21,36,.07);
+  /* lens: the inner bevel that makes a pane read as thick glass */
+  --lens-hi:rgba(255,255,255,.75); --lens-lo:rgba(22,38,82,.10); --spec:rgba(255,255,255,.95); --glow:rgba(255,255,255,.22);
+  --grain:.07;
   --sh-c:22,38,82;  /* shadow tint (rgb) */
   --btn:rgba(255,255,255,.72); --btn-h:rgba(255,255,255,.92);
   --field:rgba(255,255,255,.7); --sheet:rgba(247,249,253,.94); --knob:#FFFFFF; --dim:rgba(18,28,52,.16);
   --menubar:rgba(255,255,255,.55);
 
   /* wallpaper */
-  --blob1:#8DB6FF; --blob2:#86E3D6; --blob3:#CDC4FF; --blob4:#FFDDB6;
+  --blob1:#7FA8FF; --blob2:#6FE0D0; --blob3:#C2B4FF; --blob4:#FFD2A6; --blob5:#FFB8D9;
 
   /* radii: concentric, inner = outer - inset */
   --r-win:26px;   /* windows, desktop */
@@ -54,6 +57,7 @@
 
   /* motion */
   --ease:cubic-bezier(.23,1,.32,1);
+  --spring:cubic-bezier(.34,1.32,.52,1); /* only for indicators that travel: a slight overshoot reads as liquid */
 
   /* fixed in both themes */
   --tl-r:#FF5F57; --tl-y:#FEBC2E; --tl-g:#28C840; --qr-bg:#FFFFFF; --qr-fg:#0D1524;
@@ -67,15 +71,17 @@
     --sel:rgba(79,134,255,.18); --sel-ring:rgba(79,134,255,.45);
     --ok:#3ED598; --warn:#FFBE4A; --bad:#FF6B70;
     --ok-bg:rgba(62,213,152,.13); --warn-bg:rgba(255,190,74,.14); --bad-bg:rgba(255,107,112,.14); --acc-bg:rgba(79,134,255,.17); --amb-bg:rgba(255,181,71,.16);
-    --glass-top:rgba(40,46,66,.62); --glass-bot:rgba(22,26,40,.56);
+    --glass-top:rgba(40,46,66,.58); --glass-bot:rgba(20,24,38,.50);
     --glass-strong:rgba(56,64,90,.72); --pane:rgba(255,255,255,.045); --panel:rgba(255,255,255,.04);
     --rim:rgba(255,255,255,.22); --rim-soft:rgba(255,255,255,.06);
     --ring:rgba(255,255,255,.09);
+    --lens-hi:rgba(255,255,255,.16); --lens-lo:rgba(0,0,0,.28); --spec:rgba(255,255,255,.55); --glow:rgba(255,255,255,.07);
+    --grain:.11;
     --sh-c:0,0,0;
     --btn:rgba(255,255,255,.09); --btn-h:rgba(255,255,255,.15);
     --field:rgba(255,255,255,.06); --sheet:rgba(30,35,52,.95); --knob:#F2F4F9; --dim:rgba(0,0,0,.42);
     --menubar:rgba(18,22,34,.6);
-    --blob1:#1B3A9E; --blob2:#0A615D; --blob3:#352676; --blob4:#53300F;
+    --blob1:#2143B8; --blob2:#0A6E68; --blob3:#43299A; --blob4:#6A3A10; --blob5:#5A1E52;
     color-scheme:dark;
   }
 }
@@ -87,15 +93,17 @@
   --sel:rgba(79,134,255,.18); --sel-ring:rgba(79,134,255,.45);
   --ok:#3ED598; --warn:#FFBE4A; --bad:#FF6B70;
   --ok-bg:rgba(62,213,152,.13); --warn-bg:rgba(255,190,74,.14); --bad-bg:rgba(255,107,112,.14); --acc-bg:rgba(79,134,255,.17); --amb-bg:rgba(255,181,71,.16);
-  --glass-top:rgba(40,46,66,.62); --glass-bot:rgba(22,26,40,.56);
+  --glass-top:rgba(40,46,66,.58); --glass-bot:rgba(20,24,38,.50);
   --glass-strong:rgba(56,64,90,.72); --pane:rgba(255,255,255,.045); --panel:rgba(255,255,255,.04);
   --rim:rgba(255,255,255,.22); --rim-soft:rgba(255,255,255,.06);
   --ring:rgba(255,255,255,.09);
+  --lens-hi:rgba(255,255,255,.16); --lens-lo:rgba(0,0,0,.28); --spec:rgba(255,255,255,.55); --glow:rgba(255,255,255,.07);
+  --grain:.11;
   --sh-c:0,0,0;
   --btn:rgba(255,255,255,.09); --btn-h:rgba(255,255,255,.15);
   --field:rgba(255,255,255,.06); --sheet:rgba(30,35,52,.95); --knob:#F2F4F9; --dim:rgba(0,0,0,.42);
   --menubar:rgba(18,22,34,.6);
-  --blob1:#1B3A9E; --blob2:#0A615D; --blob3:#352676; --blob4:#53300F;
+  --blob1:#2143B8; --blob2:#0A6E68; --blob3:#43299A; --blob4:#6A3A10; --blob5:#5A1E52;
   color-scheme:dark;
 }
 :root{
@@ -116,11 +124,15 @@ body{
 }
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
 .wall{position:fixed;inset:0;z-index:-1;pointer-events:none;background:
-  radial-gradient(42% 52% at 10% 14%,var(--blob1),transparent 72%),
-  radial-gradient(36% 46% at 92% 10%,var(--blob3),transparent 72%),
-  radial-gradient(48% 52% at 84% 88%,var(--blob2),transparent 72%),
-  radial-gradient(38% 42% at 16% 92%,var(--blob4),transparent 72%),
+  radial-gradient(44% 54% at 8% 12%,var(--blob1),transparent 70%),
+  radial-gradient(34% 44% at 94% 6%,var(--blob3),transparent 70%),
+  radial-gradient(30% 36% at 58% 46%,color-mix(in srgb,var(--blob5) 55%,transparent),transparent 72%),
+  radial-gradient(50% 54% at 86% 92%,var(--blob2),transparent 70%),
+  radial-gradient(40% 44% at 14% 94%,var(--blob4),transparent 70%),
   var(--bg)}
+/* film grain keeps large gradients from banding and reads as a real wallpaper */
+.wall::after{content:"";position:absolute;inset:0;opacity:var(--grain);mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.4 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
 h1,h2,h3,h4{margin:0;text-wrap:balance;letter-spacing:-.012em}
 p{margin:0;text-wrap:pretty}
 a{color:var(--accent)}
@@ -135,13 +147,18 @@ code,.mono{font-family:var(--mono);font-size:.9em;letter-spacing:-.01em}
 /* ---------- glass material ---------- */
 .glass{position:relative;
   background:linear-gradient(180deg,var(--glass-top),var(--glass-bot));
-  -webkit-backdrop-filter:blur(32px) saturate(165%);backdrop-filter:blur(32px) saturate(165%);
+  -webkit-backdrop-filter:blur(36px) saturate(180%);backdrop-filter:blur(36px) saturate(180%);
   border-radius:var(--r,var(--r-float));
-  box-shadow:inset 0 .5px 0 var(--rim),var(--sh-3)}
-/* specular rim: bright at the top-left, fading, a faint return at the bottom-right */
+  /* lens bevel: a bright lip along the top edge, light pooling just inside it, a darker return at the bottom */
+  box-shadow:inset 0 1px 0 var(--lens-hi),inset 0 18px 28px -24px var(--lens-hi),inset 0 -1px 0 var(--rim-soft),inset 0 -22px 30px -28px var(--lens-lo),var(--sh-3)}
+/* specular rim: bright at the top-left, a faint return at the bottom-right, and a hot spot that follows the pointer */
 .glass::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
-  background:linear-gradient(160deg,var(--rim),transparent 26%,transparent 74%,var(--rim-soft));
-  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.8}
+  background:radial-gradient(220px circle at var(--mx,-400px) var(--my,-400px),var(--spec),transparent 70%),linear-gradient(160deg,var(--rim),transparent 26%,transparent 74%,var(--rim-soft));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.85}
+/* light pooling under the pointer, as if the pane were a lens */
+.glass::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .4s var(--ease);
+  background:radial-gradient(360px circle at var(--mx,-400px) var(--my,-400px),var(--glow),transparent 65%)}
+.glass.lit::before{opacity:1}
 .pane{background:var(--pane);border-radius:var(--r-card);box-shadow:0 0 0 .5px var(--ring)}
 
 /* ---------- controls ---------- */
@@ -153,7 +170,7 @@ code,.mono{font-family:var(--mono);font-size:.9em;letter-spacing:-.01em}
 .btn:hover{background:var(--btn-h)}
 .btn:active{transform:scale(.97)}
 .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
-.btn.primary{color:var(--on-accent);background:linear-gradient(180deg,var(--accent-hi),var(--accent));
+.btn.primary{color:var(--on-accent);background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,0) 52%),linear-gradient(180deg,var(--accent-hi),var(--accent));
   box-shadow:inset 0 .5px 0 rgba(255,255,255,.55),inset 0 -.5px 0 rgba(0,0,0,.18),0 0 0 .5px rgba(0,0,0,.08),0 2px 6px -1px rgba(47,107,255,.35),0 8px 18px -8px rgba(47,107,255,.5)}
 .btn.primary:hover{filter:brightness(1.05)}
 .btn.danger{color:var(--bad)}
@@ -165,15 +182,24 @@ code,.mono{font-family:var(--mono);font-size:.9em;letter-spacing:-.01em}
 .btn.icon{width:30px;padding:0}
 .btn.big{height:36px;padding:0 18px;font-size:14px}
 
-.seg{display:inline-flex;padding:2px;border-radius:999px;background:var(--fill2);gap:2px;max-width:100%;overflow-x:auto;scrollbar-width:none}
-.seg button{border:0;background:transparent;height:26px;padding:0 12px;border-radius:999px;font:inherit;font-size:12.5px;font-weight:550;color:var(--fg2);cursor:pointer;white-space:nowrap;transition:background .16s var(--ease),color .16s var(--ease)}
+.seg{display:inline-flex;padding:2px;border-radius:999px;background:var(--fill2);gap:2px;max-width:100%;overflow-x:auto;scrollbar-width:none;position:relative;box-shadow:inset 0 1px 2px rgba(var(--sh-c),.06)}
+.seg button{position:relative;z-index:1;border:0;background:transparent;height:26px;padding:0 12px;border-radius:999px;font:inherit;font-size:12.5px;font-weight:550;color:var(--fg2);cursor:pointer;white-space:nowrap;transition:background .16s var(--ease),color .16s var(--ease)}
 .seg button:hover{color:var(--fg)}
 .seg button.on{background:var(--glass-strong);color:var(--fg);box-shadow:inset 0 .5px 0 var(--rim),var(--sh-1)}
+/* with JS, one glass thumb slides between options instead of each button lighting up */
+.seg.has-ind button.on{background:transparent;box-shadow:none}
+.ind{position:absolute;top:2px;left:0;height:calc(100% - 4px);width:0;border-radius:999px;pointer-events:none;
+  background:var(--glass-strong);box-shadow:inset 0 1px 0 var(--lens-hi),var(--sh-1);
+  transition:transform .42s var(--spring),width .42s var(--spring)}
+.ind.instant{transition:none}
 
-.sw{appearance:none;width:38px;height:22px;border-radius:999px;background:var(--fill2);position:relative;cursor:pointer;flex:none;transition:background .2s var(--ease);margin:0;box-shadow:inset 0 0 0 .5px var(--ring)}
-.sw::before{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--knob);box-shadow:0 0 0 .5px rgba(0,0,0,.06),0 2px 4px rgba(0,0,0,.18);transition:transform .22s var(--ease)}
-.sw:checked{background:var(--ok)}
+.sw{appearance:none;width:40px;height:24px;border-radius:999px;background:var(--fill2);position:relative;cursor:pointer;flex:none;transition:background .25s var(--ease),box-shadow .25s var(--ease);margin:0;box-shadow:inset 0 0 0 .5px var(--ring),inset 0 1px 2px rgba(var(--sh-c),.08)}
+.sw::before{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:999px;background:linear-gradient(180deg,#fff,var(--knob));box-shadow:0 0 0 .5px rgba(0,0,0,.06),0 2px 5px rgba(0,0,0,.2),inset 0 -1px 1px rgba(0,0,0,.04);transition:transform .38s var(--spring),width .2s var(--ease)}
+/* pressing stretches the knob like a drop of liquid */
+.sw:active::before{width:25px}
+.sw:checked{background:linear-gradient(180deg,#3BD27F,var(--ok));box-shadow:inset 0 0 0 .5px rgba(0,0,0,.06),inset 0 1px 2px rgba(0,0,0,.12),0 0 12px -2px color-mix(in srgb,var(--ok) 60%,transparent)}
 .sw:checked::before{transform:translateX(16px)}
+.sw:checked:active::before{transform:translateX(11px)}
 .cb{width:15px;height:15px;accent-color:var(--accent);margin:0;flex:none}
 
 .field{display:grid;gap:6px;min-width:0}
@@ -204,7 +230,9 @@ textarea.input{height:auto;padding:9px 11px;resize:vertical;line-height:1.5}
 .callout.ok{background:var(--ok-bg)} .callout.ok > .ic{color:var(--ok)}
 
 .bar{height:5px;border-radius:999px;background:var(--fill2);overflow:hidden}
-.bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--lagoon),var(--mint));transition:width .3s var(--ease)}
+.bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--lagoon),var(--mint));transition:width .3s var(--ease);position:relative;overflow:hidden;box-shadow:0 0 10px -1px color-mix(in srgb,var(--lagoon) 70%,transparent)}
+.bar i::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-100%);animation:sheen 1.6s var(--ease) infinite}
+@keyframes sheen{to{transform:translateX(100%)}}
 
 .codebox{font-family:var(--mono);font-size:12px;background:var(--fill);border-radius:var(--r-ctl);padding:8px 11px;overflow-x:auto;white-space:nowrap;color:var(--fg)}
 
@@ -214,25 +242,29 @@ textarea.input{height:auto;padding:9px 11px;resize:vertical;line-height:1.5}
 .nav .brand{display:flex;align-items:center;gap:8px;font-weight:650;font-size:14px;letter-spacing:-.01em;flex:none}
 .nav .brand svg{width:24px;height:24px}
 .nav .brand small{font-weight:500;color:var(--fg3);font-size:12px}
-.tabs{display:flex;gap:2px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none;justify-content:center}
+.tabs{display:flex;gap:2px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none;justify-content:center;position:relative}
 .tabs::-webkit-scrollbar{display:none}
-.tab{height:30px;display:inline-flex;align-items:center;padding:0 13px;border-radius:999px;font-size:13px;font-weight:550;color:var(--fg2);text-decoration:none;white-space:nowrap;transition:background .16s var(--ease),color .16s var(--ease)}
+.tab{position:relative;z-index:1;height:30px;display:inline-flex;align-items:center;padding:0 13px;border-radius:999px;font-size:13px;font-weight:550;color:var(--fg2);text-decoration:none;white-space:nowrap;transition:background .16s var(--ease),color .16s var(--ease)}
 .tab:hover{color:var(--fg);background:var(--fill)}
 .tab[aria-current="page"]{background:var(--glass-strong);color:var(--fg);box-shadow:inset 0 .5px 0 var(--rim),var(--sh-1)}
+.tabs.has-ind .tab[aria-current="page"],.tabs.has-ind .tab[aria-current="page"]:hover{background:transparent;box-shadow:none}
+.tabs .ind{top:0;height:100%}
 .theme-btn{flex:none}
 
 main{max-width:1100px;margin:0 auto}
 .view{display:grid;gap:20px}
 .intro{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px 24px;padding-inline:4px}
 .intro .eyebrow{font-size:11px;font-weight:650;letter-spacing:.08em;color:var(--fg3);text-transform:uppercase;font-variant-numeric:tabular-nums}
-.intro h1{font-size:26px;font-weight:700;margin-top:4px;letter-spacing:-.02em}
+.intro h1{font-size:28px;font-weight:720;margin-top:4px;letter-spacing:-.025em}
 .intro p{color:var(--fg2);max-width:62ch;margin-top:6px;font-size:13.5px}
 
 /* ---------- window ---------- */
 .win{--r:var(--r-win);display:flex;flex-direction:column;overflow:hidden;height:720px;font-size:13px}
+/* the window picks up a little colour from the wallpaper around it */
+.win.glass{box-shadow:inset 0 1px 0 var(--lens-hi),inset 0 18px 28px -24px var(--lens-hi),inset 0 -1px 0 var(--rim-soft),var(--sh-3),0 60px 120px -40px color-mix(in srgb,var(--blob1) 55%,transparent)}
 .titlebar{height:44px;display:flex;align-items:center;gap:14px;padding:0 16px;flex:none;position:relative}
 .lights{display:flex;gap:8px;flex:none}
-.lights span{width:12px;height:12px;border-radius:50%;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.14)}
+.lights span{width:12px;height:12px;border-radius:50%;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.16),inset 0 1.5px 1.5px rgba(255,255,255,.45)}
 .lights span:nth-child(1){background:var(--tl-r)} .lights span:nth-child(2){background:var(--tl-y)} .lights span:nth-child(3){background:var(--tl-g)}
 .win-title{font-size:13px;font-weight:600;color:var(--fg2);flex:1;text-align:center;margin-right:52px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* floating sidebar inside the window: inset 8, radius 26 - 8 = 18 */
@@ -256,7 +288,7 @@ main{max-width:1100px;margin:0 auto}
 .rail li .n{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:650;background:var(--fill2);flex:none;font-variant-numeric:tabular-nums}
 .rail li .n .ic{width:12px;height:12px;stroke-width:2.2}
 .rail li.done{color:var(--fg2)} .rail li.done .n{background:var(--ok-bg);color:var(--ok)}
-.rail li.cur{color:var(--fg);background:var(--sel);font-weight:600}
+.rail li.cur{color:var(--fg);background:var(--glass-strong);font-weight:600;box-shadow:inset 0 1px 0 var(--lens-hi),var(--sh-1)}
 .rail li.cur .n{background:var(--accent);color:var(--on-accent)}
 .rail .rail-mobile{display:none}
 .wiz-main{display:flex;flex-direction:column;min-width:0;min-height:0}
@@ -325,7 +357,7 @@ main{max-width:1100px;margin:0 auto}
 .side button.it{appearance:none;border:0;background:transparent;font:inherit;color:var(--fg);display:flex;align-items:center;gap:9px;height:30px;padding:0 10px;border-radius:var(--r-ctl);cursor:pointer;font-size:13px;font-weight:500;text-align:left;width:100%;transition:background .14s var(--ease)}
 .side button.it .ic{color:var(--accent);width:17px;height:17px}
 .side button.it:hover{background:var(--fill)}
-.side button.it.on{background:var(--sel);font-weight:600}
+.side button.it.on{background:var(--glass-strong);font-weight:600;box-shadow:inset 0 1px 0 var(--lens-hi),var(--sh-1)}
 .side button.it .cnt{margin-left:auto;font-size:11.5px;color:var(--fg3);font-variant-numeric:tabular-nums;font-weight:500}
 .side button.it .wdot{margin-left:auto;width:7px;height:7px;border-radius:50%;background:var(--warn)}
 .side .foot{margin-top:auto;padding:10px;border-radius:var(--r-ctl);background:var(--fill);font-size:11.5px;display:grid;gap:2px;line-height:1.4}
@@ -345,7 +377,7 @@ main{max-width:1100px;margin:0 auto}
 .plist{display:grid;gap:2px;align-content:start}
 .prow{appearance:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;display:grid;gap:3px;padding:9px 12px;border-radius:var(--r-row);background:transparent;transition:background .14s var(--ease)}
 .prow:hover{background:var(--fill)}
-.prow.on{background:var(--sel);box-shadow:0 0 0 .5px var(--sel-ring)}
+.prow.on{background:linear-gradient(180deg,var(--sel),color-mix(in srgb,var(--sel) 60%,transparent));box-shadow:inset 0 1px 0 var(--lens-hi),0 0 0 .5px var(--sel-ring),0 6px 16px -10px rgba(47,107,255,.45)}
 .prow .top{display:flex;align-items:center;gap:8px}
 .prow .nm{font-weight:600;font-family:var(--mono);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
 .prow .meta{font-size:11.5px;color:var(--fg2);display:flex;gap:8px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
@@ -451,7 +483,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
 /* ---------- brand ---------- */
 .hero{--r:var(--r-win);display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:40px;padding:40px;align-items:center}
 .hero .mark{width:100%;max-width:280px;aspect-ratio:1;margin:auto;filter:drop-shadow(0 24px 32px rgba(var(--sh-c),.28))}
-.hero h1{font-size:44px;font-weight:750;letter-spacing:-.035em;line-height:1.05}
+.hero h1{font-size:60px;font-weight:760;letter-spacing:-.045em;line-height:1}
 .hero .tagline{font-size:17px;color:var(--fg2);margin-top:8px}
 .concept{display:grid;gap:12px;margin-top:24px}
 .concept div{display:grid;grid-template-columns:26px 1fr;gap:10px;align-items:start;font-size:13.5px}
@@ -548,6 +580,101 @@ input[type=range]{accent-color:var(--accent);width:150px}
 .syncing svg{animation:pulse 1.4s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.35}}
 
+
+/* ---------- relay: where the workspace is right now ---------- */
+/* three stops on the W route; the amber orb (the workspace) sits on whoever holds the lease */
+.relay{position:relative;display:grid;gap:16px;padding:18px 18px 14px;border-radius:var(--r-card);overflow:hidden;
+  background:radial-gradient(70% 120% at 0% 0%,color-mix(in srgb,var(--roam) 14%,transparent),transparent 60%),radial-gradient(70% 120% at 100% 100%,color-mix(in srgb,var(--mint) 16%,transparent),transparent 60%),var(--pane);
+  box-shadow:inset 0 1px 0 var(--lens-hi),0 0 0 .5px var(--ring),var(--sh-2)}
+/* nodes sit in three equal columns; the links are drawn between the dot centres, 7px clear of each dot */
+.track{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start}
+.rnode{display:grid;justify-items:center;gap:3px;text-align:center;min-width:0;padding:0 4px}
+.rnode .rd{position:relative;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;margin-bottom:5px;
+  background:var(--glass-strong);box-shadow:inset 0 1px 0 var(--lens-hi),inset 0 -6px 10px -8px var(--lens-lo),var(--sh-2);color:var(--fg2)}
+.rnode .rd .ic{width:20px;height:20px;stroke-width:1.5}
+.rnode.co .rd{color:var(--roam)} .rnode.st .rd{color:var(--lagoon)} .rnode.ho .rd{color:var(--ok)}
+.rnode.bad .rd{color:var(--bad);box-shadow:inset 0 1px 0 var(--lens-hi),0 0 0 1.5px var(--bad),var(--sh-2)}
+.rnode b{font-size:12.5px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rnode small{font-size:11px;color:var(--fg3);max-width:100%;line-height:1.35;text-wrap:balance}
+.rnode .me{font-size:10px;font-weight:650;color:var(--accent);background:var(--acc-bg);border-radius:999px;padding:0 6px;line-height:16px}
+/* the workspace orb */
+.rnode.lease .rd::after{content:"";position:absolute;top:-3px;right:-3px;width:16px;height:16px;border-radius:50%;
+  background:radial-gradient(circle at 36% 30%,#FFF4D6,var(--amber) 48%,#FF7A2F);
+  box-shadow:0 0 0 2px var(--glass-strong),0 3px 8px -1px rgba(255,122,47,.6);animation:orbGlow 2.6s ease-in-out infinite}
+@keyframes orbGlow{50%{box-shadow:0 0 0 2px var(--glass-strong),0 0 0 7px rgba(255,181,71,.18),0 3px 12px -1px rgba(255,122,47,.7)}}
+.rlink{position:absolute;top:22px;left:calc(100% / 6 + 30px);width:calc(100% / 3 - 60px)}
+.rlink.l2{left:calc(50% + 30px)}
+.rlink .ln{position:relative;display:block;width:100%;height:2px;border-radius:2px;overflow:hidden;
+  background:linear-gradient(90deg,color-mix(in srgb,var(--roam) 55%,transparent),color-mix(in srgb,var(--mint) 55%,transparent))}
+.rlink.l1 .ln{background:linear-gradient(90deg,color-mix(in srgb,var(--roam) 60%,transparent),color-mix(in srgb,var(--lagoon) 60%,transparent))}
+.rlink.l2 .ln{background:linear-gradient(90deg,color-mix(in srgb,var(--lagoon) 60%,transparent),color-mix(in srgb,var(--mint) 60%,transparent))}
+/* packets travelling along the link while something is waiting to move */
+.rlink.fr .ln::after,.rlink.fl .ln::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,#fff 0 8px,transparent 8px 20px);opacity:.9;animation:flow 1.1s linear infinite;-webkit-mask:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent);mask:linear-gradient(90deg,transparent,#000 20%,#000 80%,transparent)}
+.rlink.fl .ln::after{animation-direction:reverse}
+@keyframes flow{from{background-position:0 0}to{background-position:20px 0}}
+.rlink.off .ln{background:repeating-linear-gradient(90deg,var(--bad) 0 4px,transparent 4px 9px);opacity:.6}
+.rlink .lb{position:absolute;top:9px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:550;color:var(--fg2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.rlink.fr .lb,.rlink.fl .lb{color:var(--accent)}
+.rlink.off .lb{color:var(--bad)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding-top:12px;box-shadow:inset 0 .5px 0 var(--hair2)}
+.stats div{display:grid;gap:1px;padding:0 12px;position:relative}
+.stats div:first-child{padding-left:2px}
+.stats div + div::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:.5px;background:var(--hair2)}
+.stats b{font-size:20px;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.2}
+.stats b small{font-size:12px;font-weight:600;color:var(--fg2);margin-left:2px;letter-spacing:0}
+.stats span{font-size:11.5px;color:var(--fg3)}
+/* project tile next to the name */
+.ptile{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;letter-spacing:-.02em;
+  background:linear-gradient(150deg,var(--h1),var(--h2));box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -8px 12px -8px rgba(0,0,0,.25),0 6px 14px -8px var(--h2)}
+.detail .hd .who{display:flex;gap:12px;align-items:center;min-width:0}
+
+/* ---------- desktop for the tray scene ---------- */
+.desk.glass{background:
+  linear-gradient(rgba(5,8,18,var(--desk-shade)),rgba(5,8,18,var(--desk-shade))),
+  radial-gradient(60% 70% at 100% 0%,#7D96FF,transparent 62%),
+  radial-gradient(55% 60% at 0% 100%,#FFB27A,transparent 60%),
+  radial-gradient(50% 70% at 72% 100%,#3CD6C2,transparent 62%),
+  radial-gradient(40% 50% at 30% 20%,#B79CFF,transparent 65%),
+  linear-gradient(160deg,#5D7BFF,#7FC8F2 55%,#9BE7D7)}
+:root{--desk-shade:0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--desk-shade:.4}}
+:root[data-theme="dark"]{--desk-shade:.4}
+.desk{position:relative}
+.desk-body{padding-bottom:96px}
+.dock{--r:22px;position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;padding:7px}
+.dock .app{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;color:#fff;position:relative;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -8px 12px -8px rgba(0,0,0,.25),0 4px 10px -4px rgba(0,0,0,.35);transition:transform .25s var(--spring)}
+.dock .app:hover{transform:translateY(-6px) scale(1.08)}
+.dock .app .ic{width:22px;height:22px;stroke-width:1.7}
+.dock .a1{background:linear-gradient(160deg,#6FB4FF,#2F6BFF)}
+.dock .a2{background:linear-gradient(160deg,#3A4256,#11151F);font-family:var(--mono);font-size:14px}
+.dock .a3{background:linear-gradient(160deg,#FF9F6B,#E8574A)}
+.dock .a4{background:linear-gradient(160deg,#C2A8FF,#7656E8)}
+.dock .run{box-shadow:none;background:none}
+.dock .run svg{width:46px;height:46px;filter:drop-shadow(0 4px 6px rgba(0,0,0,.3))}
+.dock .run::after{content:"";position:absolute;bottom:-5px;left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:var(--fg)}
+.dock .dsep{width:.5px;height:34px;background:var(--hair2);margin:0 2px}
+
+/* welcome step: the workspace orb rides the route */
+.relay.demo{margin-top:6px}
+.relay.demo .rorb{position:absolute;top:14px;left:calc(100% / 6);width:18px;height:18px;margin-left:-9px;border-radius:50%;z-index:2;
+  background:radial-gradient(circle at 36% 30%,#FFF4D6,var(--amber) 48%,#FF7A2F);box-shadow:0 0 0 2px var(--glass-strong),0 0 18px 2px rgba(255,170,60,.55);
+  animation:ride 7s var(--ease) infinite alternate}
+@keyframes ride{0%,12%{left:calc(100% / 6)}42%,58%{left:50%}88%,100%{left:calc(500% / 6)}}
+
+/* ---------- brand hero glow ---------- */
+.markwrap{position:relative;display:grid;place-items:center}
+.markwrap::before{content:"";position:absolute;inset:6%;border-radius:30%;filter:blur(38px);opacity:.75;z-index:0;
+  background:conic-gradient(from 200deg,var(--roam),var(--lagoon),var(--mint),var(--amber),var(--roam))}
+.markwrap .mark{position:relative;z-index:1}
+
+/* ---------- entrance ---------- */
+/* each scene settles in: a short rise, children staggered by 50ms */
+.view:not([hidden]) > *{animation:rise .6s var(--ease) both}
+.view:not([hidden]) > :nth-child(2){animation-delay:.05s} .view:not([hidden]) > :nth-child(3){animation-delay:.1s}
+.view:not([hidden]) > :nth-child(4){animation-delay:.15s} .view:not([hidden]) > :nth-child(n+5){animation-delay:.2s}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
 /* ---------- responsive ---------- */
 @media (max-width:900px){
   .hero{grid-template-columns:1fr;padding:24px;gap:24px}
@@ -578,6 +705,11 @@ input[type=range]{accent-color:var(--accent);width:150px}
   .kv{grid-template-columns:1fr;gap:2px}
   .kv dt{margin-top:8px}
   .rkey{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .relay{padding:14px 10px 12px}
+  .rnode small,.rlink .lb{display:none}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 0}
+  .stats div:nth-child(3)::before{display:none}
+  .stats div:nth-child(3){padding-left:2px}
   .swatches{grid-template-columns:repeat(2,minmax(0,1fr))}
   .mats{grid-template-columns:1fr}
   .win-title{margin-right:0;text-align:left}
@@ -685,14 +817,14 @@ input[type=range]{accent-color:var(--accent);width:150px}
 <!-- ============================ BRAND ============================ -->
 <section class="view" data-view="brand">
   <div class="hero glass">
-    <svg class="mark" viewBox="0 0 160 160" role="img" aria-label="Workroam 图标">
+    <div class="markwrap"><svg class="mark" viewBox="0 0 160 160" role="img" aria-label="Workroam 图标">
       <use href="#logo-base"/>
       <g id="orbRest" transform="translate(80 66)"><use href="#orb" x="-12" y="-12" width="24" height="24"/></g>
       <!-- the roaming orb travels the route: office -> storage -> home and back -->
       <g id="orbTravel" style="display:none"><use href="#orb" x="-12" y="-12" width="24" height="24"/>
         <animateMotion id="orbAnim" begin="indefinite" dur="7s" repeatCount="indefinite" path="M38 52 L59 110 L80 68 L101 110 L122 52" keyPoints="0;1;1;0;0" keyTimes="0;.42;.5;.92;1" calcMode="linear"/>
       </g>
-    </svg>
+    </svg></div>
     <div>
       <h1>Workroam</h1>
       <p class="tagline">带着 AI Agent 工作区，在每台电脑之间漫游。</p>
@@ -839,6 +971,14 @@ input[type=range]{accent-color:var(--accent);width:150px}
               <label class="choice"><input type="radio" name="path" value="mirror"><span class="glyph amber"><svg class="ic lg"><use href="#i-restore"/></svg></span><span><span class="t">从异地备份恢复</span><span class="d">原来的存储整体丢失了。连接镜像，用加密密码或恢复密钥重建工作区。</span></span></label>
             </div>
             <p class="hint">没有图形界面的机器：在终端运行 <code>workroam setup</code>，步骤相同。</p>
+            <div class="relay demo" aria-hidden="true"><div class="track">
+              <div class="rnode co"><span class="rd"><svg class="ic"><use href="#i-building"/></svg></span><b>公司电脑</b><small>白天在这里写</small></div>
+              <div class="rlink l1"><span class="ln"></span></div>
+              <div class="rnode st"><span class="rd"><svg class="ic"><use href="#i-bucket"/></svg></span><b>你的存储</b><small>只存加密后的快照</small></div>
+              <div class="rlink l2"><span class="ln"></span></div>
+              <div class="rnode ho"><span class="rd"><svg class="ic"><use href="#i-home"/></svg></span><b>家里电脑</b><small>回家接着写</small></div>
+              <i class="rorb"></i>
+            </div></div>
           </div>
 
           <!-- storage -->
@@ -1358,6 +1498,14 @@ input[type=range]{accent-color:var(--accent);width:150px}
         <div class="mi" role="menuitem">退出 Workroam<span class="k">⌘Q</span></div>
       </div>
     </div>
+    <div class="dock glass" aria-hidden="true">
+      <span class="app a1"><svg class="ic"><use href="#i-folder"/></svg></span>
+      <span class="app a2"><b>&gt;_</b></span>
+      <span class="app a3"><svg class="ic"><use href="#i-git"/></svg></span>
+      <span class="app a4"><svg class="ic"><use href="#i-sparkle"/></svg></span>
+      <i class="dsep"></i>
+      <span class="app run"><svg><use href="#logo"/></svg></span>
+    </div>
   </div>
 </section>
 
@@ -1420,10 +1568,43 @@ const segHandlers={};
 document.addEventListener('click',e=>{
   const b=e.target.closest('.seg button'); if(!b)return;
   const seg=b.parentElement; $$('button',seg).forEach(x=>x.classList.toggle('on',x===b));
-  const g=seg.dataset.group, idx=[...seg.children].indexOf(b);
+  const g=seg.dataset.group, idx=$$('button',seg).indexOf(b);
   if(b.dataset.val) $$(`[data-pane^="${g}:"]`).forEach(p=>p.hidden=p.dataset.pane!==`${g}:${b.dataset.val}`);
   segHandlers[g]&&segHandlers[g](idx,b);
 });
+
+/* ---------- liquid indicators ---------- */
+// One glass thumb per segmented control / tab bar that travels to the selected option.
+function placeInd(box){
+  const on=box.matches('.tabs')?box.querySelector('[aria-current]'):box.querySelector('button.on');
+  let ind=box.querySelector(':scope > .ind');
+  if(!ind){ ind=document.createElement('i'); ind.className='ind instant'; ind.setAttribute('aria-hidden','true'); box.prepend(ind); box.classList.add('has-ind'); }
+  if(!on||!on.offsetWidth) return;
+  ind.style.width=on.offsetWidth+'px'; ind.style.transform=`translateX(${on.offsetLeft}px)`;
+  if(ind.classList.contains('instant')) requestAnimationFrame(()=>requestAnimationFrame(()=>ind.classList.remove('instant')));
+}
+// Controls can be hidden when first measured (other scene, closed sheet), so re-place every
+// indicator after anything is shown, added or re-selected. There are only a couple of dozen.
+let indRaf=0;
+const syncInd=()=>{ if(indRaf) return; indRaf=requestAnimationFrame(()=>{ indRaf=0; $$('.seg,.tabs').forEach(placeInd); }); };
+new MutationObserver(ms=>{ for(const m of ms){
+  if(m.type==='attributes'&&m.attributeName!=='hidden'){ const box=m.target.parentElement; if(box&&box.matches('.seg,.tabs')) placeInd(box); continue; }
+  if(m.type==='childList'&&![...m.addedNodes].some(n=>n.nodeType===1&&!n.matches('.ind'))) continue;
+  syncInd();
+}}).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','aria-current','hidden']});
+addEventListener('resize',syncInd);
+document.fonts&&document.fonts.ready.then(syncInd);
+syncInd();
+
+/* ---------- pointer light on glass ---------- */
+let litEl=null;
+document.addEventListener('pointermove',e=>{
+  const g=e.target.closest&&e.target.closest('.glass');
+  if(litEl&&litEl!==g) litEl.classList.remove('lit');
+  litEl=g; if(!g) return;
+  const r=g.getBoundingClientRect(); g.style.setProperty('--mx',(e.clientX-r.left)+'px'); g.style.setProperty('--my',(e.clientY-r.top)+'px'); g.classList.add('lit');
+},{passive:true});
+document.documentElement.addEventListener('pointerleave',()=>{ if(litEl){litEl.classList.remove('lit');litEl=null;} });
 
 /* ---------- copy ---------- */
 document.addEventListener('click',e=>{
@@ -1603,8 +1784,27 @@ function renderPlist(q=''){
     <span class="top"><span class="nm">${p.id}</span><span class="state" style="color:${STATECOL[p.pill[0]]}"><span class="dot"></span>${p.pill[1]}</span></span>
     <span class="meta"><span>${p.meta[0]}</span><span>${p.meta[1]}</span></span></button>`).join('');
 }
-function renderDetail(){ const p=PROJ.find(x=>x.id===sel); let h='';
-  h+=`<div class="hd"><div><h3>${p.id}</h3><p>${p.desc}</p></div><span class="pill ${p.pill[0]}"><span class="dot"></span>${p.pill[1]}</span></div>`;
+// where the workspace is: office -> storage -> home, with the amber orb on the lease holder
+const HUE={'payment-gateway':['#5B8CFF','#2F55E0'],'intranet-portal':['#38C7E8','#1A86C9'],'blog-astro':['#FF9F6B','#E8574A'],'docs-site':['#3ED6B0','#139C8A'],'ml-notebooks':['#B79CFF','#7656E8']};
+const RELAY={
+  held:{co:['公司-Win11','上次推送 昨天 18:42'],st:['s3.home.example','#128 · 2 分钟前'],ho:['家里-MacBook','持有租约 2 小时'],lease:'ho',
+        l1:['','已同步'],l2:['fl','↑ 12 个改动待推送'],stats:[['12','待推送文件'],['1.4<small>MB</small>','改动大小'],['3','本地提交'],['8<small>秒</small>','预计用时']]},
+  remote:{co:['公司-Win11','持有租约 · 13 小时未续约'],st:['s3.home.example','#57 · 昨天 18:42'],ho:['家里-MacBook','落后 1 个快照'],lease:'co',
+        l1:['','已推送'],l2:['fr','↓ 23 个文件 · 4 个提交'],stats:[['23','新文件'],['4','新提交'],['13<small>小时</small>','租约未续约'],['#57','最新快照']]},
+  pending:{co:['公司-Win11','上次推送 昨天 21:05'],st:['s3.home.example','#14 · 租约空闲'],ho:['家里-MacBook','目录已选，未拉取'],lease:'st',
+        l1:['','已同步'],l2:['fr','↓ 等待首次拉取']},
+  missing:{co:['公司-Win11','Windows 11'],st:['s3.home.example','#31 · 5 天前'],ho:['家里-MacBook','目录不存在'],lease:'st',bad:'ho',
+        l1:['','已同步'],l2:['off','已暂停同步']},
+};
+function relayHTML(p){ const r=RELAY[p.st]; if(!r) return '';
+  const node=(k,ic)=>`<div class="rnode ${k}${r.lease===k?' lease':''}${r.bad===k?' bad':''}"><span class="rd" ${r.lease===k?'title="工作区在这里（租约）"':''}>${icon(r.bad===k?'i-warn':ic,'ic')}</span><b>${r[k][0]}</b>${k==='ho'?'<span class="me">本机</span>':''}<small>${r[k][1]}</small></div>`;
+  const link=(k,c)=>`<div class="rlink ${c} ${r[k][0]}"><span class="ln"></span><span class="lb">${r[k][1]}</span></div>`;
+  return `<div class="relay"><div class="track">${node('co','i-building')}${link('l1','l1')}${node('st','i-bucket')}${link('l2','l2')}${node('ho','i-home')}</div>${r.stats?`<div class="stats">${r.stats.map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>`:''}</div>`;
+}
+function renderDetail(){ const p=PROJ.find(x=>x.id===sel); let h=''; const hu=HUE[p.id]||['#8A94A8','#5B6476'];
+  const ini=p.id.split('-').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  h+=`<div class="hd"><div class="who"><span class="ptile" style="--h1:${hu[0]};--h2:${hu[1]}" aria-hidden="true">${ini}</span><div><h3>${p.id}</h3><p>${p.desc}</p></div></div><span class="pill ${p.pill[0]}"><span class="dot"></span>${p.pill[1]}</span></div>`;
+  h+=relayHTML(p);
   if(p.st==='held') h+=`<div class="acts-row"><button class="btn primary" type="button" data-card="auth">${icon('i-up')}推送并释放</button><button class="btn" type="button" data-goto="history">${icon('i-clock')}历史</button><button class="btn" type="button" data-open="sheetArchive">${icon('i-archive')}归档…</button><button class="btn ghost" type="button" data-open="sheetRemove" data-name="${p.id}">在本机移除…</button></div>`;
   if(p.st==='remote') h+=`<div class="callout info">${icon('i-down','ic')}<span>公司-Win11 昨天 18:42 推送了 23 个文件、4 个提交，并一直持有租约（13 小时未续约，可能忘记释放）。</span></div><div class="acts-row"><button class="btn primary" type="button" data-card="lease">${icon('i-down')}拉取…</button><button class="btn" type="button" data-goto="history">${icon('i-clock')}历史</button></div>`;
   if(p.st==='missing') h+=`<div class="callout bad">${icon('i-warn','ic')}<span><b>找不到 <code>${p.dir}</code>。</b>目录可能被移动、改名或删除，这个项目在本机已暂停同步。Workroam 不会自己寻找或创建目录。</span></div><div class="acts-row"><button class="btn" type="button" data-open="sheetRemove" data-name="${p.id}">移除后重新添加…</button><button class="btn ghost" type="button">目录已放回原处，重新检查</button></div>`;

@@ -120,7 +120,9 @@ async fn office_home_office() {
     let first = r.snapshot.clone().unwrap();
     assert!(r.released);
     assert!(!r.skipped);
-    // Nothing changed: no new snapshot.
+    // Nothing changed: no new snapshot, even a second later (git commit
+    // dates must not leak into the comparison).
+    tokio::time::sleep(std::time::Duration::from_millis(1100)).await;
     let again = push(
         &p,
         &PushOptions {

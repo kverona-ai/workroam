@@ -139,6 +139,11 @@ pub trait SnapshotEngine: Send + Sync {
     fn prune(&self) -> Result<()>;
     fn check(&self, read_data_percent: Option<f64>) -> Result<CheckReport>;
 
+    /// Copy snapshots into a new standalone repository at `dir` (archive packs).
+    fn export_to(&self, dir: &std::path::Path, password: &str, ids: &[String]) -> Result<()>;
+    /// Copy every snapshot of the standalone repository at `dir` into this one; returns their ids.
+    fn import_from(&self, dir: &std::path::Path, password: &str) -> Result<Vec<String>>;
+
     fn keys(&self) -> Result<Vec<KeyInfo>>;
     fn add_key(&self, secret: &str, role: KeyRole) -> Result<String>;
     fn delete_key(&self, id: &str) -> Result<()>;

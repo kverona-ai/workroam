@@ -107,6 +107,14 @@ pub fn backends_at(
     bo.to_backends().map_err(rerr)
 }
 
+/// Backends for a standalone repository in a local directory.
+pub fn local_backends(dir: &std::path::Path) -> Result<RepositoryBackends> {
+    std::fs::create_dir_all(dir)?;
+    let mut bo = BackendOptions::default();
+    bo.repository = Some(format!("local:{}", dir.display()));
+    bo.to_backends().map_err(rerr)
+}
+
 /// Shared progress sink: the engine forwards byte counters to whoever listens.
 #[derive(Clone, Default)]
 struct ProgressHub {
@@ -464,6 +472,29 @@ fn build_source(entries: Vec<SourceEntry>) -> Result<VecSource> {
 }
 
 impl SnapshotEngine for RusticEngine {
+    fn export_to(&self, dir: &std::path::Path, password: &str, ids: &[String]) -> Result<()> {
+        let other = RusticEngine::init(
+            local_backends(dir)?,
+            password,
+            &workroam_core::crypto::new_recovery_key(),
+        )?;
+        self.copy_to(&other, ids)
+    }
+
+    fn import_from(&self, dir: &std::path::Path, password: &str) -> Result<Vec<String>> {
+        let other = RusticEngine::open(local_backends(dir)?, password)?;
+        let ids: Vec<String> = other.list()?.into_iter().map(|s| s.id).collect();
+        let before: BTreeSet<String> = self.list()?.into_iter().map(|s| s.id).collect();
+        other.copy_to(self, &ids)?;
+        let after: Vec<String> = self
+            .list()?
+            .into_iter()
+            .map(|s| s.id)
+            .filter(|i| !before.contains(i))
+            .collect();
+        Ok(if after.is_empty() { ids } else { after })
+    }
+
     fn master_key_material(&self) -> Vec<u8> {
         serde_json::to_vec(&self.master).expect("master key serialises")
     }

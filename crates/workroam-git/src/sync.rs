@@ -136,9 +136,17 @@ pub fn make_wip(git: &Git, parent: &str) -> Result<Option<(String, String)>> {
     if tree == head_tree {
         return Ok(None);
     }
+    // Dated like its parent so an unchanged working tree gives the same
+    // commit id on every push (no spurious "git changed" snapshots).
+    let date = git
+        .run(&["log", "-1", "--format=%ct", parent])
+        .map(|t| format!("@{} +0000", t.trim()))
+        .unwrap_or_else(|_| "@0 +0000".into());
     let c = git.run_env(
         &["commit-tree", &tree, "-p", parent, "-m", "workroam wip"],
         &[
+            ("GIT_AUTHOR_DATE", date.as_str()),
+            ("GIT_COMMITTER_DATE", date.as_str()),
             ("GIT_AUTHOR_NAME", "Workroam"),
             ("GIT_AUTHOR_EMAIL", "wip@workroam.invalid"),
             ("GIT_COMMITTER_NAME", "Workroam"),

@@ -9,4 +9,5 @@
 - v0.1 文档：产品需求（`docs/prd.md`）、技术架构（`docs/architecture.md`）、桌面应用与命令行功能对照（`docs/cli-ui-parity.md`）、架构决策记录 ADR-0001 至 ADR-0009；全部功能在 v0.1 一次交付，验收门槛见 PRD §10
 - 覆盖范围：首次初始化引导与检查、设备配对、项目接入与每台设备的项目目录、推送 / 拉取 / 租约、快照与恢复、项目归档与恢复、可选异地备份、代码仓库同步、六个本机 Agent 的适配与会话迁移、自动同步、命令行（含启动横幅）、Agent 接入（本机 Agent 用命令行 `--json` + Workroam Skill，云端个人 Agent 用 `workroam-server` 远程连接器）、可选的 `workroam-server`（中继模式可由 bot 部署在它的云端电脑上）、部署与安全
 - 桌面应用高保真原型（`docs/prototype/`）与设计规范、Logo、README 产品示例图、命令行启动横幅示例（`docs/assets/cli-banner.svg`）
+- CI/CD：每个 PR 在三系统上检查格式、clippy、测试、`workroam-server` 静态构建与桌面应用构建；推送 `v*` tag 自动发布 Release，包含 macOS / Windows / Linux 的 x64 与 arm64 桌面安装包、命令行与 `workroam-server` 二进制、`ghcr.io` 容器镜像、源码包（含离线依赖版）、`SHA256SUMS` 与构建来源证明，以及安装脚本和 Homebrew / Scoop / winget 清单（`docs/install.md`、`docs/release.md`）
 - README（默认英文，另有 `README.zh-CN.md` 中文版）、贡献指南、行为准则、安全策略、Issue 与 PR 模板

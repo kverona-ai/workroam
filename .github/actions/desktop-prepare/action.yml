@@ -1,0 +1,19 @@
+name: Prepare desktop app
+description: 构建桌面应用前端，并准备 tauri.conf.json 中 bundle.externalBin 列出的随附二进制
+inputs:
+  target:
+    description: 目标三元组，默认本机
+    required: false
+    default: ''
+  sidecars:
+    description: build（编译真实的随附二进制）或 placeholder（只放空文件，供 clippy / 测试用）
+    required: false
+    default: placeholder
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v5
+      with:
+        node-version: 22
+    - shell: bash
+      run: scripts/release/desktop-prepare.sh "${{ inputs.target }}" "${{ inputs.sidecars }}"

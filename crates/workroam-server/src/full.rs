@@ -447,6 +447,11 @@ const WEB: &[(&str, &str, &[u8])] = &[
         "text/css; charset=utf-8",
         include_bytes!("../../../apps/web/style.css"),
     ),
+    (
+        "workroam_web.wasm",
+        "application/wasm",
+        include_bytes!("../../../apps/web/workroam_web.wasm"),
+    ),
 ];
 
 fn content_type(name: &str) -> &'static str {
@@ -478,6 +483,7 @@ async fn web(State(app): State<Shared>, uri: Uri) -> Response {
             (header::CONTENT_TYPE, ct),
             (header::CACHE_CONTROL, "no-cache"),
             (header::X_CONTENT_TYPE_OPTIONS, "nosniff"),
+            (header::X_FRAME_OPTIONS, "DENY"),
             (header::REFERRER_POLICY, "no-referrer"),
         ]
     };

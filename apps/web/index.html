@@ -1,1 +1,21 @@
-
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' blob: data:; connect-src 'self' https: http:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Workroam reader</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bar">
+  <span class="brand"><span class="dot" aria-hidden="true"></span>Workroam</span>
+  <span class="dim">reader</span>
+  <button id="lock" class="btn" hidden>Lock</button>
+</div>
+<main id="main"></main>
+<noscript>The Workroam reader needs JavaScript: it decrypts your workspace in this browser.</noscript>
+<script type="module" src="app.js"></script>
+</body>
+</html>

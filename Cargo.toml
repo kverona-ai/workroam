@@ -16,6 +16,7 @@ members = [
     "crates/workroamd",
     "crates/workroam-cli",
     "crates/workroam-server",
+    "crates/workroam-web",
     "xtask",
 ]
 default-members = [

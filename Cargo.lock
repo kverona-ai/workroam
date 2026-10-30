@@ -4808,6 +4808,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
+name = "ruzstd"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a7c1c839d570d835527c9a5e4db7cb2198683a988cb9d7293fc8674e6bd58fc8"
+
+[[package]]
 name = "ryu"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6762,6 +6768,27 @@ dependencies = [
  "url",
  "walkdir",
  "workroam-core",
+]
+
+[[package]]
+name = "workroam-web"
+version = "0.1.0"
+dependencies = [
+ "aes256ctr_poly1305aes",
+ "base64 0.22.1",
+ "chacha20poly1305",
+ "data-encoding",
+ "hex",
+ "hkdf",
+ "hmac 0.12.1",
+ "ruzstd",
+ "scrypt 0.12.0",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tempfile",
+ "workroam-core",
+ "workroam-snapshot",
 ]
 
 [[package]]

@@ -85,7 +85,7 @@ data-encoding = "2"
 argon2 = "0.5"
 aes-gcm = "0.10"
 pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
-base64 = "0.22"
+base64 = "0.23"
 hex = "0.4"
 dirs = "6"
 tempfile = "3"

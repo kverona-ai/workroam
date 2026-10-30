@@ -157,7 +157,7 @@ cargo build --release --offline --bin workroam --bin workroamd
 ```sh
 scripts/release/desktop-prepare.sh "" build   # 构建前端，编译并放好随附的 workroam / workroamd
 cd apps/desktop
-npx @tauri-apps/cli@^2 build                  # 安装包在 target/release/bundle/
+npx @tauri-apps/cli@^2 build                  # 安装包在 src-tauri/target/release/bundle/
 ```
 
 修改代码后提交 PR 前，请运行 `cargo fmt --all`、`cargo clippy --workspace --all-targets -- -D warnings` 与 `cargo test --workspace`，详见 [贡献指南](../CONTRIBUTING.md)。

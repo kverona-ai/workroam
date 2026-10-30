@@ -105,12 +105,26 @@ pub fn normalize(p: &Path) -> PathBuf {
     out
 }
 
-/// The real path when it exists (symlinks, Windows 8.3 short names and
-/// letter case resolved), without the `\\?\` prefix; else [`normalize`].
+/// The real path (symlinks, Windows 8.3 short names and letter case
+/// resolved), without the `\\?\` prefix. A path that does not exist yet is
+/// resolved through its nearest existing ancestor.
 pub fn canonical(p: &Path) -> PathBuf {
-    match std::fs::canonicalize(p) {
-        Ok(c) => strip_verbatim(c),
-        Err(_) => normalize(p),
+    let p = normalize(p);
+    let mut base = p.as_path();
+    let mut rest = Vec::new();
+    loop {
+        if let Ok(c) = std::fs::canonicalize(base) {
+            let mut out = strip_verbatim(c);
+            out.extend(rest.iter().rev());
+            return out;
+        }
+        match (base.parent(), base.file_name()) {
+            (Some(parent), Some(name)) => {
+                rest.push(name.to_os_string());
+                base = parent;
+            }
+            _ => return p,
+        }
     }
 }
 
@@ -197,6 +211,17 @@ mod tests {
         assert!(is_within(&root.join("src"), &root));
         assert!(is_within(&root.join("src/./../src"), &root));
         assert!(is_within(&canonical(&root.join("src")), &root));
+        // Not created yet, under a symlinked or short-named temp dir.
+        assert!(is_within(&root.join("new/sub"), &canonical(&root)));
+        assert!(is_within(&canonical(&root).join("new"), &root));
+        // macOS: /var is a symlink to /private/var.
+        #[cfg(unix)]
+        {
+            let link = t.path().join("link");
+            std::os::unix::fs::symlink(&root, &link).unwrap();
+            assert!(is_within(&link.join("new/sub"), &root));
+            assert!(is_within(&root.join("src"), &link));
+        }
         assert!(!is_within(t.path(), &root));
         assert!(!is_within(&t.path().join("proj2"), &root));
         assert_eq!(

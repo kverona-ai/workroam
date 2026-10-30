@@ -45,7 +45,9 @@ for b in workroam workroamd workroam-server; do
 done
 
 # 校验和被篡改时必须失败，且不能覆盖已安装的文件
-sed -i.bak 's/^[0-9a-f]/0/' "$rel/SHA256SUMS"
+# 换成一个不可能的哈希；只改首字符时，真实哈希恰好以 0 开头就等于没改（1/16 概率）
+awk '{ $1 = "0000000000000000000000000000000000000000000000000000000000000000"; print }' \
+  "$rel/SHA256SUMS" > "$rel/SHA256SUMS.new" && mv "$rel/SHA256SUMS.new" "$rel/SHA256SUMS"
 if sh "$work/scripts/install-cli.sh" --version "$version" --dir "$work/bin2" 2>/dev/null; then
   echo "校验和不一致时安装没有失败" >&2
   exit 1

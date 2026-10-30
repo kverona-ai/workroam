@@ -75,7 +75,7 @@ Workroam 把“下班 → 回家 → 接着干 → 回公司推送”变成两�
 ```mermaid
 flowchart LR
     O["🏢 公司电脑<br/>workroam push --release"] -- 加密快照 --> S[("S3 兼容存储")]
-    S -- 增量拉取 --> H["🏠 家里电脑<br/>workroam pull --acquire"]
+    S -- 增量拉取 --> H["🏠 家里电脑<br/>workroam pull"]
     H -- 加密快照 --> S
     S -- 拉取并变基 --> O
     O -- git push --> G["内网 git"]
@@ -93,13 +93,14 @@ flowchart LR
 curl -fsSL https://<项目域名>/install.sh | sh -s -- --domain sync.example.com --storage rustfs
 
 # 客户端：首次启动桌面应用会自动打开初始化向导
-# （没有图形界面的机器在终端里走同样的步骤）
+# （没有图形界面的机器在终端里走同样的步骤；
+#   桌面应用里的每项操作都有等价的 workroam 命令）
 workroam setup
 cd ~/projects/proj-a && workroam init
 
 # 接力
 workroam push --release     # 离开时
-workroam pull --acquire     # 到达时
+workroam pull               # 到达时（同时获取租约）
 ```
 
 ## 路线图

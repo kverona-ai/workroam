@@ -2,10 +2,10 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 版本 | 1.2（新增 Agent 接入：本机 Agent 与云端个人 Agent） |
+| 版本 | 1.3（新增 Agent 接入；命令行与界面一致性、命令行启动横幅） |
 | 覆盖范围 | 产品最终形态 v0.3，各模块标注首次交付版本 |
 | 最后更新 | 2026-10-30 |
-| 关联文档 | [产品需求](prd.md) · [架构决策记录](adr/README.md) |
+| 关联文档 | [产品需求](prd.md) · [架构决策记录](adr/README.md) · [桌面应用与命令行功能对照](cli-ui-parity.md) |
 
 ---
 
@@ -27,13 +27,14 @@
 14. [跨平台层](#14-跨平台层)
 15. [进程间通信协议](#15-进程间通信协议)
 16. [Agent 接入](#16-agent-接入)
-17. [轻量服务端（可选）](#17-轻量服务端可选v03)
-18. [安全架构](#18-安全架构)
-19. [部署架构](#19-部署架构)
-20. [可观测性](#20-可观测性)
-21. [测试策略](#21-测试策略)
-22. [技术选型](#22-技术选型)
-23. [架构决策记录](#23-架构决策记录)
+17. [命令行与界面一致性](#17-命令行与界面一致性)
+18. [轻量服务端（可选）](#18-轻量服务端可选v03)
+19. [安全架构](#19-安全架构)
+20. [部署架构](#20-部署架构)
+21. [可观测性](#21-可观测性)
+22. [测试策略](#22-测试策略)
+23. [技术选型](#23-技术选型)
+24. [架构决策记录](#24-架构决策记录)
 
 ---
 
@@ -46,7 +47,7 @@
 5. **先写数据、后写指针。** 对外可见的状态切换都是一次原子写，中断不会留下半成品。
 6. **人始终在环中。** 同步默认需要授权，Agent 发起的也一样。
 7. **差异用数据描述。** Agent 差异写在适配器数据文件里。
-8. **一套逻辑，多个入口。** 桌面应用、命令行、本机 MCP server 和远程连接器都通过同一个后台服务调用同一套核心逻辑，授权规则相同。
+8. **一套逻辑，多个入口。** 桌面应用、命令行、本机 MCP server 和远程连接器都通过同一个后台服务调用同一套核心逻辑，授权规则相同；桌面应用与命令行功能对等，每项功能在两端都有入口（§17）。
 
 ## 2. 系统上下文
 
@@ -136,8 +137,8 @@ flowchart TB
 | 组件 | 职责 |
 | --- | --- |
 | `workroamd` | 后台服务：作业调度、触发检测、文件监听、授权管理、事件推送；开启异地备份的设备上还负责定期镜像；以用户级服务开机自启（macOS launchd、Windows 登录任务、Linux systemd 用户服务） |
-| `workroam` CLI | 用户与本机 Agent 的命令行入口，所有命令支持 `--json`；后台服务未运行时临时在前台启动一个实例 |
-| 桌面应用 | 托盘图标、初始化与项目接入向导、四种卡片、设置界面；只负责展示和转达用户选择 |
+| `workroam` CLI | 用户与本机 Agent 的命令行入口，所有命令支持 `--json`，与桌面应用功能对等（§17）；后台服务未运行时临时在前台启动一个实例；交互式启动时显示启动横幅（§17.3） |
+| 桌面应用 | 托盘图标、初始化与项目接入向导、四种卡片、主窗口与设置界面；只负责展示和转达用户选择 |
 | `workroam mcp` | stdio MCP server，把 MCP 工具调用转成 IPC 请求（v0.3） |
 | 设备中继 | `workroamd` 内的模块：开启远程连接时与 `workroam-server` 保持出站连接，把云端 Agent 的工具调用作为 IPC 请求执行（v0.3） |
 
@@ -203,6 +204,7 @@ flowchart TB
 │   └── locks/
 └── control/
     ├── workspace.json             # 布局版本、创建时间、仓库 ID（明文，不含敏感信息）
+    ├── settings                   # 工作区级设置：快照保留策略（加密）
     ├── credentials                # 当前与待轮换的访问密钥（加密）
     ├── devices/<device-id>        # 设备登记：名称、系统、权限、最后活动（加密）
     └── projects/<pid>/
@@ -249,6 +251,7 @@ device_id = "d_7f3a…"
 access = "read-write"            # read-write | read-only
 root = 'D:\projects'              # 默认项目位置；每个项目可单独指定目录（§6.7）
 reachable = ["git.corp.internal", "github.com"]
+autostart = true                 # 开机自启
 
 [workspace]
 endpoint = "https://sync.example.com"
@@ -261,11 +264,18 @@ capabilities = { conditional_create = true, conditional_overwrite = true, multip
 auto = "ask"                     # off | ask | auto
 idle_minutes = 15
 on_sleep = "ask"
+on_wake = true                   # 开机联网后检查更新（v0.3）
 agent_requires_approval = true
 approval_timeout = "10m"
+paused_until = ""                # workroam pause / 托盘“暂停自动同步”写入
 
 [notify]
 ntfy = ""                        # 可选：ntfy 主题地址
+on_success = true                # 同步完成时提醒
+
+[ui]
+banner = true                    # 命令行启动横幅（§17.3）
+lang = ""                        # 空为跟随系统
 
 [projects.proj-a]
 path = 'D:\projects\proj-a'
@@ -403,17 +413,41 @@ stateDiagram-v2
 
 ### 7.1 入口与共用逻辑
 
-桌面向导与 `workroam setup` 都调用 `workroamd` 的 `setup.*` 方法，步骤、检查项和结果完全一致。`workroam setup` 有交互式问答与非交互两种模式：
+桌面向导与 `workroam setup` 都调用 `workroamd` 的 `setup.*` 方法，步骤、检查项和结果完全一致。`workroam setup` 有交互式问答与非交互两种模式：标准输入是终端且没有给 `--yes` 时为交互模式，逐步提问，选项、默认值、校验规则和提示文本与向导相同（§17.1）；否则为非交互模式，缺少必要参数时以退出码 2 结束并列出缺少的参数。
 
 ```bash
+# 新建工作区
 workroam setup --new \
-  --endpoint https://sync.example.com --access-key … --secret-key-stdin \
+  --preset rustfs --endpoint https://sync.example.com \
+  --access-key … --secret-key-stdin \
   --key-mode create --key-access read-write \
   --bucket auto --prefix "" \
-  --device-name office-win --root 'D:\projects' --yes
+  --password-stdin --recovery-key-out ./workroam-recovery.txt \
+  --device-name office-win --root 'D:\projects' \
+  --reachable git.corp.internal,github.com --auto ask --autostart --yes
+
+# 加入已有工作区
+workroam setup --join --pairing-code-stdin --password-stdin \
+  --device-name home-mac --root ~/code \
+  --project proj-a=~/code/proj-a --project proj-b --yes
 ```
 
-非交互模式下加密密码从标准输入或环境变量读取，恢复密钥写入 `--recovery-key-out` 指定的文件。从异地备份恢复使用 `workroam setup --from-backup`，参数为镜像的连接信息（v0.3）。
+| 向导步骤 | 非交互参数 |
+| --- | --- |
+| 选择路径 | `--new` / `--join` / `--from-backup`（v0.3） |
+| 连接存储 | `--preset rustfs\|aws\|r2\|oss\|other`、`--endpoint`；自动识别可用 `--addressing path\|virtual-host`、`--region` 覆盖 |
+| 访问密钥 | `--access-key`、`--secret-key-stdin`（或 `WORKROAM_SECRET_KEY`） |
+| 密钥权限方式 | `--key-mode create\|current`、`--key-access read-write\|read-only`；当前密钥权限过宽时必须加 `--accept-broad-key`，否则检查失败（退出码 21） |
+| 存储桶 | `--bucket auto\|<桶名>`、`--prefix` |
+| 能力检查 | 无参数；任何失败项以退出码 21 结束 |
+| 加密 | `--password-stdin`（或 `WORKROAM_PASSWORD`）、`--recovery-key-out <文件>`（必需） |
+| 加入：配对码与解锁 | `--pairing-code-stdin`；忘记密码时 `--recovery-key-stdin` 代替 `--password-stdin` |
+| 本机设置 | `--device-name`、`--root`、`--reachable <主机,…>`、`--auto off\|ask\|auto`、`--autostart` / `--no-autostart` |
+| 加入：选择项目 | `--project <项目>[=<目录>]`（可重复）、`--all-projects` |
+| 从异地备份恢复后重新加入 | `--as-device <设备名>`（v0.3） |
+| 完成 | `--qr` 在终端显示配对二维码；配对码始终打印到标准输出 |
+
+`--password-stdin`、`--secret-key-stdin` 与 `--pairing-code-stdin` 同时使用时，标准输入按参数出现的顺序逐行读取。从异地备份恢复使用 `workroam setup --from-backup`，参数为镜像的连接信息（v0.3）。
 
 ### 7.2 状态机
 
@@ -928,14 +962,22 @@ webhook = "optional"                                   # 支持例行任务 webh
 | `device.pairing_code` / `device.list` / `device.remove` | 客户端 → 服务端 | 设备管理 |
 | `project.scan` / `project.init` | 客户端 → 服务端 | 接入项目 |
 | `project.add` / `project.list` / `project.move` / `project.remove` | 客户端 → 服务端 | 本机添加项目并选择目录、更换目录（仅 Pending）、移除项目（§6.7） |
-| `status` | 客户端 → 服务端 | 后台服务、租约、最新快照、本地改动 |
+| `status` | 客户端 → 服务端 | 后台服务、租约、最新快照、本地改动、仓库能否推送、到达的新进度；每次调用重新检查项目目录绑定 |
+| `handoff.read` | 客户端 → 服务端 | 交接文档的结构化摘要与模板 |
+| `lease.takeover` | 客户端 → 服务端 | 强制接管租约（先生成冲突副本） |
 | `push.plan` / `pull.plan` / `restore.plan` | 客户端 → 服务端 | 预演，返回作业 ID 与变更摘要 |
-| `job.start` / `job.cancel` | 客户端 → 服务端 | 启动或取消作业 |
-| `approval.respond` | 客户端 → 服务端 | 同意 / 稍后 / 拒绝，可带“1 小时内不再询问” |
-| `history.list` | 客户端 → 服务端 | 同步历史 |
+| `job.start` / `job.cancel` / `job.list` | 客户端 → 服务端 | 启动、取消作业，列出进行中的作业 |
+| `approval.list` / `approval.respond` | 客户端 → 服务端 | 待确认的授权；同意 / 稍后 / 拒绝，可带“1 小时内不再询问” |
+| `history.list` / `history.show` | 客户端 → 服务端 | 同步历史；一次快照改动的文件 |
 | `archive.plan` / `archive.list` / `archive.restore_plan` / `archive.restore` / `archive.extract` / `archive.delete` | 客户端 → 服务端 | 项目归档与恢复（v0.2） |
 | `archive.export` / `archive.import` | 客户端 → 服务端 | 归档包（v0.3） |
 | `backup.configure` / `backup.run` / `verify.run` | 客户端 → 服务端 | 异地备份与完整性校验（v0.3） |
+| `prune.run` | 客户端 → 服务端 | 按保留策略清理快照（v0.2） |
+| `config.list` / `config.get` / `config.set` | 客户端 → 服务端 | 读写本机、项目与工作区设置（§17.2） |
+| `agent.webhook` | 客户端 → 服务端 | 配置云端 Agent 的事件 webhook（v0.3） |
+| `credentials.update` | 客户端 → 服务端 | 验证并更新本机密钥库中的访问密钥 |
+| `password.change` / `password.reset` | 客户端 → 服务端 | 修改加密密码；用恢复密钥重设（替换仓库密钥文件，不重新加密数据） |
+| `sync.pause` / `sync.resume` | 客户端 → 服务端 | 暂停 / 恢复自动同步（v0.3） |
 | `agent.list` / `agent.connect` / `agent.disconnect` | 客户端 → 服务端 | 本机 Agent 检测与补齐配置；云端 Agent 连接的创建、授权与撤销（§16） |
 | `subscribe` | 客户端 → 服务端 | 订阅事件流 |
 | `setup.check_result` | 服务端 → 客户端 | 单项检查结果（逐项推送，界面实时刷新） |
@@ -1086,7 +1128,109 @@ sequenceDiagram
 - 推送完成、失败、到达时，由产生事件的设备直接 POST，内容只有项目名、事件类型、设备、时间与变更概要；
 - 发送失败只记录，不重试超过 3 次，不影响同步。
 
-## 17. 轻量服务端（可选，v0.3）
+## 17. 命令行与界面一致性
+
+桌面应用与命令行功能对等（PRD §8.22、ADR-0009）。逐项对照见 [cli-ui-parity.md](cli-ui-parity.md)。
+
+### 17.1 实现原则
+
+- **一项功能，一个 IPC 方法。** 功能的业务逻辑、校验与默认值都在 `workroamd` 一侧；桌面应用与命令行只是两个 IPC 客户端，只负责收集输入和展示结果。任何一侧都不允许自行实现另一侧没有的逻辑。
+- **同一份文本。** 选项文字、校验提示、检查项的修复建议、确认提示放在 `workroam-core` 的中英双语文本资源中，桌面应用通过 IPC 结果中的文本键取用，命令行直接链接同一资源。
+- **同样的确认。** 桌面上需要用户确认的操作（授权、删除归档、移除设备、权限过宽的密钥），命令行在交互模式下给出同样的提示；非交互模式必须用显式参数（`--confirm`、`--accept-broad-key` 等）确认。`--yes` 只回答命令内的一般确认，不能代替同步授权与需要输入名称的确认。
+- **同一版本交付。** 一项功能的两端入口在同一版本发布；一侧未完成时，这项功能整体推迟。
+
+### 17.2 命令结构与设置键
+
+命令按“名词 + 动词”组织（`project add`、`archive restore`），日常高频命令保留顶层动词（`push`、`pull`、`status`、`approve`）。命令默认作用于当前目录所在的项目；`-p, --project` 指定其他项目，`--all` 作用于本机全部项目。全局参数见 PRD §8.17.2。
+
+`workroam config` 与桌面“设置”页读写同一组键：
+
+| 键 | 范围 | 存放位置 |
+| --- | --- | --- |
+| `device.name`、`root`、`reachable`、`autostart` | 本机 | `machine.toml`（`device.name` 对应顶层的 `name`；修改设备名同时更新设备登记） |
+| `sync.auto`、`sync.agent_requires_approval` | 本机，项目可覆盖（`-p`） | `machine.toml` / `workroam.toml` |
+| `sync.idle_minutes`、`sync.on_sleep`、`sync.on_wake`、`sync.approval_timeout` | 本机 | `machine.toml` |
+| `notify.ntfy`、`notify.on_success` | 本机 | `machine.toml` |
+| `ui.banner`、`ui.lang` | 本机 | `machine.toml` |
+| `mcp.enabled` | 本机，项目可覆盖 | `machine.toml` / `workroam.toml`（v0.3） |
+| `remote.enabled`、`remote.default_device` | 项目 / 工作区 | 连接授权记录所在的控制对象（§16.4，v0.3） |
+| `retention.days`、`retention.weekly` | 工作区 | `control/settings`（加密） |
+
+访问密钥与加密密码不经过 `config`：分别用 `workroam credentials update` 与 `workroam password change / reset`（桌面设置“存储”与“加密”），只写系统密钥库与仓库密钥文件。
+
+### 17.3 启动横幅
+
+**显示条件**（PRD CLI-01、CLI-02）：
+
+```text
+show_banner =
+    命令 ∈ { workroam（无参数）, workroam setup（交互模式）, workroam init（交互模式） }
+    且 标准输出与标准错误都是终端
+    且 未指定 --json、--quiet、--no-banner
+    且 环境变量 WORKROAM_NO_BANNER ≠ "1"、未设置 CI、TERM ≠ "dumb"
+    且 设置 ui.banner ≠ false
+```
+
+交互模式指标准输入是终端且没有给 `--yes`。Agent 调用命令时标准输出不是终端，因此永远看不到横幅；隐藏横幅不改变其余输出。每个进程最多输出一次。
+
+**内容**：ASCII 字标 5 行、路线 1 行、版本行 1 行，宽 52 列，左侧留 1 列空白。路线 `(o)---*---(o)` 对应 Logo 的含义：两端圆环是两台设备，中间的光点是工作区。
+
+```text
+ __        __         _
+ \ \      / /__  _ __| | ___ __ ___   __ _ _ __ ___
+  \ \ /\ / / _ \| '__| |/ / '__/ _ \ / _` | '_ ` _ \
+   \ V  V / (_) | |  |   <| | | (_) | (_| | | | | | |
+    \_/\_/ \___/|_|  |_|\_\_|  \___/ \__,_|_| |_| |_|
+ (o)----------------------*-----------------------(o)
+ workroam <版本> · <标语>
+```
+
+标语随界面语言：中文“带着 AI Agent 工作区，在每台电脑之间漫游”，英文 “Hand off your AI agent workspace between machines.”。版本取 `CARGO_PKG_VERSION`，开发构建附加 `-dev+<提交短哈希>`。终端宽度小于 60 列时改为单行简版 ` (o)-*-(o)  workroam <版本>`；无法取得宽度时按完整版输出。
+
+**颜色**：
+
+| 元素 | 颜色 |
+| --- | --- |
+| 字标与路线的每个非空白字符 | 按所在列从 Roam Blue `#2F6BFF`（第 1 列）经 Lagoon `#1FB6E8`（中间）线性渐变到 Mint `#2ED3B7`（第 52 列） |
+| 路线中间的 `*` | 琥珀色 `#FFB547`，粗体 |
+| 版本行 | `workroam` 粗体默认前景色；版本号暗色；标语默认前景色 |
+
+终端能力按顺序判定并降级：`--color never` 或设置了 `NO_COLOR` → 单色；`COLORTERM` 为 `truecolor` / `24bit` 或在 Windows Terminal 中（`WT_SESSION`）→ 24 位色；`TERM` 含 `256color` → 取 xterm 256 色中最接近的颜色；其他 → 16 色（字标按列三等分为亮蓝、亮青、亮绿，光点为亮黄）。Windows 旧控制台由 anstream 启用虚拟终端序列，失败时输出单色。字标只用 ASCII 字符，任何代码页下都不会乱码；版本行中的中文经 Windows 控制台的宽字符接口输出。
+
+**实现**：`crates/workroam-cli/src/banner.rs`，字标为常量，渐变颜色在编译期按列算好；横幅写到标准错误，随后空一行。不访问网络，也不连接后台服务；`workroam` 无参数时，横幅之后的状态摘要才调用 `status`，后台服务不可用时摘要改为提示，不影响横幅。
+
+**示例**：彩色效果见 [assets/cli-banner.svg](assets/cli-banner.svg)（`workroam` 无参数时横幅与状态摘要的完整首屏）。
+
+### 17.4 一致性检查
+
+`crates/workroam-ipc/parity.toml` 是功能清单，每个面向用户的功能一条：
+
+```toml
+[[feature]]
+id = "push.release"
+ipc = "push.plan"
+cli = "workroam push --release"
+desktop = "project.detail.push_release"     # 桌面应用中的操作 ID
+label = "推送并释放租约"
+since = "0.1"
+
+[[exempt]]
+side = "cli"                                 # cli | desktop
+item = "workroam mcp"
+reason = "给 Agent 的 stdio 接口，不面向人"
+```
+
+CI 中的 `cargo test -p workroam-ipc parity` 检查：
+
+1. `workroam-ipc` 中每个标记为面向用户的方法，至少出现在一条 `feature` 中；
+2. 每条 `cli` 能被真实的 clap 命令定义解析（`workroam_cli::command().try_get_matches_from`）；
+3. 每条 `desktop` 存在于桌面应用导出的操作清单（`apps/desktop/actions.json`，由桌面应用构建生成）；
+4. 两端入口的 `since` 一致；
+5. `docs/cli-ui-parity.md` 由清单生成（`cargo xtask parity-doc`），与仓库中的文件没有差异。
+
+任何一项不通过，构建失败。
+
+## 18. 轻量服务端（可选，v0.3）
 
 ```mermaid
 flowchart LR
@@ -1105,9 +1249,9 @@ flowchart LR
 - **远程连接器与设备中继**：见 §16.4；服务端只转发调用，不持久化内容；
 - 服务端是单个容器，`install.sh --with-server` 时与存储、Caddy 一起部署。
 
-## 18. 安全架构
+## 19. 安全架构
 
-### 18.1 密钥层次
+### 19.1 密钥层次
 
 ```mermaid
 flowchart TB
@@ -1125,7 +1269,7 @@ flowchart TB
 - 异地备份是对象级镜像，密钥文件随之复制；修改加密密码后，下一次镜像即带上新的密钥文件，旧密钥文件在删除延迟期满后才从镜像中删除；
 - 访问密钥与加密密码只保存在系统密钥库；可选“每次同步都询问加密密码”。
 
-### 18.2 威胁与对策
+### 19.2 威胁与对策
 
 | 威胁 | 对策 |
 | --- | --- |
@@ -1144,7 +1288,7 @@ flowchart TB
 | 传输被窃听 | 全部 HTTPS |
 | 内网代码外流的合规风险 | 按项目开启；`snapshot` 历史档位；文档明确提示 |
 
-## 19. 部署架构
+## 20. 部署架构
 
 ```mermaid
 flowchart LR
@@ -1161,14 +1305,14 @@ flowchart LR
 - 没有公网 IP：Cloudflare Tunnel 暴露 443（v0.2）；Kubernetes：Helm Chart（v0.2）；remote 模式中转库：附带 Gitea 的 Compose（v0.2）；
 - Garage 等 AGPL 存储只作为独立容器启动，属于并列分发，不影响 Workroam 代码的许可证。
 
-## 20. 可观测性
+## 21. 可观测性
 
 - 本地结构化日志（`tracing`），按天滚动，默认保留 14 天，不记录文件内容与密钥；
 - `workroam status`：后台服务、租约持有者、最新快照、本地未同步改动、最近一次作业结果、已归档项目数、最近一次异地备份（开启时）；
 - `workroam doctor` 与桌面“检查”页：§7.5 全部检查项；
 - 托盘图标三态：正常 / 同步中 / 警示；同步失败、异地备份失败或超过 3 天未成功时进入警示。
 
-## 21. 测试策略
+## 22. 测试策略
 
 | 层次 | 内容 | 环境 |
 | --- | --- | --- |
@@ -1181,10 +1325,12 @@ flowchart LR
 | 故障注入 | 推送 / 拉取 / 归档中随机终止进程、断网，验证可恢复且无数据丢失 | Linux CI |
 | 跨平台端到端 | Windows 推送 → macOS 拉取 → 修改 → Windows 拉取 | GitHub Actions 三系统矩阵，共用一个 RustFS |
 | 适配器一致性 | 生成结果与快照文件比对；Agent 版本识别 | 三系统 CI |
-| 桌面应用 | 向导与卡片的端到端测试 | 三系统 CI |
+| 桌面应用 | 向导、主窗口与卡片的端到端测试 | 三系统 CI |
+| 界面与命令行一致性 | 功能清单检查（§17.4）；同一场景分别经桌面与命令行执行，IPC 请求与结果一致 | Linux CI |
+| 启动横幅 | 四种颜色级别 × 完整 / 单行的快照测试；显示条件矩阵；管道与 `--json` 输出中不含横幅 | 三系统 CI |
 | 许可证 | `cargo-deny` | CI |
 
-## 22. 技术选型
+## 23. 技术选型
 
 | 领域 | 选型 | 理由 |
 | --- | --- | --- |
@@ -1194,7 +1340,7 @@ flowchart LR
 | git 操作 | 本机 git 命令行 | 行为与用户本地 git 完全一致 |
 | 桌面应用 | Tauri v2 + tray、notification、autostart、positioner 插件 | 体积小、三系统、与 Rust 同栈（ADR-0002） |
 | IPC | JSON-RPC 2.0（换行分隔）over UDS / 命名管道 | 语言无关 |
-| 命令行交互 | clap + dialoguer + indicatif | 参数解析、交互式向导、进度条 |
+| 命令行交互 | clap + dialoguer + indicatif + anstream / anstyle + terminal_size | 参数解析、交互式向导、进度条；终端能力检测与颜色降级（含 Windows 控制台）、终端宽度 |
 | MCP server | rmcp（stdio 与 Streamable HTTP） | Rust 官方 MCP SDK；本机 MCP server 与远程连接器共用 |
 | 远程连接器授权 | OAuth 2.1（授权码 + PKCE） | MCP 规范要求的授权方式，云端 Agent 普遍支持 |
 | 密钥库 | keyring | 统一访问三系统密钥库 |
@@ -1204,6 +1350,6 @@ flowchart LR
 | Web 界面 | WASM（复用快照读取代码） | 浏览器内解密 |
 | 依赖许可证检查 | cargo-deny | CI 自动检查 |
 
-## 23. 架构决策记录
+## 24. 架构决策记录
 
 见 [adr/README.md](adr/README.md)。

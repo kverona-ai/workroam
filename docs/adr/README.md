@@ -12,5 +12,6 @@
 | [0006](0006-pairing-code-encrypted-with-password.md) | 配对码用工作区加密密码保护 | 已接受 |
 | [0007](0007-project-archive-and-optional-mirror.md) | 项目归档保存在同一个仓库中，异地备份只做可选的对象级镜像 | 已接受 |
 | [0008](0008-agent-integration-cli-and-remote-connector.md) | 本机 Agent 以 CLI 为基础契约，云端个人 Agent 通过服务端中继的远程 MCP 连接器接入 | 已接受 |
+| [0009](0009-desktop-cli-feature-parity.md) | 桌面应用与命令行功能对等，由同一份功能清单约束 | 已接受 |
 
 新增 ADR 时复制 [template.md](template.md)，编号递增，并更新上表。

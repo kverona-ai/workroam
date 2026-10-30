@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # 生成发布用的安装脚本：install-cli.sh、install-server.sh、install-cli.ps1、install-server.ps1。
 #
-# 用法：install-scripts.sh <输出目录>
+# 用法：install-scripts.sh <输出目录> [版本]
+# 给出版本时，发布出去的 install.sh 默认从对应的 v<版本> 标签拉取 compose 片段，而不是 main。
 set -euo pipefail
 
 out="$1"
+version="${2:-}"
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 mkdir -p "$out"
 
@@ -18,5 +20,13 @@ grep -q "else { 'server' }" "$out/install-server.ps1" || { echo "生成 install-
 
 chmod 0755 "$out/install-cli.sh" "$out/install-server.sh"
 # 存储一键部署脚本（DEP-01）存在时一起发布
-if [ -f "$root/deploy/install.sh" ]; then install -m 0755 "$root/deploy/install.sh" "$out/install.sh"; fi
+if [ -f "$root/deploy/install.sh" ]; then
+  if [ -n "$version" ]; then
+    sed "s/WORKROAM_REF:-main}/WORKROAM_REF:-v$version}/" "$root/deploy/install.sh" > "$out/install.sh"
+    grep -q "WORKROAM_REF:-v$version}" "$out/install.sh" || { echo "固定 install.sh 的版本失败" >&2; exit 1; }
+    chmod 0755 "$out/install.sh"
+  else
+    install -m 0755 "$root/deploy/install.sh" "$out/install.sh"
+  fi
+fi
 ls "$out"/install*

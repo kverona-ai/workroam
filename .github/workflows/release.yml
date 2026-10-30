@@ -336,7 +336,7 @@ jobs:
 
       - name: Install scripts, manifests, checksums
         run: |
-          scripts/release/install-scripts.sh dist
+          scripts/release/install-scripts.sh dist "$VERSION"
           scripts/release/manifests.sh "$VERSION" dist
           (cd dist && sha256sum -- * > ../SHA256SUMS) && mv SHA256SUMS dist/
           scripts/release/notes.sh "$VERSION" dist > release-notes.md

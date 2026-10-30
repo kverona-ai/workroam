@@ -408,13 +408,13 @@ main{max-width:1100px;margin:0 auto}
 .devrow .nm{font-weight:600;display:flex;gap:8px;align-items:center}
 .devrow .sm{font-size:12px;color:var(--fg2);display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:2px;align-items:center}
 
-.setgrp{display:grid;padding:0 4px;border-radius:var(--r-card);background:var(--pane);box-shadow:0 0 0 .5px var(--ring)}
+.setgrp{display:grid;grid-template-columns:minmax(0,1fr);padding:0 4px;border-radius:var(--r-card);background:var(--pane);box-shadow:0 0 0 .5px var(--ring)}
 .setrow{display:flex;align-items:center;gap:14px;min-height:48px;padding:8px 12px;flex-wrap:wrap;position:relative}
 .setrow + .setrow::before{content:"";position:absolute;top:0;left:12px;right:12px;height:.5px;background:var(--hair2)}
-.setrow .tx{flex:1;min-width:200px}
+.setrow .tx{flex:1;min-width:min(200px,100%)}
 .setrow .tx b{font-weight:550;font-size:13px;display:block}
 .setrow .tx span{font-size:12px;color:var(--fg2)}
-.settings{display:grid;gap:22px;max-width:680px}
+.settings{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;max-width:680px}
 .settings h4{font-size:11px;font-weight:650;letter-spacing:.06em;color:var(--fg3);margin:0 0 6px 12px;text-transform:uppercase}
 input[type=range]{accent-color:var(--accent);width:150px}
 
@@ -501,6 +501,19 @@ input[type=range]{accent-color:var(--accent);width:150px}
 .rs-notes{display:grid;gap:10px;font-size:13px;color:var(--fg2)}
 .rs-notes b{color:var(--fg);font-weight:600}
 @media (max-width:760px){.rspec{grid-template-columns:1fr}.rs-win{grid-template-columns:1fr;height:auto}}
+
+.gwrap{position:fixed;z-index:70;border-radius:0;padding-top:calc(72px + env(safe-area-inset-top,0px))}
+.flrow{display:grid;grid-template-columns:18px minmax(0,1fr) auto;gap:10px;align-items:center;min-height:32px;padding:4px 10px;border-radius:var(--r-row);font-size:12px;position:relative}
+.flrow + .flrow::before{content:"";position:absolute;top:0;left:38px;right:10px;height:.5px;background:var(--hair2)}
+.flrow .k{font-family:var(--mono);font-size:11px;font-weight:700;text-align:center}
+.flrow .k.a{color:var(--ok)} .flrow .k.m{color:var(--warn)} .flrow .k.d{color:var(--bad)}
+.flrow .pth{font-family:var(--mono);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.flrow .sz{font-size:11.5px;color:var(--fg3);font-variant-numeric:tabular-nums}
+.scroll-list{max-height:220px;overflow:auto}
+.menu .mi .badge{margin-left:auto;min-width:18px;height:18px;border-radius:999px;background:var(--bad);color:var(--on-accent);font-size:11px;font-weight:650;display:grid;place-items:center;padding:0 5px;font-variant-numeric:tabular-nums}
+.menu .mi.alert{color:var(--fg);font-weight:550}
+.menubar .wr .cnt{position:absolute;top:-5px;right:-6px;min-width:15px;height:15px;border-radius:999px;background:var(--bad);color:var(--on-accent);font-size:9.5px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.menu .mi[data-card],.menu .mi#pauseItem{cursor:pointer}
 
 /* ---------- tray ---------- */
 .desk{--r:var(--r-win);min-height:540px;overflow:hidden;padding:0;display:flex;flex-direction:column}
@@ -998,6 +1011,10 @@ input[type=range]{accent-color:var(--accent);width:150px}
             <div><h2>输入加密密码</h2><p class="sub">就是第一台电脑初始化时设置的那个密码。</p></div>
             <div class="field" style="max-width:380px"><label class="lbl" for="jpw">加密密码</label><input class="input" id="jpw" type="password" value="handoff-at-18:40"></div>
             <div class="callout ok"><svg class="ic"><use href="#i-check"/></svg><span>解锁成功：工作区 <code>workroam-macbook-7f3a</code> · 4 个项目 · 2 台设备</span></div>
+            <div class="field"><span class="lbl">这个工作区曾从异地备份恢复 <span class="tag">v0.3</span></span>
+              <label class="choice"><input type="radio" name="asdev" checked><span><span class="t">作为原设备“公司-Win11”重新加入</span><span class="d">沿用原来的设备身份和项目目录，本地已有的文件只补齐差异。</span></span></label>
+              <label class="choice"><input type="radio" name="asdev"><span><span class="t">作为新设备加入</span><span class="d">原设备记录保留，可以稍后在“设备”里移除。</span></span></label>
+            </div>
             <a href="#setup" class="hint" style="color:var(--accent)" onclick="return false">忘记密码？使用恢复密钥</a>
           </div>
 
@@ -1042,7 +1059,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
     <div class="win-body appbody">
       <aside class="side" id="side">
         <div class="grp">工作区</div>
-        <button class="it on" type="button" data-pane="projects"><svg class="ic"><use href="#i-folder"/></svg>项目<span class="cnt">4</span></button>
+        <button class="it on" type="button" data-pane="projects"><svg class="ic"><use href="#i-folder"/></svg>项目<span class="cnt">5</span></button>
         <button class="it" type="button" data-pane="history"><svg class="ic"><use href="#i-clock"/></svg>同步历史</button>
         <button class="it" type="button" data-pane="archive"><svg class="ic"><use href="#i-archive"/></svg>归档<span class="cnt">3</span></button>
         <button class="it" type="button" data-pane="devices"><svg class="ic"><use href="#i-devices"/></svg>设备<span class="cnt">3</span></button>
@@ -1073,7 +1090,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
         </div>
 
         <!-- archive -->
-        <div class="toolbar" data-for="archive" hidden><h2>归档</h2><label class="search"><svg class="ic sm"><use href="#i-search"/></svg><input class="input" placeholder="搜索归档" aria-label="搜索归档"></label><button class="btn" type="button" data-open="sheetArchive"><svg class="ic sm"><use href="#i-archive"/></svg>归档项目…</button></div>
+        <div class="toolbar" data-for="archive" hidden><h2>归档</h2><label class="search"><svg class="ic sm"><use href="#i-search"/></svg><input class="input" placeholder="搜索归档" aria-label="搜索归档" id="archSearch"></label><button class="btn" type="button" data-open="sheetImport"><svg class="ic sm"><use href="#i-download"/></svg>导入归档包…</button><button class="btn" type="button" data-open="sheetArchive"><svg class="ic sm"><use href="#i-archive"/></svg>归档项目…</button></div>
         <div class="panel" data-for="archive" hidden>
           <div class="table" id="archList"></div>
           <p class="hint" style="margin-top:12px">归档永久保留，不受快照清理影响。各台设备上的本地文件 Workroam 一律不删除、不修改。</p>
@@ -1090,7 +1107,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
         </div>
 
         <!-- doctor -->
-        <div class="toolbar" data-for="doctor" hidden><h2>检查</h2><span class="hint">上次运行：今天 09:12</span><button class="btn" type="button" id="docRerun"><svg class="ic sm"><use href="#i-refresh"/></svg>重新运行</button></div>
+        <div class="toolbar" data-for="doctor" hidden><h2>检查</h2><span class="hint">上次运行：今天 09:12</span><button class="btn" type="button" data-open="sheetVerify"><svg class="ic sm"><use href="#i-shield"/></svg>校验数据完整性…</button><button class="btn" type="button" id="docRerun"><svg class="ic sm"><use href="#i-refresh"/></svg>重新运行</button></div>
         <div class="panel" data-for="doctor" hidden>
           <div style="display:grid;gap:18px;max-width:760px">
             <div class="sect"><h4>本机</h4><div class="checks" id="localChecks"></div></div>
@@ -1102,6 +1119,12 @@ input[type=range]{accent-color:var(--accent);width:150px}
         <div class="toolbar" data-for="settings" hidden><h2>设置</h2></div>
         <div class="panel" data-for="settings" hidden>
           <div class="settings">
+            <div><h4>本机</h4><div class="setgrp">
+              <div class="setrow"><div class="tx"><b>设备名</b><span>在设备列表、租约和环境块里显示</span></div><input class="input" style="width:220px" value="家里-MacBook" aria-label="设备名"></div>
+              <div class="setrow"><div class="tx"><b>默认项目位置</b><span>新项目默认放在这里，每个项目仍可单独选择目录</span></div><div class="inrow"><span class="lockdir">~/Workroam</span><button class="btn sm" type="button">更改…</button></div></div>
+              <div class="setrow"><div class="tx"><b>可达主机</b><span>从本机 git 远端自动探测，决定哪些仓库在本机能推送</span></div><div class="inrow" style="flex-wrap:wrap"><span class="pill ok"><span class="dot"></span>github.com</span><span class="pill"><span class="dot"></span>git.corp.internal 不可达</span><button class="btn sm" type="button"><svg class="ic sm"><use href="#i-refresh"/></svg>重新探测</button></div></div>
+              <div class="setrow"><div class="tx"><b>开机自启</b><span>后台服务随登录启动</span></div><input class="sw" type="checkbox" checked aria-label="开机自启"></div>
+            </div></div>
             <div><h4>自动同步</h4><div class="setgrp">
               <div class="setrow"><div class="tx"><b>全局档位</b><span>项目可单独覆盖</span></div><div class="seg" data-group="auto2"><button type="button">关闭</button><button type="button" class="on">询问</button><button type="button">全自动</button></div></div>
               <div class="setrow"><div class="tx"><b>空闲后推送</b><span>本地有改动并空闲 <b id="idleV" style="display:inline">15</b> 分钟</span></div><input type="range" min="5" max="60" step="5" value="15" id="idle" aria-label="空闲分钟数"></div>
@@ -1118,9 +1141,21 @@ input[type=range]{accent-color:var(--accent);width:150px}
               <div class="setrow"><div class="tx"><b>Antigravity 1.3</b><span>适配器 1.0</span></div><span class="pill ok">已匹配</span></div>
               <div class="setrow"><div class="tx"><b>Agent 发起的同步需要确认</b><span>可以在项目里单独放宽</span></div><input class="sw" type="checkbox" checked aria-label="Agent 发起的同步需要确认"></div>
             </div></div>
+            <div><h4>存储</h4><div class="setgrp">
+              <div class="setrow"><div class="tx"><b>s3.home.example</b><span>桶 workroam-macbook-7f3a · 已加密</span></div><span class="pill ok"><span class="dot"></span>已连接</span></div>
+              <div class="setrow"><div class="tx"><b>访问密钥</b><span>WRK…9XHV · 专用读写密钥 · 保存在钥匙串</span></div><button class="btn sm" type="button" data-open="sheetKey">更新访问密钥…</button></div>
+              <div class="setrow"><div class="tx"><b>快照保留策略</b><span>最近 30 天全部保留，之前每周保留一个；归档永不清理</span></div><button class="btn sm" type="button">修改…</button></div>
+              <div class="setrow"><div class="tx"><b>清理</b><span>上次清理 10-27 03:00 · 释放 312 MB</span></div><button class="btn sm" type="button">立即清理</button></div>
+            </div></div>
+            <div><h4>加密</h4><div class="setgrp">
+              <div class="setrow"><div class="tx"><b>加密密码</b><span>修改后不需要重新上传数据；其他设备下次解锁时使用新密码</span></div><button class="btn sm" type="button" data-open="sheetPw">修改加密密码…</button></div>
+              <div class="setrow"><div class="tx"><b>忘记加密密码</b><span>用初始化时保存的恢复密钥解锁，并设置新密码</span></div><button class="btn sm" type="button" data-open="sheetRk">使用恢复密钥重设…</button></div>
+            </div></div>
             <div><h4>异地备份 <span class="tag">v0.3 · 可选</span></h4><div class="setgrp">
-              <div class="setrow"><div class="tx"><b>镜像整个存储</b><span>只在存储本身丢失时需要。云对象存储通常不必开启。</span></div><input class="sw" type="checkbox" aria-label="镜像整个存储"></div>
-              <div class="setrow"><div class="tx"><b>镜像目标</b><span>另一个 S3 桶或本地目录（NAS、移动硬盘）</span></div><button class="btn sm" type="button">选择…</button></div>
+              <div class="setrow"><div class="tx"><b>镜像整个存储</b><span>只在存储本身丢失时需要。云对象存储通常不必开启。</span></div><input class="sw" type="checkbox" checked aria-label="镜像整个存储"></div>
+              <div class="setrow"><div class="tx"><b>镜像目标</b><span class="mono">/Volumes/NAS/workroam-mirror</span></div><button class="btn sm" type="button">更改…</button></div>
+              <div class="setrow"><div class="tx"><b>最近一次</b><span>今天 03:12 · 增量 48 MB · 用时 2 分 06 秒 · 下次：明天空闲时</span></div><span class="pill ok"><span class="dot"></span>成功</span></div>
+              <div class="setrow"><div class="tx"><b>操作</b><span>主存储中删除的内容在镜像中延迟 30 天才删除</span></div><div class="acts-row"><button class="btn sm" type="button"><svg class="ic sm"><use href="#i-refresh"/></svg>立即备份</button><button class="btn sm danger" type="button" data-open="sheetRmBak">移除异地备份…</button></div></div>
             </div></div>
           </div>
         </div>
@@ -1139,6 +1174,69 @@ input[type=range]{accent-color:var(--accent);width:150px}
           <div class="flist"><span>CLAUDE.md → AGENTS.md（原文件改为一行 @AGENTS.md）</span><span>.mcp.json → .workroam/mcp.toml</span><span>.claude/skills/ → .agents/skills/</span></div></div>
         <div class="callout warn"><svg class="ic"><use href="#i-warn"/></svg><span><b>跨平台检查发现 1 个问题</b>：<code>docs/Readme.md</code> 与 <code>docs/README.md</code> 只有大小写不同，Windows 上会冲突。改名后才能推送。</span></div>
         <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-close>接入并推送</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetMove" hidden><div class="sheet glass" role="dialog" aria-label="更换本机目录">
+        <div><h3>更换 <span class="mono">docs-site</span> 的本机目录</h3><p class="hint">只有目录为空、还没同步过时可以更换。</p></div>
+        <div class="field"><label class="lbl" for="mvDir">新目录</label><div class="inrow"><input class="input mono" id="mvDir" value="~/code/docs-site"><button class="btn sm" type="button">选择…</button></div>
+          <div class="chips"><span class="pill ok"><svg class="ic sm"><use href="#i-check"/></svg>可写</span><span class="pill ok"><svg class="ic sm"><use href="#i-check"/></svg>不与其他项目嵌套</span><span class="pill ok"><svg class="ic sm"><use href="#i-check"/></svg>目录为空</span></div></div>
+        <p class="hint">命令行：<code>workroam project move docs-site --path ~/code/docs-site</code></p>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-close>更换</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetKey" hidden><div class="sheet glass" role="dialog" aria-label="更新访问密钥">
+        <div><h3>更新访问密钥</h3><p class="hint">密钥被轮换或失效时使用。新密钥只保存在钥匙串。</p></div>
+        <div class="field"><label class="lbl" for="nak">Access Key ID</label><input class="input mono" id="nak" placeholder="新的 Access Key ID" autocomplete="off"></div>
+        <div class="field"><label class="lbl" for="nsk">Secret Access Key</label><input class="input mono" id="nsk" type="password" placeholder="新的 Secret" autocomplete="off"></div>
+        <p class="hint">保存前会用新密钥重新运行读、写、删除与条件写检查。</p>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-close>检查并保存</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetPw" hidden><div class="sheet glass" role="dialog" aria-label="修改加密密码">
+        <div><h3>修改加密密码</h3><p class="hint">数据不需要重新加密上传，只更换解锁工作区的密钥封装。</p></div>
+        <div class="field"><label class="lbl" for="opw">当前密码</label><input class="input" id="opw" type="password" value="handoff-at-18:40"></div>
+        <div class="grid2"><div class="field"><label class="lbl" for="npw">新密码</label><input class="input" id="npw" type="password"></div><div class="field"><label class="lbl" for="npw2">再输入一次</label><input class="input" id="npw2" type="password"></div></div>
+        <div class="callout info"><svg class="ic"><use href="#i-key"/></svg><span>恢复密钥保持不变。已有的配对码会失效，添加设备时请重新生成。</span></div>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-close>修改密码</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetRk" hidden><div class="sheet glass" role="dialog" aria-label="使用恢复密钥重设">
+        <div><h3>使用恢复密钥重设密码</h3><p class="hint">输入初始化时保存的 8 组恢复密钥。</p></div>
+        <div class="field"><label class="lbl" for="rkin">恢复密钥</label><input class="input mono" id="rkin" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" autocomplete="off"></div>
+        <div class="grid2"><div class="field"><label class="lbl" for="rpw">新密码</label><input class="input" id="rpw" type="password"></div><div class="field"><label class="lbl" for="rpw2">再输入一次</label><input class="input" id="rpw2" type="password"></div></div>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-close>解锁并设置新密码</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetRmBak" hidden><div class="sheet glass" role="dialog" aria-label="移除异地备份">
+        <h3>移除异地备份？</h3>
+        <p>停止向 <span class="mono">/Volumes/NAS/workroam-mirror</span> 镜像。镜像里已有的数据保留在原处，是否删除由你决定。</p>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn danger solid" type="button" data-close>移除</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetVerify" hidden><div class="sheet glass" role="dialog" aria-label="校验数据完整性">
+        <div><h3>校验数据完整性</h3><p class="hint">检查快照、数据块和索引是否完整、可解密。</p></div>
+        <div class="field"><span class="lbl">校验对象</span><div class="seg" data-group="vtarget"><button type="button" class="on">主存储</button><button type="button">异地备份镜像</button></div></div>
+        <div class="setgrp">
+          <div class="setrow"><div class="tx"><b>结构检查</b><span>索引、快照与数据块引用一致 · 约 1 分钟</span></div><input class="sw" type="checkbox" checked disabled aria-label="结构检查"></div>
+          <div class="setrow"><div class="tx"><b>抽样读取数据</b><span>下载并解密 <b id="vpV" style="display:inline">5</b>% 的数据块 · 约 4 分钟</span></div><input type="range" min="1" max="100" value="5" id="vp" aria-label="抽样比例"></div>
+        </div>
+        <p class="hint">命令行：<code>workroam verify</code>，异地备份用 <code>--backup</code>。</p>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-close>开始校验</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetImport" hidden><div class="sheet glass" role="dialog" aria-label="导入归档包">
+        <div><h3>导入归档包 <span class="tag">v0.3</span></h3><p class="hint">把导出的单文件加密归档包导入到这个工作区。</p></div>
+        <div class="field"><label class="lbl" for="impf">归档包</label><div class="inrow"><input class="input mono" id="impf" value="/Volumes/T7/crm-legacy-2026-03-12.wrarchive"><button class="btn sm" type="button">选择…</button></div></div>
+        <div class="field"><label class="lbl" for="imppw">归档包密码</label><input class="input" id="imppw" type="password" placeholder="导出时使用的加密密码"></div>
+        <div class="callout ok"><svg class="ic"><use href="#i-check"/></svg><span>已识别：crm-legacy · 归档于 2026-03-12 · 1.8 GB · 2 个代码仓库</span></div>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-close>导入到归档列表</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetExportPack" hidden><div class="sheet glass" role="dialog" aria-label="导出归档包">
+        <div><h3>导出归档包 <span class="tag">v0.3</span></h3><p class="hint">得到一个加密的单文件，可以放进移动硬盘离线保存，以后在任何工作区导入。</p></div>
+        <div class="field"><label class="lbl" for="expf">保存到</label><div class="inrow"><input class="input mono" id="expf" value="/Volumes/T7/crm-legacy-2026-03-12.wrarchive"><button class="btn sm" type="button">选择…</button></div></div>
+        <p class="hint">归档包用当前加密密码保护 · 约 1.8 GB</p>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-close>导出</button></div>
       </div></div>
 
       <div class="sheet-wrap" id="sheetRemove" hidden><div class="sheet glass" role="dialog" aria-label="移除项目">
@@ -1232,7 +1330,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
   </div>
   <div class="desk glass">
     <div class="menubar"><b style="font-weight:700">访达</b><span>文件</span><span>编辑</span><span>显示</span>
-      <div class="r"><span class="wr" title="Workroam"><svg><use href="#glyph"/></svg></span><span>周四 18:40</span></div>
+      <div class="r"><span class="wr" title="Workroam · 1 个待确认的授权"><svg><use href="#glyph"/></svg><span class="cnt">1</span></span><span>周四 18:40</span></div>
     </div>
     <div class="desk-body">
       <div class="legend glass">
@@ -1242,7 +1340,8 @@ input[type=range]{accent-color:var(--accent);width:150px}
         <div class="row"><span class="tray-g" style="color:var(--fg)"><svg><use href="#glyph"/></svg><i class="badge-dot" style="right:6px;bottom:6px"></i></span><div><b>警示</b><br><span>同步失败、存储不可达、项目目录不存在、异地备份超过 3 天未成功</span></div></div>
       </div>
       <div class="menu glass" role="menu" aria-label="Workroam 菜单">
-        <div class="head"><b>家里-MacBook</b><span class="hint">s3.home.example · 上次同步 2 分钟前</span></div>
+        <div class="head"><b>家里-MacBook</b><span class="hint" id="trayHint">s3.home.example · 上次同步 2 分钟前</span></div>
+        <div class="mi alert" role="menuitem" data-card="auth"><svg class="ic sm"><use href="#i-bell"/></svg>待确认的授权<span class="badge">1</span></div>
         <div class="sep"></div>
         <div class="pj"><span class="dot" style="color:var(--amber)"></span><div><div class="nm">payment-gateway</div><div class="sub2">本机持有 · 12 个改动待推送</div></div><button class="btn sm" type="button" data-card="auth">推送</button></div>
         <div class="pj"><span class="dot" style="color:var(--accent)"></span><div><div class="nm">intranet-portal</div><div class="sub2">公司-Win11 持有 · 有新进度</div></div><button class="btn sm" type="button" data-card="lease">拉取</button></div>
@@ -1250,7 +1349,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
         <div class="sep"></div>
         <div class="mi" role="menuitem"><svg class="ic sm"><use href="#i-up"/></svg>推送全部并释放<span class="k">⌥⌘P</span></div>
         <div class="mi" role="menuitem"><svg class="ic sm"><use href="#i-down"/></svg>拉取最新<span class="k">⌥⌘L</span></div>
-        <div class="mi" role="menuitem"><svg class="ic sm"><use href="#i-pause"/></svg>暂停自动同步 1 小时</div>
+        <div class="mi" role="menuitem" id="pauseItem" title="原型：点击切换暂停状态"><svg class="ic sm"><use href="#i-pause"/></svg><span>暂停自动同步 1 小时</span></div>
         <div class="sep"></div>
         <div class="mi" role="menuitem"><svg class="ic sm"><use href="#i-folder"/></svg>打开 Workroam…</div>
         <div class="mi" role="menuitem"><svg class="ic sm"><use href="#i-shield"/></svg>检查…<span class="sub2" style="margin-left:auto">1 项警告</span></div>
@@ -1265,6 +1364,33 @@ input[type=range]{accent-color:var(--accent);width:150px}
 </main>
 
 <div class="corner" id="corner" aria-live="polite"></div>
+
+<div class="sheet-wrap gwrap" id="approvalWin" hidden><div class="sheet glass" role="dialog" aria-label="授权详情" style="width:min(600px,100%)">
+  <div style="display:flex;gap:10px;align-items:center"><svg width="22" height="22" aria-hidden="true"><use href="#logo"/></svg><div><h3>推送 <span class="mono">payment-gateway</span>？</h3><p class="hint">授权详情 · 等待你确认（10 分钟后按“稍后”处理）</p></div></div>
+  <dl class="kv"><dt>发起方</dt><dd>Claude Code（Agent）· 家里-MacBook</dd><dt>目标</dt><dd>s3.home.example · workroam-macbook-7f3a</dd><dt>变更</dt><dd>12 个文件 · 1.4 MB · 3 个提交 · 预计约 8 秒</dd><dt>完成后</dt><dd>释放租约，公司-Win11 可以拉取</dd></dl>
+  <div class="sect"><h4>文件（12）</h4><div class="group scroll-list">
+    <div class="flrow"><span class="k a">A</span><span class="pth">src/risk/retry_worker.rs</span><span class="sz">+6.2 KB</span></div>
+    <div class="flrow"><span class="k m">M</span><span class="pth">src/risk/callback.rs</span><span class="sz">+1.1 KB</span></div>
+    <div class="flrow"><span class="k m">M</span><span class="pth">src/risk/mod.rs</span><span class="sz">+120 B</span></div>
+    <div class="flrow"><span class="k a">A</span><span class="pth">migrations/20261030_retry_queue.sql</span><span class="sz">+840 B</span></div>
+    <div class="flrow"><span class="k m">M</span><span class="pth">tests/risk_callback_test.rs</span><span class="sz">+2.4 KB</span></div>
+    <div class="flrow"><span class="k m">M</span><span class="pth">Cargo.lock</span><span class="sz">+1.3 MB</span></div>
+    <div class="flrow"><span class="k d">D</span><span class="pth">scripts/old_verify.sh</span><span class="sz">−1.9 KB</span></div>
+    <div class="flrow"><span class="k m">M</span><span class="pth">AGENTS.md</span><span class="sz">+210 B</span></div>
+    <div class="flrow"><span class="k a">A</span><span class="pth">docs/retry-queue.md</span><span class="sz">+3.0 KB</span></div>
+    <div class="flrow"><span class="k m">M</span><span class="pth">.workroam/mcp.toml</span><span class="sz">+64 B</span></div>
+    <div class="flrow"><span class="k m">M</span><span class="pth">.agents/skills/db-migrate/SKILL.md</span><span class="sz">+512 B</span></div>
+    <div class="flrow"><span class="k a">A</span><span class="pth">src/risk/backoff.rs</span><span class="sz">+1.7 KB</span></div>
+  </div></div>
+  <div class="sect"><h4>提交（3 · payment-gateway main）</h4><div class="group">
+    <div class="flrow"><span class="k" style="color:var(--fg3)">•</span><span class="pth">a91c2e4 重试队列骨架与退避策略</span><span class="sz">今天 18:31</span></div>
+    <div class="flrow"><span class="k" style="color:var(--fg3)">•</span><span class="pth">5d07b19 retry_queue 表迁移</span><span class="sz">今天 17:58</span></div>
+    <div class="flrow"><span class="k" style="color:var(--fg3)">•</span><span class="pth">c3e88a0 移除旧的同步校验脚本</span><span class="sz">今天 17:12</span></div>
+  </div></div>
+  <div class="callout warn"><svg class="ic"><use href="#i-warn"/></svg><span>HANDOFF.md 自上次推送以来没有更新。可以先让 Agent 补一段进度，再同意推送。</span></div>
+  <label style="display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--fg2)"><input class="cb" type="checkbox">本项目 1 小时内不再询问</label>
+  <div class="acts"><button class="btn danger" type="button" data-close data-reject>拒绝</button><span style="flex:1"></span><button class="btn" type="button" data-close>稍后</button><button class="btn primary" type="button" data-close data-go="progress">同意</button></div>
+</div></div>
 
 <script>
 (function(){
@@ -1467,6 +1593,7 @@ const PROJ=[
   repos:[['intranet-portal','bundle','snapshot','git.corp.internal',false]],agents:['Claude Code'],
   ho:{by:'Claude Code · 公司-Win11 · 昨天 18:40',goal:'权限中心接入组织架构同步',done:['组织树接口联调'],doing:['角色继承规则'],next:['在家里补前端页面','不要动 deploy/ 目录']}},
  {id:'blog-astro',desc:'个人博客',st:'missing',pill:['bad','目录不存在'],meta:['#31 · 5 天前','已暂停同步'],dir:'~/Sites/blog-astro',repos:[['blog-astro','remote','full','github.com',true]],agents:['Codex']},
+ {id:'docs-site',desc:'产品文档站',st:'pending',pill:['acc','待拉取'],meta:['#14 · 昨天 21:05','目录已选，尚未拉取'],dir:'~/Workroam/docs-site',repos:[['docs-site','remote','full','github.com',true]],agents:['Claude Code']},
  {id:'ml-notebooks',desc:'实验笔记本',st:'notadded',pill:['','未添加到本机'],meta:['#9 · 3 周前','在 公司-Win11 上'],dir:null,repos:[],agents:[]},
 ];
 let sel='payment-gateway';
@@ -1484,9 +1611,14 @@ function renderDetail(){ const p=PROJ.find(x=>x.id===sel); let h='';
   if(p.st==='notadded') h+=`<div class="callout info">${icon('i-folder','ic')}<span>这个项目还没有添加到本机。选择本机目录后会拉取最新快照。</span></div>
     <div class="field"><label class="lbl" for="ndir">本机目录</label><div class="inrow"><input class="input mono" id="ndir" value="~/Workroam/ml-notebooks"><button class="btn sm" type="button">选择…</button></div><span class="hint">默认“默认项目位置/项目名”。目录为空、还没拉取前可以随时更换。</span></div>
     <div class="acts-row"><button class="btn primary" type="button">${icon('i-down')}添加并拉取</button></div>`;
-  if(p.dir&&p.st!=='notadded') h+=`<dl class="kv"><dt>本机目录</dt><dd><span class="lockdir">${p.st==='missing'?icon('i-warn'):icon('i-lock')}${p.dir}</span>${p.st!=='missing'?'<span class="hint">已同步，目录已锁定。要换位置，先在本机移除项目再重新添加。</span>':''}</dd>
+  if(p.st==='pending') h+=`<div class="callout info">${icon('i-folder','ic')}<span>已为这个项目选好本机目录，还没有拉取。目录是空的，拉取前可以随时更换。</span></div><div class="acts-row"><button class="btn primary" type="button" data-card="pulldone">${icon('i-down')}拉取</button><button class="btn ghost" type="button" data-open="sheetRemove" data-name="${p.id}">在本机移除…</button></div>`;
+  if(p.dir&&p.st!=='notadded') h+=`<dl class="kv"><dt>本机目录</dt><dd><span class="lockdir">${p.st==='missing'?icon('i-warn'):p.st==='pending'?icon('i-folder'):icon('i-lock')}${p.dir}</span>${p.st==='pending'?'<button class="btn sm" type="button" data-open="sheetMove">更换…</button><span class="hint">目录为空、尚未同步，可以更换</span>':p.st!=='missing'?'<span class="hint">已同步，目录已锁定。要换位置，先在本机移除项目再重新添加。</span>':''}</dd>
     <dt>最新快照</dt><dd>${p.meta[0]}</dd><dt>Agent</dt><dd>${p.agents.map(a=>`<span class="pill">${a}</span>`).join('')}</dd></dl>`;
   if(p.repos.length) h+=`<div class="sect"><h4>代码仓库</h4><div class="group">${p.repos.map(r=>`<div class="repo">${icon('i-git')}<span class="nm">${r[0]}</span><span class="pill acc">${r[1]}</span><span class="pill">${r[2]}</span><span class="end">${r[3]} · ${r[4]?'本机可推送':'本机只做本地提交'}</span></div>`).join('')}</div></div>`;
+  if(['held','remote','pending'].includes(p.st)) h+=`<div class="sect"><h4>项目设置</h4><div class="setgrp">
+    <div class="setrow"><div class="tx"><b>自动同步</b><span>覆盖全局档位（当前全局：询问）</span></div><div class="seg" data-group="pauto"><button type="button" class="on">跟随全局</button><button type="button">关闭</button><button type="button">询问</button><button type="button">全自动</button></div></div>
+    <div class="setrow"><div class="tx"><b>Agent 发起的同步需要确认</b><span>关闭后，Agent 在这个项目里发起的推送和拉取直接执行</span></div><input class="sw" type="checkbox" checked aria-label="Agent 发起的同步需要确认"></div>
+  </div></div>`;
   if(p.ho) h+=`<div class="sect"><h4>交接文档 · .handoff/HANDOFF.md</h4><div class="handoff"><span class="h">更新：${p.ho.by}</span><div><b>当前目标</b>　${p.ho.goal}</div><div><b>已完成</b><ul>${p.ho.done.map(x=>`<li>${x}</li>`).join('')}</ul></div><div><b>进行中</b><ul>${p.ho.doing.map(x=>`<li>${x}</li>`).join('')}</ul></div><div><b>下一步</b><ul>${p.ho.next.map(x=>`<li>${x}</li>`).join('')}</ul></div></div></div>`;
   $('#pdetail').innerHTML=h;
 }
@@ -1540,7 +1672,8 @@ renderSnaps();
 // archive
 const ARCH=[['crm-legacy','2026-03-12 · 公司-Win11','1.8 GB','上线完成，运维期可能有小改动'],['hackathon-2025','2025-11-30 · 家里-MacBook','420 MB','比赛结束'],['thesis-latex','2025-06-18 · 家里-MacBook','96 MB','永久留存']];
 $('#archList').innerHTML=ARCH.map(a=>`<div class="trow"><div style="min-width:0"><div class="nm">${a[0]}</div><div class="sm">${a[3]}</div></div><div class="sm hide-n">${a[1]}</div><div class="num hide-n">${a[2]}</div>
-  <div class="acts-row" style="justify-content:flex-end"><button class="btn sm primary" type="button" data-open="sheetRestore" data-name="${a[0]}">恢复</button><button class="btn sm" type="button" title="导出到其他目录" aria-label="导出到其他目录">${icon('i-export')}</button><button class="btn sm danger" type="button" data-open="sheetDelArch" data-name="${a[0]}" aria-label="删除归档">${icon('i-trash')}</button></div></div>`).join('');
+  <div class="acts-row" style="justify-content:flex-end"><button class="btn sm primary" type="button" data-open="sheetRestore" data-name="${a[0]}">恢复</button><button class="btn sm" type="button" title="导出到其他目录" aria-label="导出到其他目录">${icon('i-export')}</button><button class="btn sm" type="button" title="导出归档包…" aria-label="导出归档包" data-open="sheetExportPack">${icon('i-download')}</button><button class="btn sm danger" type="button" data-open="sheetDelArch" data-name="${a[0]}" aria-label="删除归档">${icon('i-trash')}</button></div></div>`).join('');
+$('#archSearch').addEventListener('input',e=>{const q=e.target.value.trim(); $$('#archList .trow').forEach(r=>r.hidden=!r.querySelector('.nm').textContent.includes(q));});
 const SCEN=[
  ['ok','① 目录不存在或是空目录','直接下载归档，从完整包克隆代码仓库，生成本机配置，继续开发。',[],null,'仓库：从归档包克隆 crm-legacy（main，最近 50 个提交）'],
  ['ok','② 本地文件与归档完全一致','不下载任何文件，只恢复同步并重新生成本机配置。',[],null,'仓库：分支与归档一致，不动'],
@@ -1567,6 +1700,7 @@ function runDoctor(force){ if(docRan&&!force)return; docRan=true; runChecks($('#
 function runChecks2(){ const t=$('#docChecks'); t.innerHTML=CHECKS.map(c=>chkRow(c)).join(''); }
 $('#docRerun').addEventListener('click',()=>runDoctor(true));
 $('#idle').addEventListener('input',e=>$('#idleV').textContent=e.target.value);
+$('#vp').addEventListener('input',e=>$('#vpV').textContent=e.target.value);
 
 /* ---------- cards ---------- */
 const LG='<svg class="lg" aria-hidden="true"><use href="#logo"/></svg>';
@@ -1576,7 +1710,7 @@ const CARDS={
    <dl class="meta"><dt>发起方</dt><dd>Claude Code（Agent）</dd><dt>变更</dt><dd>12 个文件 · 1.4 MB · 3 个提交</dd><dt>目标</dt><dd>s3.home.example</dd><dt>预计</dt><dd>约 8 秒，完成后释放租约</dd></dl>
    <div class="callout warn">${icon('i-warn')}<span>HANDOFF.md 自上次推送以来没有更新。</span></div>
    <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--fg2)"><input class="cb" type="checkbox">本项目 1 小时内不再询问</label>
-   <div class="acts"><button class="btn sm ghost" type="button">查看详情</button><button class="btn sm" type="button" data-dismiss>稍后</button><button class="btn sm primary" type="button" data-go="progress">同意</button></div>`},
+   <div class="acts"><button class="btn sm ghost" type="button" data-detail>查看详情</button><button class="btn sm" type="button" data-dismiss>稍后</button><button class="btn sm primary" type="button" data-go="progress">同意</button></div>`},
  progress:{cap:'进度卡片 · UX-02',html:()=>`<div class="hd">${LG}Workroam<span class="tm">现在</span></div>
    <h4>正在推送 payment-gateway</h4>
    <div style="display:grid;gap:6px"><div style="display:flex;justify-content:space-between;font-size:12.5px"><span data-stage>上传数据块 3 / 5</span><span class="mono" data-pct>62%</span></div><div class="bar"><i data-bar style="width:62%"></i></div>
@@ -1623,7 +1757,15 @@ document.addEventListener('click',e=>{
   const d=e.target.closest('[data-dismiss]'); if(d){ const c=d.closest('.ncard'); if(c&&c.dataset.live){clearInterval(progTimer);c.remove();} }
 });
 $('#playHandoff').addEventListener('click',()=>showCard('auth'));
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-detail]')){ $('#approvalWin').hidden=false; return; }
+  if(e.target.closest('[data-reject]')){ clearInterval(progTimer); $('#corner').innerHTML=''; }
+});
 let cornerBottom=false;
+let paused=false;
+$('#pauseItem').addEventListener('click',()=>{ paused=!paused;
+  $('#pauseItem').innerHTML=paused?`${icon('i-refresh')}<span>恢复自动同步</span><span class="sub2" style="margin-left:auto">19:40 自动恢复</span>`:`${icon('i-pause')}<span>暂停自动同步 1 小时</span>`;
+  $('#trayHint').textContent=paused?'自动同步已暂停 · 19:40 自动恢复':'s3.home.example · 上次同步 2 分钟前'; });
 segHandlers.corner=i=>{cornerBottom=i===1;$('#corner').classList.toggle('bottom',cornerBottom);};
 
 route();

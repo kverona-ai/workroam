@@ -4,6 +4,10 @@
 
 ## [未发布]
 
+### 变更
+
+- 文档：新增中英双语的部署指南（`docs/deployment.md`）与配置说明（`docs/configuration.md`），安装文档补充英文版；README 指向正式 Release
+
 ## [0.1.0] - 2026-10-30
 
 首个版本：PRD v0.1 的全部功能一次交付（验收门槛见 PRD §10）。

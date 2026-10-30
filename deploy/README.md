@@ -1,5 +1,7 @@
 # 部署
 
+> 完整的部署指南（云存储、自建、Kubernetes、中继、运维）见 [docs/deployment.zh-CN.md](../docs/deployment.zh-CN.md)（[English](../docs/deployment.md)）。本文说明本目录中各文件的用途。
+
 Workroam 的全部逻辑都在客户端里，服务器只需要一个 S3 兼容存储。已经有 AWS S3、Cloudflare R2、阿里云 OSS 时**什么都不用部署**，直接在初始化向导里选对应预设即可。本目录用于自建存储，以及可选的 `workroam-server`（[技术架构 §18、§20](../docs/architecture.md#20-部署架构)）。
 
 | 文件 | 用途 |

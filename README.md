@@ -12,7 +12,7 @@ even on a brand-new machine or a project you archived months ago.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/kverona-ai/workroam/actions/workflows/ci.yml/badge.svg)](https://github.com/kverona-ai/workroam/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v0.1.0%20coming%20soon-orange.svg)](https://github.com/kverona-ai/workroam/releases)
+[![Release](https://img.shields.io/github/v/release/kverona-ai/workroam?color=2F6BFF)](https://github.com/kverona-ai/workroam/releases/latest)
 [![Rust](https://img.shields.io/badge/Rust-stable-dea584.svg?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](#)
 [![Storage](https://img.shields.io/badge/storage-any%20S3--compatible-2F6BFF.svg)](docs/architecture.md)
@@ -20,16 +20,13 @@ even on a brand-new machine or a project you archived months ago.
 
 **English** · [简体中文](README.zh-CN.md)
 
-[Install](docs/install.md) · [Requirements](docs/prd.md) · [Architecture](docs/architecture.md) · [Decisions](docs/adr/README.md) · [Contributing](CONTRIBUTING.md)
+[Install](docs/install.md) · [Deployment](docs/deployment.md) · [Configuration](docs/configuration.md) · [Requirements](docs/prd.md) · [Architecture](docs/architecture.md) · [Decisions](docs/adr/README.md) · [Contributing](CONTRIBUTING.md)
 
 <br>
 
 <img src="docs/assets/screenshots/main-window.webp" width="860" alt="Workroam main window: the relay strip shows the workspace on this machine with 12 changes waiting to push, and an approval card in the corner">
 
 </div>
-
-> [!NOTE]
-> Workroam **v0.1.0 is in development** and has not been released yet; see [Install](#install). Feedback is welcome via issues. The design documents are currently written in Chinese.
 
 ---
 
@@ -124,7 +121,7 @@ flowchart LR
 
 ## Install
 
-Every release goes to [GitHub Releases](https://github.com/kverona-ai/workroam/releases) with builds for Windows, macOS and Linux, each on x64 and arm64. All files are listed in `SHA256SUMS` and carry build provenance.
+Download the [latest release](https://github.com/kverona-ai/workroam/releases/latest). Every release has builds for Windows, macOS and Linux, each on x64 and arm64, plus source packages. All files are listed in `SHA256SUMS` and carry build provenance.
 
 | You want to | Install |
 | --- | --- |
@@ -147,7 +144,7 @@ irm https://github.com/kverona-ai/workroam/releases/latest/download/install-cli.
 curl -fsSL https://github.com/kverona-ai/workroam/releases/latest/download/install-server.sh | sh
 ```
 
-The full guide covers package managers (Homebrew, Scoop, winget), verifying downloads, mirrors for intranets, self-hosting storage and building from source. It is in [docs/install.md](docs/install.md). For maintainers, the release process is in [docs/release.md](docs/release.md).
+The [install guide](docs/install.md) covers package managers (Homebrew, Scoop, winget), verifying downloads, mirrors for intranets and building from source. The [deployment guide](docs/deployment.md) covers cloud storage, self-hosting with one command, Kubernetes, the cloud agent relay and operations. Every setting, file and environment variable is in [Configuration](docs/configuration.md). For maintainers, the release process is in [docs/release.md](docs/release.md).
 
 ## Quick start
 
@@ -162,11 +159,11 @@ workroam push --release     # when leaving
 workroam pull               # when arriving (takes the lease)
 ```
 
-## Release scope
+## What v0.1 covers
 
-Workroam ships everything in the PRD as a single **v0.1** release. It goes out only when every gate below is met.
+Workroam v0.1 ships everything in the PRD in one release. Each area was built to meet the bar in the last column.
 
-| Area | Scope | Gate |
+| Area | Scope | Bar |
 | --- | --- | --- |
 | Handoff & data safety | Setup wizard & checks, pairing codes, read-only devices, key rotation, snapshots, lease, encryption, restore & sync history, bundle / remote / files modes | Two weeks of daily Windows ↔ Mac handoffs without data loss |
 | Agents | Six local agents (Claude Code, Codex, Grok Build, Antigravity, ZCode, Pi), session migration, CLI `--json` + Workroam Skill, local MCP server | Six agents work right after switching machines |
@@ -174,15 +171,15 @@ Workroam ships everything in the PRD as a single **v0.1** release. It goes out o
 | Archive & backup | Project archive & restore, archive packs, pruning, optional off-site mirror | Archived projects restore and just work |
 | Cloud agents & optional server | `workroam-server` relay (can run on a bot's cloud computer) with a remote connector for Grok Bot and Muse; full mode adds short pairing codes, mobile push and a web UI | A cloud personal agent connects in under 2 minutes |
 
-See [PRD · Release scope](docs/prd.md#10-发布范围与验收门槛) for details.
+See [PRD · Release scope](docs/prd.md#10-发布范围与验收门槛) for details, and [CHANGELOG.md](CHANGELOG.md) for what each release contains.
 
 ## Repository layout
 
 ```text
 .
-├── docs/            # Docs: install, release, PRD, architecture, ADRs, prototype
+├── docs/            # Docs: install, deployment, configuration, release, PRD, architecture, ADRs, prototype
 ├── crates/          # Rust code (see crates/README.md)
-├── deploy/          # Deployment files for workroam-server
+├── deploy/          # Self-hosted storage and workroam-server: install.sh, Compose, Helm, Dockerfile
 ├── scripts/         # Install scripts and release tooling
 ├── .github/         # CI and release workflows, issue / PR templates
 ├── CHANGELOG.md     # Changes per release

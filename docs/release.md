@@ -1,6 +1,6 @@
 # 持续集成与发布
 
-本文面向维护者：CI 检查什么、如何发布一个版本、发布会产出哪些文件、需要配置哪些 secrets。用户安装说明见 [install.md](install.md)。
+本文面向维护者：CI 检查什么、如何发布一个版本、发布会产出哪些文件、需要配置哪些 secrets。用户安装说明见 [install.zh-CN.md](install.zh-CN.md)。
 
 ## 流水线
 

@@ -9,12 +9,11 @@ root="$(cd "$(dirname "$0")/../.." && pwd)"
 mkdir -p "$out"
 
 cp "$root/scripts/install.sh" "$out/install-cli.sh"
-sed 's/^COMPONENT="\${WORKROAM_COMPONENT:-cli}"$/COMPONENT="${WORKROAM_COMPONENT:-server}"/' "$root/scripts/install.sh" > "$out/install-server.sh"
+sed 's/WORKROAM_COMPONENT:-cli}/WORKROAM_COMPONENT:-server}/' "$root/scripts/install.sh" > "$out/install-server.sh"
 grep -q 'WORKROAM_COMPONENT:-server' "$out/install-server.sh" || { echo "生成 install-server.sh 失败" >&2; exit 1; }
 
 cp "$root/scripts/install.ps1" "$out/install-cli.ps1"
-sed "s/^\\\$Component = if (\\\$env:WORKROAM_COMPONENT) { \\\$env:WORKROAM_COMPONENT } else { 'cli' }\$/\$Component = if (\$env:WORKROAM_COMPONENT) { \$env:WORKROAM_COMPONENT } else { 'server' }/" \
-  "$root/scripts/install.ps1" > "$out/install-server.ps1"
+sed "s/else { 'cli' }/else { 'server' }/" "$root/scripts/install.ps1" > "$out/install-server.ps1"
 grep -q "else { 'server' }" "$out/install-server.ps1" || { echo "生成 install-server.ps1 失败" >&2; exit 1; }
 
 chmod 0755 "$out/install-cli.sh" "$out/install-server.sh"

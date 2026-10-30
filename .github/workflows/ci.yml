@@ -188,7 +188,8 @@ jobs:
   # 分支保护只需要勾选这一个检查
   ci-ok:
     name: CI OK
-    if: always()
+    # 新推送取消旧运行时跳过，不在已被取代的提交上报失败；任务失败或被单独取消时照常判失败
+    if: ${{ !cancelled() }}
     needs: [detect, scripts, install-macos, fmt, clippy, test, server-musl, deny, desktop]
     runs-on: ubuntu-latest
     steps:

@@ -5,6 +5,7 @@ name: Release
 # 手动运行（Actions → Release → Run workflow）：
 #   tag 留空：只构建，不发布，产物在本次运行的 Artifacts 中（用于发布前演练）
 #   tag 填写已存在的 tag：重新构建并发布或更新该版本
+#   tag 填写尚不存在的 tag：在所选分支的最新提交上创建该 tag 后发布（无法推送 tag 时使用）
 # 步骤与需要配置的 secrets 见 docs/release.md。
 
 on:
@@ -33,6 +34,8 @@ jobs:
   prepare:
     name: Prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # 手动发布时创建 tag
     outputs:
       version: ${{ steps.meta.outputs.version }}
       tag: ${{ steps.meta.outputs.tag }}
@@ -42,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          fetch-depth: 0
       - id: meta
         env:
           INPUT_TAG: ${{ github.event.inputs.tag }}
@@ -51,7 +54,15 @@ jobs:
             tag="$GITHUB_REF_NAME"; ref="refs/tags/$tag"; publish=true
           elif [ -n "$INPUT_TAG" ]; then
             tag="$INPUT_TAG"; ref="refs/tags/$tag"; publish=true
-            git rev-parse -q --verify "$ref" >/dev/null || { echo "::error::tag $tag 不存在"; exit 1; }
+            case "$tag" in v[0-9]*.[0-9]*.[0-9]*) ;; *) echo "::error::tag 应形如 v0.1.0"; exit 1 ;; esac
+            if ! git rev-parse -q --verify "$ref" >/dev/null; then
+              git config user.name 'github-actions[bot]'
+              git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+              git tag -a "$tag" -m "Workroam $tag" "$GITHUB_SHA"
+              git push origin "$ref"
+              echo "::notice::已在 $GITHUB_REF_NAME（${GITHUB_SHA::7}）上创建 tag $tag"
+            fi
+            git checkout -q "$ref"
           else
             tag=""; ref="$GITHUB_SHA"; publish=false
           fi

@@ -2,8 +2,8 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 版本 | 1.3（新增 Agent 接入；命令行与界面一致性、命令行启动横幅） |
-| 覆盖范围 | 产品最终形态 v0.3，各模块标注首次交付版本 |
+| 版本 | v0.1 |
+| 覆盖范围 | Workroam v0.1 的全部模块 |
 | 最后更新 | 2026-10-30 |
 | 关联文档 | [产品需求](prd.md) · [架构决策记录](adr/README.md) · [桌面应用与命令行功能对照](cli-ui-parity.md) |
 
@@ -23,7 +23,7 @@
 10. [归档与恢复](#10-归档与恢复)
 11. [代码仓库同步](#11-代码仓库同步)
 12. [Agent 适配层](#12-agent-适配层)
-13. [自动同步与触发](#13-自动同步与触发v03)
+13. [自动同步与触发](#13-自动同步与触发)
 14. [跨平台层](#14-跨平台层)
 15. [进程间通信协议](#15-进程间通信协议)
 16. [Agent 接入](#16-agent-接入)
@@ -139,8 +139,8 @@ flowchart TB
 | `workroamd` | 后台服务：作业调度、触发检测、文件监听、授权管理、事件推送；开启异地备份的设备上还负责定期镜像；以用户级服务开机自启（macOS launchd、Windows 登录任务、Linux systemd 用户服务） |
 | `workroam` CLI | 用户与本机 Agent 的命令行入口，所有命令支持 `--json`，与桌面应用功能对等（§17）；后台服务未运行时临时在前台启动一个实例；交互式启动时显示启动横幅（§17.3） |
 | 桌面应用 | 托盘图标、初始化与项目接入向导、四种卡片、主窗口与设置界面；只负责展示和转达用户选择 |
-| `workroam mcp` | stdio MCP server，把 MCP 工具调用转成 IPC 请求（v0.3） |
-| 设备中继 | `workroamd` 内的模块：开启远程连接时与 `workroam-server` 保持出站连接，把云端 Agent 的工具调用作为 IPC 请求执行（v0.3） |
+| `workroam mcp` | stdio MCP server，把 MCP 工具调用转成 IPC 请求 |
+| 设备中继 | `workroamd` 内的模块：开启远程连接时与 `workroam-server` 保持出站连接，把云端 Agent 的工具调用作为 IPC 请求执行 |
 
 ### 3.2 服务端
 
@@ -156,7 +156,7 @@ flowchart TB
 | --- | --- | --- |
 | 项目层 | 代码仓库、文档、交付物 | 文件按内容哈希增量同步；仓库按代码同步模式处理（§11） |
 | 规则层 | `AGENTS.md`、`.workroam/mcp.toml`、`.agents/skills/` | 正文与定义源同步；环境块与各 Agent 原生配置在本机生成 |
-| Agent 状态层 | 各 Agent 的会话、记忆 | 按适配器白名单同步本项目相关部分；排除凭证；改写路径（v0.2） |
+| Agent 状态层 | 各 Agent 的会话、记忆 | 按适配器白名单同步本项目相关部分；排除凭证；改写路径 |
 | 交接层 | `.handoff/HANDOFF.md` | 推送前由当前 Agent 写，随项目同步 |
 
 ## 4. 代码组织
@@ -184,7 +184,7 @@ flowchart TB
 │   └── workroam-server/       # 可选服务端（二进制；中继模式默认，完整模式为 cargo feature）
 ├── apps/
 │   ├── desktop/               # Tauri v2 桌面应用
-│   └── web/                   # Web 界面（浏览器内解密，WASM，v0.3）
+│   └── web/                   # Web 界面（浏览器内解密，WASM）
 ├── adapters/                  # 适配器数据文件；skills/workroam/ 为 Workroam Skill 模板
 └── deploy/                    # install.sh、Compose、Caddyfile、Helm Chart
 ```
@@ -210,7 +210,7 @@ flowchart TB
     └── projects/<pid>/
         ├── lease                  # 租约（加密，条件写）
         ├── head                   # 最新快照指针（加密，条件写）
-        └── archive                # 归档记录（加密，仅已归档项目，v0.2）
+        └── archive                # 归档记录（加密，仅已归档项目）
 ```
 
 - `<pid>` = `HMAC-SHA256(控制子密钥, 项目名)` 的前 16 字节十六进制，服务器上看不到项目名。
@@ -264,7 +264,7 @@ capabilities = { conditional_create = true, conditional_overwrite = true, multip
 auto = "ask"                     # off | ask | auto
 idle_minutes = 15
 on_sleep = "ask"
-on_wake = true                   # 开机联网后检查更新（v0.3）
+on_wake = true                   # 开机联网后检查更新
 agent_requires_approval = true
 approval_timeout = "10m"
 paused_until = ""                # workroam pause / 托盘“暂停自动同步”写入
@@ -434,7 +434,7 @@ workroam setup --join --pairing-code-stdin --password-stdin \
 
 | 向导步骤 | 非交互参数 |
 | --- | --- |
-| 选择路径 | `--new` / `--join` / `--from-backup`（v0.3） |
+| 选择路径 | `--new` / `--join` / `--from-backup` |
 | 连接存储 | `--preset rustfs\|aws\|r2\|oss\|other`、`--endpoint`；自动识别可用 `--addressing path\|virtual-host`、`--region` 覆盖 |
 | 访问密钥 | `--access-key`、`--secret-key-stdin`（或 `WORKROAM_SECRET_KEY`） |
 | 密钥权限方式 | `--key-mode create\|current`、`--key-access read-write\|read-only`；当前密钥权限过宽时必须加 `--accept-broad-key`，否则检查失败（退出码 21） |
@@ -444,10 +444,10 @@ workroam setup --join --pairing-code-stdin --password-stdin \
 | 加入：配对码与解锁 | `--pairing-code-stdin`；忘记密码时 `--recovery-key-stdin` 代替 `--password-stdin` |
 | 本机设置 | `--device-name`、`--root`、`--reachable <主机,…>`、`--auto off\|ask\|auto`、`--autostart` / `--no-autostart` |
 | 加入：选择项目 | `--project <项目>[=<目录>]`（可重复）、`--all-projects` |
-| 从异地备份恢复后重新加入 | `--as-device <设备名>`（v0.3） |
+| 从异地备份恢复后重新加入 | `--as-device <设备名>` |
 | 完成 | `--qr` 在终端显示配对二维码；配对码始终打印到标准输出 |
 
-`--password-stdin`、`--secret-key-stdin` 与 `--pairing-code-stdin` 同时使用时，标准输入按参数出现的顺序逐行读取。从异地备份恢复使用 `workroam setup --from-backup`，参数为镜像的连接信息（v0.3）。
+`--password-stdin`、`--secret-key-stdin` 与 `--pairing-code-stdin` 同时使用时，标准输入按参数出现的顺序逐行读取。从异地备份恢复使用 `workroam setup --from-backup`，参数为镜像的连接信息。
 
 ### 7.2 状态机
 
@@ -474,7 +474,7 @@ stateDiagram-v2
     Done --> [*]
 ```
 
-“从异地备份恢复”路径（v0.3）见 §10.5。
+“从异地备份恢复”路径见 §10.5。
 
 每一步的结果暂存在 `workroamd` 的初始化会话中，用户可回退；只有到达“完成”才会写入存储与本机配置，中途退出不留下任何远端对象（检查用的探测对象除外，检查结束即删除）。
 
@@ -482,7 +482,7 @@ stateDiagram-v2
 
 | 方式 | 流程 | 适用 |
 | --- | --- | --- |
-| 创建专用密钥（v0.2） | 用户提供一次管理员凭证；Workroam 调用存储的管理接口创建只授权 `<bucket>/<prefix>` 的访问密钥（读写或只读）；验证新密钥可用后丢弃管理员凭证 | RustFS、Garage、SeaweedFS、AWS（IAM）等提供管理接口的存储；不支持时向导隐藏此项 |
+| 创建专用密钥 | 用户提供一次管理员凭证；Workroam 调用存储的管理接口创建只授权 `<bucket>/<prefix>` 的访问密钥（读写或只读）；验证新密钥可用后丢弃管理员凭证 | RustFS、Garage、SeaweedFS、AWS（IAM）等提供管理接口的存储；不支持时向导隐藏此项 |
 | 使用当前密钥 | 探测该密钥能否列举所有桶、能否访问工作区之外的桶；权限过宽时警告并给出收窄步骤，用户确认后继续 | 所有存储 |
 
 各存储管理接口的差异封装在 `workroam-device` 的 `KeyProvisioner` 接口后面，每种存储一个实现。
@@ -518,7 +518,7 @@ stateDiagram-v2
 | 本机 git | `git --version` 不低于 2.30 | 失败 | 升级 git |
 | 长路径（Windows） | 读取 LongPathsEnabled | 警告 | 一键打开设置说明 |
 | Agent 检测 | 按适配器的检测命令识别已安装 Agent 与版本 | 提示 | 版本不在支持范围时提示 |
-| 异地备份（v0.3，开启时） | 镜像目标连通、可写（本地目录检查是否已挂载与剩余空间）；最近一次镜像是否成功、是否超过 3 天 | 警告 | 核对镜像凭证，或连接移动硬盘 / NAS 后立即备份 |
+| 异地备份（开启时） | 镜像目标连通、可写（本地目录检查是否已挂载与剩余空间）；最近一次镜像是否成功、是否超过 3 天 | 警告 | 核对镜像凭证，或连接移动硬盘 / NAS 后立即备份 |
 
 ## 8. 设备与凭证
 
@@ -534,13 +534,13 @@ wr1:<salt 16B><nonce 24B><AEAD 密文>
 
 - 新设备只需要配对码和加密密码（用户本来就要输入），不需要第三个秘密；
 - 配对码本身被加密，即使截图泄露，没有加密密码也无法使用；
-- 生成只读设备的配对码时，内含只读密钥（需工作区使用专用密钥方式，v0.2）。
+- 生成只读设备的配对码时，内含只读密钥（需工作区使用专用密钥方式）。
 
 ### 8.2 设备登记
 
 加入时写入 `control/devices/<device-id>`（加密），记录名称、系统、权限、加入时间；每次同步更新最后活动时间。设备列表由所有设备读取同一前缀得到。
 
-### 8.3 密钥轮换与移除设备（v0.2）
+### 8.3 密钥轮换与移除设备
 
 ```mermaid
 sequenceDiagram
@@ -557,7 +557,7 @@ sequenceDiagram
 
 被移除设备的登记被删除，它不会再收到新密钥；旧密钥吊销后立即失去访问权限。存储不提供管理接口时，向导指导用户在存储控制台手动创建新密钥并粘贴，后续流程相同。
 
-### 8.4 配合 workroam-server（v0.3）
+### 8.4 配合 workroam-server
 
 服务端保存一个管理员凭证（只在服务端，不进入客户端），提供：
 
@@ -652,19 +652,19 @@ sequenceDiagram
 ### 9.5 防中断
 
 - 同步期间阻止休眠（macOS `IOPMAssertion`、Windows `SetThreadExecutionState`、Linux `systemd-inhibit`）；
-- Windows 关机时通过 `ShutdownBlockReasonCreate` 显示“Workroam 正在同步”（v0.3）；
+- Windows 关机时通过 `ShutdownBlockReasonCreate` 显示“Workroam 正在同步”；
 - git 仓库处于 rebase 或 merge 中途时拒绝同步；
 - 拉取期间的 `.workroam/SYNCING` 让 Agent 暂停写入（约定写在 `AGENTS.md` 共享正文中）。
 
 ## 10. 归档与恢复
 
-| 能力 | 解决什么 | 首次交付 |
-| --- | --- | --- |
-| 从快照恢复 | 误删文件、改坏代码、想回到某次同步 | v0.1 |
-| 项目归档 | 已完成的项目从各设备和日常同步中移出，永久保留，随时原样恢复 | v0.2（归档包 v0.3） |
-| 异地备份（可选） | 存储本身整体丢失 | v0.3 |
+| 能力 | 解决什么 |
+| --- | --- |
+| 从快照恢复 | 误删文件、改坏代码、想回到某次同步 |
+| 项目归档 | 已完成的项目从各设备和日常同步中移出，永久保留，随时原样恢复 |
+| 异地备份（可选） | 存储本身整体丢失 |
 
-### 10.1 从快照恢复（v0.1）
+### 10.1 从快照恢复
 
 `restore.plan` 接收快照（快照 ID，或 `<项目>@<时间>` 取该时间之前最近的快照）、路径过滤和恢复目标：
 
@@ -675,7 +675,7 @@ sequenceDiagram
 
 恢复从不删除或改写已有快照，所以一次恢复本身也可以被撤销。
 
-### 10.2 项目归档（v0.2）
+### 10.2 项目归档
 
 ```mermaid
 sequenceDiagram
@@ -701,7 +701,7 @@ sequenceDiagram
 - **保留**：`prune` 跳过带 `workroam:archived` 标签的快照。`keep_history = false` 时，归档之前的快照照常按保留策略过期；为 `true` 时，整条快照序列都不清理。
 - **删除归档**：删除归档记录、归档快照与 `head`，下一次 `prune` 释放不再被引用的数据块。
 
-### 10.3 恢复归档（v0.2）
+### 10.3 恢复归档
 
 `archive.restore` 先运行 `archive.restore_plan`，检查目标目录（默认是本机对该项目的绑定目录，没有绑定时为 `<root>/<项目名>`）并判定场景，结果放进确认卡片：
 
@@ -739,13 +739,13 @@ flowchart TD
 
 归档只保存规则、MCP 与 Skills 的定义源，所以 Agent 升级、适配器格式变化后，恢复出来的配置仍然与本机匹配。
 
-### 10.4 归档包（v0.3）
+### 10.4 归档包
 
 - `workroam archive export <项目> <文件>`：新建一个只含该项目归档快照的临时 rustic 仓库，打包为单个文件（`.wrarchive`），用导出时设置的密码加密（默认沿用工作区加密密码）；
 - `workroam archive import <文件>`：用导出密码解锁，把快照复制进当前工作区的仓库，写入归档记录；可以导入到另一个工作区；
 - 适合离线长期保存，或把项目交给使用另一个工作区的自己。
 
-### 10.5 异地备份（可选，v0.3）
+### 10.5 异地备份（可选）
 
 只用于存储本身整体丢失的情况，例如自建单盘存储损坏或桶被误删。使用云对象存储时通常不需要开启。
 
@@ -771,7 +771,7 @@ delete_delay_days = 30
 
 每台机器各自维护 `.git`；git 操作一律调用本机 git 命令行。
 
-### 11.1 bundle 模式（v0.1）
+### 11.1 bundle 模式
 
 - 首次：生成完整 bundle（按历史档位裁剪后）放入快照；另一端从该文件 `git clone`；
 - 之后：只打包“上次交换点”之后的新提交与 WIP 提交，另一端 `git fetch` 后快进；
@@ -806,13 +806,13 @@ wip=$(git commit-tree "$tree" -p HEAD -m "workroam wip")
 
 用临时索引生成，不碰用户暂存区和业务分支；未跟踪但未被忽略的新文件也包含在内。bundle 模式一并打包；remote 模式推到 `workroam/wip/<分支名>`。到达后还原为未提交改动，再删除 WIP。
 
-### 11.4 remote 模式（v0.2）
+### 11.4 remote 模式
 
 - origin 两地都能连：直接用 origin 中转；
 - origin 是内网仓库：增加中转远端（Gitea 或私有托管仓库）；家里只与中转库交互，回到内网设备后先从中转库拉取，再推送 origin；
 - Gitea 的 LFS 与附件存储可配置为 S3，指向同一个存储。
 
-### 11.5 files 模式（v0.2）
+### 11.5 files 模式
 
 - `git ls-files -co --exclude-standard` 列文件，自动遵守 `.gitignore`；
 - 离开时记录分支与 HEAD 作为基线；回来时若 HEAD 与工作区都没动则直接覆盖，否则以基线为共同祖先用 `git merge-file` 逐文件合并；
@@ -896,16 +896,16 @@ webhook = "optional"                                   # 支持例行任务 webh
 
 ### 12.2 适配矩阵（实现时逐项实测确认）
 
-| Agent | 规则 | 项目级 Skills | 项目级 MCP | 会话位置 | 版本 |
-| --- | --- | --- | --- | --- | --- |
-| Claude Code | `CLAUDE.md` 一行 `@AGENTS.md` | `.claude/skills`（链接） | `.mcp.json` | `~/.claude/projects/<路径键>/` | v0.1 |
-| Codex | `AGENTS.md` 原生 | `.agents/skills` 原生 | `.codex/config.toml`（项目受信任后加载） | `~/.codex/sessions/` | v0.1 |
-| Grok Build | `AGENTS.md`，也读 `CLAUDE.md` | `.grok/skills`，兼容 Claude Code | `.grok/config.toml`，也读 `.mcp.json` | `~/.grok/sessions/<路径键>/` | v0.2 |
-| Antigravity | `AGENTS.md`；`.agents/rules` 引用 | `.agents/skills` 原生 | `.agents/mcp_config.json` | 实现时实测 | v0.2 |
-| ZCode | 项目根 `AGENTS.md` | 实现时实测 | 实现时实测 | 实现时实测 | v0.2 |
-| Pi | `AGENTS.md` | 实现时实测 | 实现时实测 | 实现时实测 | v0.2 |
+| Agent | 规则 | 项目级 Skills | 项目级 MCP | 会话位置 |
+| --- | --- | --- | --- | --- |
+| Claude Code | `CLAUDE.md` 一行 `@AGENTS.md` | `.claude/skills`（链接） | `.mcp.json` | `~/.claude/projects/<路径键>/` |
+| Codex | `AGENTS.md` 原生 | `.agents/skills` 原生 | `.codex/config.toml`（项目受信任后加载） | `~/.codex/sessions/` |
+| Grok Build | `AGENTS.md`，也读 `CLAUDE.md` | `.grok/skills`，兼容 Claude Code | `.grok/config.toml`，也读 `.mcp.json` | `~/.grok/sessions/<路径键>/` |
+| Antigravity | `AGENTS.md`；`.agents/rules` 引用 | `.agents/skills` 原生 | `.agents/mcp_config.json` | 实现时实测 |
+| ZCode | 项目根 `AGENTS.md` | 实现时实测 | 实现时实测 | 实现时实测 |
+| Pi | `AGENTS.md` | 实现时实测 | 实现时实测 | 实现时实测 |
 
-云端个人 Agent（Grok Bot、Muse）的接入方式见 §16.4，首次交付 v0.3。
+云端个人 Agent（Grok Bot、Muse）的接入方式见 §16.4。
 
 ### 12.3 导入、生成与剥离
 
@@ -913,14 +913,14 @@ webhook = "optional"                                   # 支持例行任务 webh
 - **生成**（每次拉取后）：渲染环境块；按当前系统合并 MCP 覆盖项、解析 `${secret:xxx}`，为每个目标 Agent 写原生配置；创建 Skills 链接；生成规则引用文件；全部记入本机排除列表；
 - **剥离**（每次推送前）：去掉环境块，忽略全部生成文件。
 
-### 12.4 会话迁移（v0.2）
+### 12.4 会话迁移
 
 - 每台设备上项目的绝对路径来自本机绑定（§6.7），会话中的路径按“发起设备的项目目录 ↔ 本机项目目录”映射，例如 `D:\work\proj-a` ↔ `/Users/me/code/proj-a`；
 - 推送时按适配器白名单收集本项目相关会话，放入快照的 `.workroam-snapshot/sessions/`；
 - 拉取时按适配器的路径键规则换成本机路径对应的目录，并改写 `rewrite_fields` 中的工作目录字段；
 - 迁移失败只记录警告，不影响同步。
 
-## 13. 自动同步与触发（v0.3）
+## 13. 自动同步与触发
 
 | 触发 | 检测方式 | 动作 |
 | --- | --- | --- |
@@ -969,15 +969,15 @@ webhook = "optional"                                   # 支持例行任务 webh
 | `job.start` / `job.cancel` / `job.list` | 客户端 → 服务端 | 启动、取消作业，列出进行中的作业 |
 | `approval.list` / `approval.respond` | 客户端 → 服务端 | 待确认的授权；同意 / 稍后 / 拒绝，可带“1 小时内不再询问” |
 | `history.list` / `history.show` | 客户端 → 服务端 | 同步历史；一次快照改动的文件 |
-| `archive.plan` / `archive.list` / `archive.restore_plan` / `archive.restore` / `archive.extract` / `archive.delete` | 客户端 → 服务端 | 项目归档与恢复（v0.2） |
-| `archive.export` / `archive.import` | 客户端 → 服务端 | 归档包（v0.3） |
-| `backup.configure` / `backup.run` / `verify.run` | 客户端 → 服务端 | 异地备份与完整性校验（v0.3） |
-| `prune.run` | 客户端 → 服务端 | 按保留策略清理快照（v0.2） |
+| `archive.plan` / `archive.list` / `archive.restore_plan` / `archive.restore` / `archive.extract` / `archive.delete` | 客户端 → 服务端 | 项目归档与恢复 |
+| `archive.export` / `archive.import` | 客户端 → 服务端 | 归档包 |
+| `backup.configure` / `backup.run` / `verify.run` | 客户端 → 服务端 | 异地备份与完整性校验 |
+| `prune.run` | 客户端 → 服务端 | 按保留策略清理快照 |
 | `config.list` / `config.get` / `config.set` | 客户端 → 服务端 | 读写本机、项目与工作区设置（§17.2） |
-| `agent.webhook` | 客户端 → 服务端 | 配置云端 Agent 的事件 webhook（v0.3） |
+| `agent.webhook` | 客户端 → 服务端 | 配置云端 Agent 的事件 webhook |
 | `credentials.update` | 客户端 → 服务端 | 验证并更新本机密钥库中的访问密钥 |
 | `password.change` / `password.reset` | 客户端 → 服务端 | 修改加密密码；用恢复密钥重设（替换仓库密钥文件，不重新加密数据） |
-| `sync.pause` / `sync.resume` | 客户端 → 服务端 | 暂停 / 恢复自动同步（v0.3） |
+| `sync.pause` / `sync.resume` | 客户端 → 服务端 | 暂停 / 恢复自动同步 |
 | `agent.list` / `agent.connect` / `agent.disconnect` | 客户端 → 服务端 | 本机 Agent 检测与补齐配置；云端 Agent 连接的创建、授权与撤销（§16） |
 | `subscribe` | 客户端 → 服务端 | 订阅事件流 |
 | `setup.check_result` | 服务端 → 客户端 | 单项检查结果（逐项推送，界面实时刷新） |
@@ -1023,29 +1023,29 @@ flowchart LR
     D -- 出站连接（设备中继） --> SV
 ```
 
-| 入口 | 适用 | 传输 | 首次交付 |
-| --- | --- | --- | --- |
-| CLI + `--json` + Workroam Skill | 本机 Agent（基础接口） | 子进程 | v0.1 |
-| `workroam mcp` | 偏好工具调用的本机 Agent | stdio | v0.3 |
-| 远程连接器 | 云端个人 Agent | Streamable HTTP + OAuth，经设备中继 | v0.3 |
+| 入口 | 适用 | 传输 |
+| --- | --- | --- |
+| CLI + `--json` + Workroam Skill | 本机 Agent（基础接口） | 子进程 |
+| `workroam mcp` | 偏好工具调用的本机 Agent | stdio |
+| 远程连接器 | 云端个人 Agent | Streamable HTTP + OAuth，经设备中继 |
 
 所有入口最终都是 `workroamd` 的 IPC 客户端，授权规则一致；远程入口在此基础上更严格（§16.4）。
 
-### 16.1 CLI 与 JSON 输出（v0.1）
+### 16.1 CLI 与 JSON 输出
 
 - 所有命令支持 `--json`：标准输出只输出一个 JSON 对象（长时间作业为每行一个 JSON 事件，最后一行为结果），带 `schema_version`；人类可读的提示改走标准错误；
 - 等待授权时输出 `{"event":"approval_pending","job_id":…,"timeout_s":600}`，Agent 据此提示用户去卡片上确认；
 - 退出码与 §15 一致，JSON 结果中的 `code` 字段与退出码相同；
 - JSON 结构由 `workroam-ipc` 的类型生成 JSON Schema，作为公开接口保持向后兼容。
 
-### 16.2 Workroam Skill（v0.1）
+### 16.2 Workroam Skill
 
 - 模板在 `adapters/skills/workroam/SKILL.md`，随二进制发布；接入项目时写入 `.agents/skills/workroam/`（共享源文件，参与同步），按各适配器的 `[skills]` 链接到 Agent 的 Skills 目录；
 - 内容：触发语（“我要下班了”“同步下来”等）、推送前先更新 `HANDOFF.md`、调用哪条命令与参数、怎样等待确认、怎样解读 JSON 结果与退出码、冲突时怎么办；
 - `AGENTS.md` 中的“工作区同步”约定只保留几行并指向该 Skill，供不支持 Skills 的 Agent 使用；
 - 同一份 Skill 也提供给云端个人 Agent 上传，云端版本把命令换成远程工具名。
 
-### 16.3 本机 MCP server（v0.3）
+### 16.3 本机 MCP server
 
 `workroam mcp` 以 stdio 运行；接入项目时按适配器的 `[connect].mcp` 写入各 Agent 的项目级 MCP 配置，用户可关闭。
 
@@ -1059,7 +1059,7 @@ flowchart LR
 
 MCP 调用只是另一个 IPC 客户端，授权规则与 CLI 完全相同。
 
-### 16.4 远程连接器与设备中继（v0.3）
+### 16.4 远程连接器与设备中继
 
 ```mermaid
 sequenceDiagram
@@ -1123,7 +1123,7 @@ sequenceDiagram
 | 本机 Agent | 接入项目（`workroam init` 或桌面“接入项目”）；之后新装的 Agent 在“设置 → Agent”点“接入” | 按适配器生成规则引用、MCP 配置、Skills 链接与 Workroam Skill，覆盖本机所有已接入项目 |
 | 云端个人 Agent | “设置 → Agent → 连接 <Agent>”；没有中继时把部署说明发给 bot 并粘贴回它报告的地址；在对方添加连接器，回到卡片核对确认码 | 生成部署说明与绑定码并完成绑定；生成连接地址；按适配器 `[connect].setup` 打开对方的连接器页面，或复制一段可直接粘贴给 Agent 的设置说明；提供 Workroam Skill 文件；完成授权 |
 
-### 16.6 事件 webhook（可选，v0.3）
+### 16.6 事件 webhook（可选）
 
 - 用户可为某个云端 Agent 配置 webhook 地址与密钥（例如 Grok Bot 例行任务的 webhook 触发器），密钥存系统密钥库；
 - 推送完成、失败、到达时，由产生事件的设备直接 POST，内容只有项目名、事件类型、设备、时间与变更概要；
@@ -1153,8 +1153,8 @@ sequenceDiagram
 | `sync.idle_minutes`、`sync.on_sleep`、`sync.on_wake`、`sync.approval_timeout` | 本机 | `machine.toml` |
 | `notify.ntfy`、`notify.on_success` | 本机 | `machine.toml` |
 | `ui.banner`、`ui.lang` | 本机 | `machine.toml` |
-| `mcp.enabled` | 本机，项目可覆盖 | `machine.toml` / `workroam.toml`（v0.3） |
-| `remote.enabled`、`remote.default_device` | 项目 / 工作区 | 连接授权记录所在的控制对象（§16.4，v0.3） |
+| `mcp.enabled` | 本机，项目可覆盖 | `machine.toml` / `workroam.toml` |
+| `remote.enabled`、`remote.default_device` | 项目 / 工作区 | 连接授权记录所在的控制对象（§16.4） |
 | `retention.days`、`retention.weekly` | 工作区 | `control/settings`（加密） |
 
 访问密钥与加密密码不经过 `config`：分别用 `workroam credentials update` 与 `workroam password change / reset`（桌面设置“存储”与“加密”），只写系统密钥库与仓库密钥文件。
@@ -1369,7 +1369,7 @@ flowchart LR
 - `install.sh --domain sync.example.com --storage rustfs|garage|seaweedfs [--with-server]`：生成 Compose 与 Caddyfile，启动服务，输出端点与管理员凭证，提示在客户端向导中选择“由 Workroam 创建专用密钥”；
 - 已有云存储时不需要部署任何东西，直接在向导中选择对应预设；
 - 只给云端个人 Agent 用：在 bot 的云端电脑或任意 VPS 上运行中继模式的 `workroam-server`（§18.3），不需要 Docker；
-- 没有公网 IP：Cloudflare Tunnel 暴露 443（v0.2）；Kubernetes：Helm Chart（v0.2）；remote 模式中转库：附带 Gitea 的 Compose（v0.2）；
+- 没有公网 IP：Cloudflare Tunnel 暴露 443；Kubernetes：Helm Chart；remote 模式中转库：附带 Gitea 的 Compose；
 - Garage 等 AGPL 存储只作为独立容器启动，属于并列分发，不影响 Workroam 代码的许可证。
 
 ## 21. 可观测性

@@ -76,7 +76,7 @@ pub fn backends_at(
     if let Some(root) = loc.local_root() {
         let dir = root.join(sub);
         std::fs::create_dir_all(&dir)?;
-        bo.repository = Some(format!("local:{}", dir.display()));
+        bo.repository = Some(local_location(&dir));
     } else {
         let creds = creds.ok_or_else(|| Error::invalid("storage credentials are required"))?;
         bo.repository = Some("opendal:s3".into());
@@ -108,10 +108,20 @@ pub fn backends_at(
 }
 
 /// Backends for a standalone repository in a local directory.
+/// rustic location for a local directory. On Windows the `local:` prefix
+/// would be kept as part of the path, so a plain path is used there.
+fn local_location(dir: &std::path::Path) -> String {
+    if cfg!(windows) {
+        dir.display().to_string()
+    } else {
+        format!("local:{}", dir.display())
+    }
+}
+
 pub fn local_backends(dir: &std::path::Path) -> Result<RepositoryBackends> {
     std::fs::create_dir_all(dir)?;
     let mut bo = BackendOptions::default();
-    bo.repository = Some(format!("local:{}", dir.display()));
+    bo.repository = Some(local_location(dir));
     bo.to_backends().map_err(rerr)
 }
 

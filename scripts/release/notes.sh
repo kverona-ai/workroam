@@ -99,14 +99,14 @@ curl -fsSL https://github.com/$repo/releases/latest/download/install-server.sh |
 curl -fsSL $base/install.sh | sh -s -- --domain s3.example.com
 \`\`\`
 
-Kubernetes 可用 Helm Chart：[\`deploy/helm/workroam\`](https://github.com/$repo/tree/v$version/deploy/helm/workroam)，说明见 [deploy/README.md](https://github.com/$repo/blob/v$version/deploy/README.md)。
+Kubernetes 可用 Helm Chart：[\`deploy/helm/workroam\`](https://github.com/$repo/tree/v$version/deploy/helm/workroam)，说明见 [部署指南](https://github.com/$repo/blob/v$version/docs/deployment.zh-CN.md)（[English](https://github.com/$repo/blob/v$version/docs/deployment.md)）。
 
 ## 源码 / Source
 
 - $(link "$c-source.tar.gz" "$c-source.tar.gz") · $(link "$c-source.zip" ".zip")：完整源码，可直接修改后自行构建
 - $(link "$c-source-vendored.tar.gz" "$c-source-vendored.tar.gz")：附带全部 Rust 依赖（\`cargo vendor\`），离线环境可用 \`cargo build --release --offline\` 构建
 
-构建方法见 [从源码构建](https://github.com/$repo/blob/v$version/docs/install.md#从源码构建)。
+构建方法见 [从源码构建](https://github.com/$repo/blob/v$version/docs/install.zh-CN.md#从源码构建)。
 
 ## 包管理器 / Package managers
 
@@ -121,5 +121,5 @@ sha256sum -c SHA256SUMS --ignore-missing          # macOS 用 shasum -a 256 -c
 gh attestation verify <文件> --repo $repo         # 验证构建来源（SLSA provenance）
 \`\`\`
 
-完整安装说明：[docs/install.md](https://github.com/$repo/blob/v$version/docs/install.md)
+完整安装说明：[docs/install.zh-CN.md](https://github.com/$repo/blob/v$version/docs/install.zh-CN.md)（[English](https://github.com/$repo/blob/v$version/docs/install.md)）
 NOTES

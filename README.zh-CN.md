@@ -12,7 +12,7 @@
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![CI](https://github.com/kverona-ai/workroam/actions/workflows/ci.yml/badge.svg)](https://github.com/kverona-ai/workroam/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/badge/release-v0.1.0%20coming%20soon-orange.svg)](https://github.com/kverona-ai/workroam/releases)
+[![Release](https://img.shields.io/github/v/release/kverona-ai/workroam?color=2F6BFF)](https://github.com/kverona-ai/workroam/releases/latest)
 [![Rust](https://img.shields.io/badge/Rust-stable-dea584.svg?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](#)
 [![Storage](https://img.shields.io/badge/storage-any%20S3--compatible-2F6BFF.svg)](docs/architecture.md#5-存储布局)
@@ -20,16 +20,13 @@
 
 [English](README.md) · **简体中文**
 
-[安装](docs/install.md) · [产品需求](docs/prd.md) · [技术架构](docs/architecture.md) · [架构决策](docs/adr/README.md) · [参与贡献](CONTRIBUTING.md)
+[安装](docs/install.zh-CN.md) · [部署指南](docs/deployment.zh-CN.md) · [配置说明](docs/configuration.zh-CN.md) · [产品需求](docs/prd.md) · [技术架构](docs/architecture.md) · [架构决策](docs/adr/README.md) · [参与贡献](CONTRIBUTING.md)
 
 <br>
 
 <img src="docs/assets/screenshots/main-window.webp" width="860" alt="Workroam 主窗口：接力路线显示工作区在本机、12 个改动待推送，角落是授权卡片">
 
 </div>
-
-> [!NOTE]
-> Workroam **v0.1.0 正在开发**，还没有发布，见[安装](#安装)。欢迎提 Issue 讨论。
 
 ---
 
@@ -147,7 +144,7 @@ irm https://github.com/kverona-ai/workroam/releases/latest/download/install-cli.
 curl -fsSL https://github.com/kverona-ai/workroam/releases/latest/download/install-server.sh | sh
 ```
 
-完整说明见 [docs/install.md](docs/install.md)，包括包管理器（Homebrew、Scoop、winget）、校验下载、内网镜像、自建存储和从源码构建。发布流程（面向维护者）见 [docs/release.md](docs/release.md)。
+[安装文档](docs/install.zh-CN.md)包括包管理器（Homebrew、Scoop、winget）、校验下载、内网镜像和从源码构建；[部署指南](docs/deployment.zh-CN.md)覆盖云存储、一条命令自建、Kubernetes、云端 Agent 中继与运维；全部设置项、文件与环境变量见[配置说明](docs/configuration.zh-CN.md)。发布流程（面向维护者）见 [docs/release.md](docs/release.md)。
 
 ## 快速开始
 
@@ -162,9 +159,9 @@ workroam push --release     # 离开时
 workroam pull               # 到达时（同时获取租约）
 ```
 
-## 发布范围
+## v0.1 包含什么
 
-PRD 中的全部功能作为 **v0.1** 一次发布，下表门槛全部达到才发布。
+PRD 中的全部功能作为 **v0.1** 一次发布，每个范围都按最后一列的门槛来做。
 
 | 范围 | 内容 | 门槛 |
 | --- | --- | --- |
@@ -174,15 +171,15 @@ PRD 中的全部功能作为 **v0.1** 一次发布，下表门槛全部达到才
 | 归档与备份 | 项目归档与恢复、归档包、快照清理、可选异地备份 | 归档项目恢复后直接可用 |
 | 云端个人 Agent 与可选服务端 | `workroam-server` 中继模式（可部署在 bot 的云端电脑上）与远程连接器（Grok Bot、Muse）；完整模式另有 6 位配对码、手机推送与 Web 界面 | 云端个人 Agent 2 分钟内连上 |
 
-详见 [PRD · 发布范围](docs/prd.md#10-发布范围与验收门槛)。
+详见 [PRD · 发布范围](docs/prd.md#10-发布范围与验收门槛)；每个版本的内容见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 仓库结构
 
 ```text
 .
-├── docs/            # 文档：安装、发布、PRD、技术架构、ADR、原型
+├── docs/            # 文档：安装、部署、配置、发布、PRD、技术架构、ADR、原型
 ├── crates/          # Rust 代码（见 crates/README.md）
-├── deploy/          # workroam-server 的部署文件
+├── deploy/          # 自建存储与 workroam-server：install.sh、Compose、Helm、Dockerfile
 ├── scripts/         # 安装脚本与发布工具
 ├── .github/         # CI 与发布工作流、Issue / PR 模板
 ├── CHANGELOG.md     # 版本变更记录

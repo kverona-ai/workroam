@@ -235,11 +235,15 @@ impl KeyProvisioner {
 const IAM: &str = "https://iam.amazonaws.com/";
 
 async fn iam_call(admin: &AdminCreds, params: &[(&str, &str)]) -> Result<String> {
-    let mut body = url::form_urlencoded::Serializer::new(String::new());
-    body.append_pair("Version", "2010-05-08");
-    for (k, v) in params {
-        body.append_pair(k, v);
-    }
+    // Built before any await: the serializer is not Send.
+    let body = {
+        let mut b = url::form_urlencoded::Serializer::new(String::new());
+        b.append_pair("Version", "2010-05-08");
+        for (k, v) in params {
+            b.append_pair(k, v);
+        }
+        b.finish()
+    };
     let creds = Creds {
         access_key: admin.access_key.clone(),
         secret_key: admin.secret_key.clone(),
@@ -254,7 +258,7 @@ async fn iam_call(admin: &AdminCreds, params: &[(&str, &str)]) -> Result<String>
             "content-type",
             "application/x-www-form-urlencoded; charset=utf-8",
         )],
-        body.finish().into_bytes(),
+        body.into_bytes(),
     )
     .await?;
     if status >= 300 {

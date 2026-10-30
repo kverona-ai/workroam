@@ -29,3 +29,4 @@ rustc-ice-*.txt
 
 # Tauri sidecars, prepared by scripts/release/desktop-prepare.sh
 /apps/desktop/src-tauri/binaries/
+/apps/desktop/src-tauri/gen/

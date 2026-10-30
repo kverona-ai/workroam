@@ -184,7 +184,7 @@ async function projectView(el, p) {
   const latest = hist.find((s) => s.id.startsWith(p.snapshot || "")) || hist[0];
   if (!latest) { handoff.replaceChildren(h("p", { class: "dim" }, T.noHandoff)); return; }
   try {
-    const n = await ws.find(latest.tree, "HANDOFF.md");
+    const n = (await ws.find(latest.tree, ".handoff/HANDOFF.md")) || (await ws.find(latest.tree, "HANDOFF.md"));
     if (!n) { handoff.replaceChildren(h("p", { class: "dim" }, T.noHandoff)); return; }
     handoff.innerHTML = markdown(text(await ws.read(n)));
   } catch (e) {

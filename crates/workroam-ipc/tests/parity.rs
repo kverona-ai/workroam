@@ -105,6 +105,43 @@ fn parity_desktop_actions_exist() {
     }
 }
 
+/// Every action in actions.json is wired in the desktop UI: the id is passed
+/// to `act("<id>", …)` (directly, or through a helper that forwards it), and
+/// every `act` id in the UI is a listed action.
+#[test]
+fn parity_desktop_actions_are_wired() {
+    let raw = std::fs::read_to_string(root().join("apps/desktop/actions.json")).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let listed: BTreeSet<String> = v["actions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|a| a["id"].as_str().unwrap().to_string())
+        .collect();
+    let mut js = String::new();
+    let dir = root().join("apps/desktop/ui/js");
+    for e in std::fs::read_dir(&dir).unwrap() {
+        let p = e.unwrap().path();
+        if p.extension().is_some_and(|x| x == "js") {
+            js.push_str(&std::fs::read_to_string(&p).unwrap());
+        }
+    }
+    for id in &listed {
+        assert!(
+            js.contains(&format!("\"{id}\"")),
+            "desktop action {id} is not wired in apps/desktop/ui/js"
+        );
+    }
+    for (i, _) in js.match_indices("act(\"") {
+        let rest = &js[i + 5..];
+        let id = &rest[..rest.find('"').unwrap()];
+        assert!(
+            listed.contains(id),
+            "act(\"{id}\") in apps/desktop/ui/js is not in apps/desktop/actions.json"
+        );
+    }
+}
+
 #[test]
 fn parity_doc_is_generated() {
     let p = Parity::load().unwrap();

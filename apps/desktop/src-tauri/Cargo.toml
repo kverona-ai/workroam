@@ -1,0 +1,40 @@
+[package]
+name = "workroam-desktop"
+description = "Workroam desktop app: setup wizard, main window, corner cards and tray"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "Apache-2.0"
+repository = "https://github.com/kverona-ai/workroam"
+publish = false
+
+# Not part of the root workspace: Tauri brings its own system dependencies
+# (WebKitGTK on Linux), and the CLI / daemon must build without them.
+[workspace]
+
+[lib]
+name = "workroam_desktop"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+workroam-core = { path = "../../../crates/workroam-core" }
+workroam-ipc = { path = "../../../crates/workroam-ipc" }
+tauri = { version = "2", features = ["tray-icon", "image-png", "macos-private-api"] }
+tauri-plugin-autostart = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-notification = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "sync", "time", "macros"] }
+rqrr = "0.9"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

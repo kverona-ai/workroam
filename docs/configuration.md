@@ -84,7 +84,7 @@ Each key has a scope:
 | `sync.auto` | project | `off` / `ask` / `auto` | `ask` | Automatic sync: never, ask with a card, or sync without asking |
 | `sync.agent_requires_approval` | project | `true` / `false` | `true` | Syncs started by an agent wait for your approval |
 | `sync.idle_minutes` | machine | number | `15` | Minutes without changes before an automatic push is offered |
-| `sync.on_sleep` | machine | `off` / `ask` / `auto` | `ask` | Push before the computer sleeps or shuts down |
+| `sync.on_sleep` | machine | `off` / `ask` / `auto` | `ask` | Push (and release the lease) before the computer sleeps or shuts down. macOS waits up to 25 s for the push; Windows and Linux do not wait, so the job finishes after waking (or fails like any other job if the connection was cut). `ask` shows the usual approval card; before a shutdown only `auto` pushes |
 | `sync.on_wake` | machine | `true` / `false` | `true` | Check for new progress after waking up and reconnecting |
 | `sync.approval_timeout` | machine | duration (`10m`, `1h`) | `10m` | How long an approval card waits for your answer |
 | `notify.ntfy` | machine | URL | empty | ntfy topic for phone notifications (sent directly, or forwarded by a full-mode server) |

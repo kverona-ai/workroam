@@ -31,13 +31,19 @@ pub fn parse(s: &str) -> Result<Duration> {
                 )))
             }
         };
-        total += n * mult;
+        total = n
+            .checked_mul(mult)
+            .and_then(|v| total.checked_add(v))
+            .ok_or_else(|| Error::invalid(format!("duration too long: {s}")))?;
     }
     if !num.is_empty() {
         // bare number = seconds
-        total += num
+        let n = num
             .parse::<u64>()
             .map_err(|_| Error::invalid(format!("invalid duration: {s}")))?;
+        total = total
+            .checked_add(n)
+            .ok_or_else(|| Error::invalid(format!("duration too long: {s}")))?;
     }
     Ok(Duration::from_secs(total))
 }

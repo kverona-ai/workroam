@@ -109,13 +109,26 @@ pub fn collect(a: &Adapter, project_dir: &Path) -> Vec<(String, PathBuf)> {
     out
 }
 
+/// `s` without the leading `prefix`, compared ignoring case and slash
+/// direction; `None` when `s` does not start with it.
+fn strip_prefix_ci<'a>(s: &'a str, prefix: &str) -> Option<&'a str> {
+    let fold = |c: char| if c == '\\' { '/' } else { c };
+    let mut si = s.char_indices();
+    for p in prefix.chars() {
+        let (_, c) = si.next()?;
+        if !fold(c).to_lowercase().eq(fold(p).to_lowercase()) {
+            return None;
+        }
+    }
+    Some(match si.next() {
+        Some((i, _)) => &s[i..],
+        None => "",
+    })
+}
+
 fn map_path(s: &str, from: &str, to: &str) -> Option<String> {
     let fs = from.trim_end_matches(['/', '\\']);
-    let norm = |x: &str| x.replace('\\', "/").to_lowercase();
-    if !norm(s).starts_with(&norm(fs)) {
-        return None;
-    }
-    let rest = &s[fs.len()..];
+    let rest = strip_prefix_ci(s, fs)?;
     if !(rest.is_empty() || rest.starts_with(['/', '\\'])) {
         return None;
     }
@@ -199,7 +212,8 @@ pub fn restore(
         .map(|s| s.rewrite_fields.clone())
         .unwrap_or_default();
     for (rel, data) in files {
-        if rel.split('/').any(|c| c == "..") {
+        if !workroam_core::paths::is_safe_relative(rel) {
+            warnings.push(format!("{}: {}: unsafe session path skipped", a.name, rel));
             continue;
         }
         let dest = root.join(rel);
@@ -245,6 +259,19 @@ not json
         assert!(s.contains(r#"{"cwd":"/Users/me/proj-a"}"#));
         assert!(s.ends_with("not json\n"));
         assert_eq!(map_path("/Users/me/proj-ab", "/Users/me/proj-a", "x"), None);
+        // Case folding that changes byte lengths must not slice mid-character.
+        assert_eq!(
+            map_path("/Users/me/İstanbul/x", "/users/me/istanbul", "/p").as_deref(),
+            None
+        );
+        assert_eq!(
+            map_path("/Users/me/Straße/x", "/users/me/straße", "/p").as_deref(),
+            Some("/p/x")
+        );
+        assert_eq!(
+            map_path("/Users/me/ÉTÉ/x", "/users/me/été", "/p").as_deref(),
+            Some("/p/x")
+        );
         assert_eq!(
             map_path("/a/p/x", "/a/p", r"C:\w\p").as_deref(),
             Some(r"C:\w\p\x")

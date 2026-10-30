@@ -209,7 +209,13 @@ async fn session(app: Shared, sock: WebSocket) {
             .get(&device_id)
             .is_some_and(|s| s.tx.same_channel(&tx))
         {
-            live.sessions.remove(&device_id);
+            if let Some(s) = live.sessions.remove(&device_id) {
+                tracing::info!(
+                    "device {} disconnected (online since {})",
+                    s.name,
+                    s.since.to_rfc3339()
+                );
+            }
         }
     }
     app.update(|p| {

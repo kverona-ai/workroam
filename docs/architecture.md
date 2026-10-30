@@ -638,7 +638,7 @@ sequenceDiagram
     D-->>C: job.finished
 ```
 
-操作日志（`.workroam/local/oplog`）逐条记录已完成的替换；进程中断后重启时先重放日志、完成剩余步骤，再接受新作业。
+操作日志（`.workroam/local/oplog`）逐条记录已完成的替换；进程中断后 `workroamd` 启动时先重放日志、完成剩余步骤（已完成的替换与已生成的冲突副本不再重复），再接受新作业；在此之前对该项目的推送会被拒绝并提示先拉取，`workroam pull` 也会直接续做。`.workroam/SYNCING` 记录写入它的进程号，进程不在了即视为残留并清除。
 
 ### 9.4 冲突处理
 
@@ -925,7 +925,7 @@ webhook = "optional"                                   # 支持例行任务 webh
 | 触发 | 检测方式 | 动作 |
 | --- | --- | --- |
 | 空闲 | 文件监听发现改动，且 N 分钟内无新的写入，且无 Agent 进程在写 | 推送（不释放租约） |
-| 合盖 / 睡眠 / 关机前 | macOS `NSWorkspaceWillSleepNotification`、Windows `WM_POWERBROADCAST` / `WM_QUERYENDSESSION`、Linux logind `PrepareForSleep` / `PrepareForShutdown` | 推送并释放租约 |
+| 合盖 / 睡眠 / 关机前 | macOS IOKit `IORegisterForSystemPower`（系统最多等 30 秒，推送在此窗口内完成后再允许休眠）、Windows `RegisterSuspendResumeNotification`（系统不等待，推送在唤醒后继续）、Linux logind `PrepareForSleep` / `PrepareForShutdown`（经 `dbus-monitor` 订阅，同样不等待）；关机 / 注销时 macOS 与 Linux 还会收到 `SIGTERM`，Windows 收到关机 / 注销控制事件，`workroamd` 先推送再退出 | 推送并释放租约；`ask` 档弹出授权卡片（关机前无人能回答，只有 `auto` 档推送） |
 | 开机联网 | 网络可达变化后轮询各项目 `head`（之后每 5 分钟） | 有更新的快照时弹出到达卡片；全自动档直接拉取 |
 
 档位决定是否弹出授权卡片：关闭（不触发）、询问（弹卡片）、全自动（直接执行，完成后提醒）。拉取会覆盖本地未同步改动时一律先询问。

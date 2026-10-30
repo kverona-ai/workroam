@@ -6501,7 +6501,7 @@ checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 
 [[package]]
 name = "workroam-adapters"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "serde",
@@ -6516,7 +6516,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-archive"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "serde",
@@ -6536,7 +6536,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-cli"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anstream 0.6.21",
  "anstyle",
@@ -6558,7 +6558,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chacha20poly1305",
  "chrono",
@@ -6580,7 +6580,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-device"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -6606,7 +6606,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-engine"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "diffy",
@@ -6630,7 +6630,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-git"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "globset",
  "serde",
@@ -6643,7 +6643,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-ipc"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "clap",
  "serde",
@@ -6657,7 +6657,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-lease"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "serde",
@@ -6670,11 +6670,13 @@ dependencies = [
 
 [[package]]
 name = "workroam-platform"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
+ "core-foundation-sys",
  "dirs",
  "junction",
  "keyring",
+ "libc",
  "serde",
  "serde_json",
  "tempfile",
@@ -6686,7 +6688,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-server"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -6714,7 +6716,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-setup"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "reqwest 0.12.28",
@@ -6736,7 +6738,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-snapshot"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "jiff",
@@ -6752,7 +6754,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-store"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "fs4",
@@ -6774,7 +6776,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-web"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "aes256ctr_poly1305aes",
  "base64 0.22.1",
@@ -6795,7 +6797,7 @@ dependencies = [
 
 [[package]]
 name = "workroamd"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "data-encoding",
@@ -6858,7 +6860,7 @@ dependencies = [
 
 [[package]]
 name = "xtask"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "workroam-ipc",
 ]

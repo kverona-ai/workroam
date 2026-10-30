@@ -25,7 +25,9 @@ use workroam_device::{provisioner_for, AdminCreds, ProvisionedKey};
 use workroam_ipc::relay::{http_message, H_DEVICE, H_SIGNATURE, H_TIME};
 
 const PAIR_TTL: Duration = Duration::from_secs(10 * 60);
-const MAX_ATTEMPTS: u32 = 5;
+/// Signed requests are accepted within this window of their timestamp, and
+/// each signature only once in it.
+const SIGNATURE_WINDOW: Duration = Duration::from_secs(300);
 
 #[derive(Debug, clap::Args)]
 pub struct FullArgs {
@@ -46,6 +48,9 @@ pub struct FullConfig {
     web_dir: Option<std::path::PathBuf>,
     pairs: Mutex<HashMap<String, Pending>>,
     failures: Mutex<Vec<Instant>>,
+    /// Signatures seen within `SIGNATURE_WINDOW`, so a captured request
+    /// cannot be replayed.
+    seen: Mutex<HashMap<String, Instant>>,
 }
 
 struct Pending {
@@ -53,7 +58,6 @@ struct Pending {
     scope: Access,
     loc: WorkspaceLocation,
     created: Instant,
-    attempts: u32,
 }
 
 impl FullConfig {
@@ -80,6 +84,7 @@ impl FullConfig {
             web_dir: a.web_dir.clone(),
             pairs: Mutex::new(HashMap::new()),
             failures: Mutex::new(Vec::new()),
+            seen: Mutex::new(HashMap::new()),
         })
     }
 
@@ -134,7 +139,7 @@ fn signed(
     let t: i64 = time
         .parse()
         .map_err(|_| bad(StatusCode::UNAUTHORIZED, "missing signature"))?;
-    if (Utc::now().timestamp() - t).abs() > 300 {
+    if (Utc::now().timestamp() - t).abs() > SIGNATURE_WINDOW.as_secs() as i64 {
         return Err(bad(
             StatusCode::UNAUTHORIZED,
             "the request time is off by more than 5 minutes",
@@ -158,6 +163,16 @@ fn signed(
         &sig,
     ) {
         return Err(bad(StatusCode::UNAUTHORIZED, "signature check failed"));
+    }
+    if let Some(f) = app.cfg.full.as_ref() {
+        let mut seen = f.seen.lock().unwrap();
+        seen.retain(|_, t| t.elapsed() < SIGNATURE_WINDOW);
+        if seen.insert(sig, Instant::now()).is_some() {
+            return Err(bad(
+                StatusCode::UNAUTHORIZED,
+                "this request was already used",
+            ));
+        }
     }
     Ok(dev)
 }
@@ -214,7 +229,6 @@ async fn pair(
             scope,
             loc,
             created: Instant::now(),
-            attempts: 0,
         },
     );
     Json(json!({"code": code, "expires_in": PAIR_TTL.as_secs(), "server": app.base()}))
@@ -245,7 +259,7 @@ async fn redeem(State(app): State<Shared>, Json(v): Json<Value>) -> Response {
         .collect();
     let pending = {
         let mut pairs = f.pairs.lock().unwrap();
-        pairs.retain(|_, p| p.created.elapsed() < PAIR_TTL && p.attempts < MAX_ATTEMPTS);
+        pairs.retain(|_, p| p.created.elapsed() < PAIR_TTL);
         pairs.remove(&code)
     };
     let Some(p) = pending else {

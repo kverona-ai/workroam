@@ -155,6 +155,16 @@ impl OpLog {
             .filter_map(|l| serde_json::from_str(l).ok())
             .collect()
     }
+    /// Paths already completed by the interrupted operation.
+    pub fn done_paths(&self) -> std::collections::BTreeSet<String> {
+        self.read()
+            .into_iter()
+            .filter_map(|e| match e {
+                OpEntry::Done { path } => Some(path),
+                _ => None,
+            })
+            .collect()
+    }
     /// The unfinished operation, if a previous run was interrupted.
     pub fn pending(&self) -> Option<(String, String)> {
         let entries = self.read();
@@ -181,7 +191,12 @@ impl SyncingGuard {
         let path = project.join(SYNCING);
         write_atomic(
             &path,
-            format!("{what} {}\n", Utc::now().to_rfc3339()).as_bytes(),
+            format!(
+                "{what} {} pid={}\n",
+                Utc::now().to_rfc3339(),
+                std::process::id()
+            )
+            .as_bytes(),
         )?;
         Ok(SyncingGuard { path })
     }
@@ -191,4 +206,27 @@ impl Drop for SyncingGuard {
     fn drop(&mut self) {
         let _ = std::fs::remove_file(&self.path);
     }
+}
+
+/// Remove a `.workroam/SYNCING` marker left behind by a process that died
+/// mid-sync, so agents do not stay paused forever. The marker names the
+/// process that wrote it; without one (older format) a marker more than an
+/// hour old is taken as stale.
+pub fn clear_stale_syncing(project: &Path) -> bool {
+    let path = project.join(SYNCING);
+    let Ok(body) = std::fs::read_to_string(&path) else {
+        return false;
+    };
+    let mut words = body.split_whitespace();
+    let written = words
+        .nth(1)
+        .and_then(|t| DateTime::parse_from_rfc3339(t).ok())
+        .map(|t| t.with_timezone(&Utc));
+    let pid = words.find_map(|w| w.strip_prefix("pid=").and_then(|p| p.parse::<u32>().ok()));
+    let stale = match (pid, written) {
+        (Some(pid), _) => !workroam_platform::sysinfo::process_alive(pid),
+        (None, Some(t)) => Utc::now() - t > chrono::Duration::hours(1),
+        (None, None) => true,
+    };
+    stale && std::fs::remove_file(&path).is_ok()
 }

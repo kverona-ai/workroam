@@ -44,10 +44,9 @@ pub async fn handle(d: &Arc<Daemon>, ctx: &Ctx, method: &str, p: Value) -> Resul
             if ctx.is_agent() {
                 return Err(Error::new(Code::Denied, "agents cannot stop the service"));
             }
-            tokio::spawn(async {
-                tokio::time::sleep(std::time::Duration::from_millis(200)).await;
-                std::process::exit(0);
-            });
+            // The service's main task does the stopping (see `on_signal`
+            // in main.rs), after this reply went out.
+            d.stop.notify_one();
             Ok(json!({"stopping": true}))
         }
         m if m.starts_with("setup.") => setup(d, m, &p).await,

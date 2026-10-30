@@ -59,7 +59,7 @@ export class Daemon {
       });
       s.on("connect", async () => {
         try {
-          await this.call("hello", { protocol: 1, client: "desktop", version: "0.1.0" });
+          await this.call("hello", { protocol: 1, client: "desktop", version: "0.1.1" });
           await this.call("subscribe", {});
           resolve(this);
         } catch (e) {

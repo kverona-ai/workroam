@@ -77,6 +77,14 @@ pub struct Daemon {
     pub announced: Mutex<HashMap<String, String>>,
     pub started_at: DateTime<Utc>,
     pub relay: relay::RelayState,
+    /// The computer just woke up: check for new progress at the next tick.
+    pub woke: std::sync::atomic::AtomicBool,
+    /// Wakes the trigger loop before its next tick.
+    pub kick: tokio::sync::Notify,
+    /// Set once the service is on its way out.
+    pub stopping: std::sync::atomic::AtomicBool,
+    /// `daemon.shutdown` was called: the service's main task stops it.
+    pub stop: tokio::sync::Notify,
 }
 
 impl Daemon {
@@ -100,7 +108,44 @@ impl Daemon {
             announced: Mutex::new(HashMap::new()),
             started_at: Utc::now(),
             relay: relay::RelayState::default(),
+            woke: std::sync::atomic::AtomicBool::new(false),
+            kick: tokio::sync::Notify::new(),
+            stopping: std::sync::atomic::AtomicBool::new(false),
+            stop: tokio::sync::Notify::new(),
         })
+    }
+
+    /// Stop the service: before a system shutdown push what `sync.on_sleep
+    /// = auto` asks for, let running jobs finish for a moment, then exit.
+    pub async fn shutdown(self: &Arc<Daemon>, system: bool) {
+        if self
+            .stopping
+            .swap(true, std::sync::atomic::Ordering::SeqCst)
+        {
+            return;
+        }
+        tracing::info!(
+            "stopping ({})",
+            if system {
+                "system shutdown"
+            } else {
+                "requested"
+            }
+        );
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+        if system {
+            triggers::before_sleep(self, std::time::Duration::from_secs(15), "shutdown").await;
+        }
+        while std::time::Instant::now() < deadline
+            && self
+                .jobs
+                .list(false)
+                .iter()
+                .any(|j| j.state == jobs::JobState::Running)
+        {
+            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        }
+        std::process::exit(0);
     }
 
     pub fn emit(&self, method: &str, params: Value) {

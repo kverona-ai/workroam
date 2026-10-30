@@ -137,9 +137,11 @@ pub fn backend_name() -> String {
     if force_file() {
         return format!("file ({})", file_path().display());
     }
+    // "No such entry" means the keychain answered; anything else means it
+    // is not usable here (no Secret Service, locked, no session bus).
     let ok = on_thread(|| {
         keyring::Entry::new(SERVICE, "probe")
-            .map(|e| e.get_password().is_ok() || true)
+            .map(|e| matches!(e.get_password(), Ok(_) | Err(keyring::Error::NoEntry)))
             .unwrap_or(false)
     });
     if ok {

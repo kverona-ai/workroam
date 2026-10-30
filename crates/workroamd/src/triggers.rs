@@ -1,6 +1,8 @@
 //! Automatic sync (architecture §13): idle pushes from the file watcher,
-//! arrival checks every 5 minutes and after wake, lease renewal every 10
-//! minutes, credential rotation adoption and the scheduled mirror.
+//! pushes before sleep or shutdown, arrival checks every 5 minutes and
+//! after wake, lease renewal every 10 minutes, credential rotation adoption,
+//! the scheduled mirror, and finishing a pull the last run left half done
+//! (§9.3).
 
 use crate::{Ctx, Daemon};
 use chrono::Utc;
@@ -8,12 +10,14 @@ use notify::{RecursiveMode, Watcher};
 use serde_json::json;
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use workroam_core::config::{BindingState, MachineConfig, ProjectConfig};
 use workroam_core::model::{AutoMode, HeadState};
 use workroam_engine::Project;
 use workroam_ipc::ClientKind;
+use workroam_platform::power::PowerEvent;
 
 const TICK: Duration = Duration::from_secs(30);
 const ARRIVAL_EVERY: Duration = Duration::from_secs(5 * 60);
@@ -96,16 +100,22 @@ impl Watch {
 }
 
 pub fn spawn(d: Arc<Daemon>) {
+    watch_power(&d);
     tokio::spawn(async move {
+        recover(&d).await;
         let mut watch = Watch::new();
         let mut last_tick = Instant::now();
         let mut last_arrival = Instant::now() - ARRIVAL_EVERY;
         let mut last_renew = Instant::now();
         loop {
-            tokio::time::sleep(TICK).await;
+            tokio::select! {
+                _ = tokio::time::sleep(TICK) => {}
+                _ = d.kick.notified() => {}
+            }
             let now = Instant::now();
-            // A long gap between ticks means the computer slept.
-            let woke = now.duration_since(last_tick) > TICK * 6;
+            // The system said so, or a long gap between ticks means the computer slept.
+            let woke =
+                d.woke.swap(false, Ordering::SeqCst) || now.duration_since(last_tick) > TICK * 6;
             last_tick = now;
             let Ok(m) = crate::load_machine() else {
                 continue;
@@ -114,10 +124,13 @@ pub fn spawn(d: Arc<Daemon>) {
             crate::relay::ensure_running(&d);
             if woke && m.sync.on_wake {
                 tracing::info!("wake detected; checking for new progress");
+                // Give the network a moment to come back.
+                tokio::time::sleep(Duration::from_secs(5)).await;
                 last_arrival = now - ARRIVAL_EVERY;
             }
             if now.duration_since(last_arrival) >= ARRIVAL_EVERY {
                 last_arrival = now;
+                clear_stale_markers(&d, &m);
                 if let Err(e) = arrivals(&d, &m).await {
                     tracing::debug!("arrival check: {}", e.message);
                 }
@@ -133,6 +146,167 @@ pub fn spawn(d: Arc<Daemon>) {
             }
         }
     });
+}
+
+/// Hand power events to the trigger loop. A `WillSleep` with a grace
+/// period (macOS) is handled before the callback returns, so the system
+/// waits for the push; elsewhere the work is started and sleep proceeds.
+fn watch_power(d: &Arc<Daemon>) {
+    let handle = tokio::runtime::Handle::current();
+    let d = d.clone();
+    let ok = workroam_platform::power::watch(move |ev| match ev {
+        PowerEvent::WillSleep { grace } if grace > Duration::ZERO => {
+            let d = d.clone();
+            handle.block_on(async move { before_sleep(&d, grace, "sleep").await });
+        }
+        PowerEvent::WillSleep { .. } => {
+            let d = d.clone();
+            handle.spawn(async move { before_sleep(&d, Duration::ZERO, "sleep").await });
+        }
+        PowerEvent::WillShutdown => {
+            let d = d.clone();
+            handle.spawn(async move { before_sleep(&d, Duration::ZERO, "shutdown").await });
+        }
+        PowerEvent::DidWake => {
+            d.woke.store(true, Ordering::SeqCst);
+            d.kick.notify_one();
+        }
+    });
+    if !ok {
+        tracing::info!("no power event source on this system; sync.on_sleep is inactive");
+    }
+}
+
+/// `sync.on_sleep`: push every bound project (and release its lease)
+/// before the computer sleeps or shuts down. `ask` posts the usual
+/// approval card, which waits until someone is back; before a shutdown
+/// nobody can answer, so only `auto` acts then. With a grace period the
+/// call waits for the jobs that long.
+pub async fn before_sleep(d: &Arc<Daemon>, grace: Duration, trigger: &str) {
+    let Ok(m) = crate::load_machine() else { return };
+    let mode = m.sync.on_sleep;
+    if mode == AutoMode::Off || d.is_paused() || (trigger == "shutdown" && mode != AutoMode::Auto) {
+        return;
+    }
+    let mut jobs = Vec::new();
+    for (name, b) in &m.projects {
+        if b.state != BindingState::Bound || d.jobs.running_for(name) {
+            continue;
+        }
+        let tier = auto_mode(&m, &workroam_core::paths::expand_tilde(&b.path));
+        if tier == AutoMode::Off {
+            continue;
+        }
+        let ask = mode == AutoMode::Ask || tier == AutoMode::Ask;
+        match release_push(d, name, ask, trigger).await {
+            Ok(Some(job)) => jobs.push(job),
+            Ok(None) => {}
+            Err(e) => tracing::debug!("{trigger} push of {name}: {}", e.message),
+        }
+    }
+    if grace > Duration::ZERO && !jobs.is_empty() {
+        tracing::info!(
+            "waiting up to {grace:?} for {} job(s) before {trigger}",
+            jobs.len()
+        );
+        let waits = jobs.iter().map(|id| d.jobs.wait(id));
+        let _ = tokio::time::timeout(grace, futures_util::future::join_all(waits)).await;
+    }
+}
+
+/// Plan a push that releases the lease and start it. Nothing to push and
+/// no lease to release: no job. In `ask` mode a lease alone is not worth a
+/// card.
+async fn release_push(
+    d: &Arc<Daemon>,
+    project: &str,
+    ask: bool,
+    trigger: &str,
+) -> workroam_core::Result<Option<String>> {
+    let ctx = Ctx::human(ClientKind::Desktop);
+    let plans = crate::handlers::handle(
+        d,
+        &ctx,
+        "push.plan",
+        json!({"project": project, "release": true, "trigger": trigger}),
+    )
+    .await?;
+    let first = plans.get(0).cloned().unwrap_or_default();
+    let summary = &first["plan"]["summary"];
+    let files = ["added", "modified", "deleted"]
+        .iter()
+        .map(|k| summary[k].as_u64().unwrap_or(0))
+        .sum::<u64>();
+    let lease_mine = first["plan"]["lease"]["state"] == "mine";
+    if files == 0 && (ask || !lease_mine) {
+        return Ok(None);
+    }
+    let Some(job) = first["job"].as_str() else {
+        return Ok(None);
+    };
+    crate::jobs::start(d, &ctx, job, ask, false).await?;
+    Ok(Some(job.to_string()))
+}
+
+/// Finish what the last run left behind (architecture §9.3): a pull whose
+/// operation log has no end is run again (completed steps are skipped),
+/// and a SYNCING marker of a dead process is removed.
+async fn recover(d: &Arc<Daemon>) {
+    let Ok(m) = crate::load_machine() else { return };
+    clear_stale_markers(d, &m);
+    let Ok(ws) = d.ws().await else { return };
+    for (name, b) in &m.projects {
+        if b.state != BindingState::Bound {
+            continue;
+        }
+        let Ok(pr) = Project::open(&ws, name) else {
+            continue;
+        };
+        let Some(snap) = workroam_engine::sync::interrupted_pull(&pr) else {
+            continue;
+        };
+        tracing::warn!(
+            "{name}: finishing the interrupted pull of {}",
+            &snap[..snap.len().min(8)]
+        );
+        let ctx = Ctx::human(ClientKind::Desktop);
+        let res = async {
+            let plans = crate::handlers::handle(
+                d,
+                &ctx,
+                "pull.plan",
+                json!({"project": name, "trigger": "recovery"}),
+            )
+            .await?;
+            let first = plans.get(0).cloned().unwrap_or_default();
+            match first["job"].as_str() {
+                // The person approved this pull once already.
+                Some(job) => crate::jobs::start(d, &ctx, job, false, true)
+                    .await
+                    .map(|_| ()),
+                None => Ok(()),
+            }
+        }
+        .await;
+        if let Err(e) = res {
+            tracing::warn!(
+                "{name}: the interrupted pull could not be finished: {}",
+                e.message
+            );
+        }
+    }
+}
+
+fn clear_stale_markers(d: &Daemon, m: &MachineConfig) {
+    for (name, b) in &m.projects {
+        if b.state != BindingState::Bound || d.jobs.running_for(name) {
+            continue;
+        }
+        let dir = workroam_core::paths::expand_tilde(&b.path);
+        if workroam_engine::local::clear_stale_syncing(&dir) {
+            tracing::warn!("{name}: removed the SYNCING marker of a sync that did not finish");
+        }
+    }
 }
 
 async fn idle_pushes(d: &Arc<Daemon>, m: &MachineConfig, w: &Watch) {

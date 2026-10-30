@@ -192,11 +192,23 @@ pub struct PushPlan {
     pub nothing_to_push: bool,
     pub read_only: bool,
     pub archived: bool,
+    /// A pull of this snapshot was interrupted and must finish first (§9.3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interrupted_pull: Option<String>,
 }
 
 impl PushPlan {
     /// The reason this push cannot run, as the error it would end with.
     pub fn blocker(&self) -> Option<Error> {
+        if let Some(snap) = &self.interrupted_pull {
+            return Some(
+                Error::new(
+                    Code::Conflict,
+                    format!("a pull of snapshot {} was interrupted", short(snap)),
+                )
+                .with_hint("run workroam pull to finish it, then push"),
+            );
+        }
         if self.read_only {
             return Some(Error::new(
                 Code::ReadOnlyDevice,
@@ -257,8 +269,27 @@ impl PushPlan {
     }
 }
 
+fn short(id: &str) -> &str {
+    &id[..id.len().min(8)]
+}
+
+/// The snapshot of a pull that a previous process did not finish
+/// (architecture §9.3). A log whose last step was the state update is
+/// complete, so it is cleared here together with a leftover SYNCING marker.
+pub fn interrupted_pull(p: &Project<'_>) -> Option<String> {
+    let oplog = OpLog::new(&p.dir);
+    let (snapshot, kind) = oplog.pending()?;
+    if kind != "pull" || p.state().base_snapshot.as_deref() == Some(snapshot.as_str()) {
+        oplog.clear();
+        let _ = std::fs::remove_file(p.dir.join(crate::local::SYNCING));
+        return None;
+    }
+    Some(snapshot)
+}
+
 pub async fn plan_push(p: &Project<'_>) -> Result<PushPlan> {
     p.ensure_bound_dir()?;
+    let interrupted_pull = interrupted_pull(p);
     let head = p.ws.head(&p.name).await?.map(|(h, _)| h);
     let state = p.state();
     let local = p.sync_view()?;
@@ -314,6 +345,7 @@ pub async fn plan_push(p: &Project<'_>) -> Result<PushPlan> {
         handoff_updated,
         nothing_to_push: nothing,
         read_only: p.ws.is_read_only(),
+        interrupted_pull,
     })
 }
 
@@ -349,6 +381,13 @@ pub struct Collected {
 }
 
 /// Everything that goes into a snapshot (files, git, sessions, manifest).
+fn size_and_mtime(file: &std::path::Path) -> (u64, Option<DateTime<Utc>>) {
+    match std::fs::metadata(file) {
+        Ok(m) => (m.len(), m.modified().ok().map(DateTime::from)),
+        Err(_) => (0, None),
+    }
+}
+
 pub fn collect(
     p: &Project<'_>,
     local: &BTreeMap<String, SyncFile>,
@@ -371,7 +410,7 @@ pub fn collect(
         })?;
         commits += ex.manifest.commits;
         for (snap_path, file) in ex.files {
-            let size = std::fs::metadata(&file).map(|m| m.len()).unwrap_or(0);
+            let (size, mtime) = size_and_mtime(&file);
             entries.push(SourceEntry {
                 path: snap_path,
                 kind: workroam_snapshot::EntryKind::File {
@@ -379,7 +418,7 @@ pub fn collect(
                     size,
                     exec: false,
                 },
-                mtime: None,
+                mtime,
             });
         }
         repos.insert(name.clone(), ex.manifest);
@@ -393,7 +432,7 @@ pub fn collect(
             }
             let dir = format!("{}/{}", workroam_adapters::sessions::SNAPSHOT_DIR, a.id);
             for (rel, abs) in files {
-                let size = std::fs::metadata(&abs).map(|m| m.len()).unwrap_or(0);
+                let (size, mtime) = size_and_mtime(&abs);
                 entries.push(SourceEntry {
                     path: format!("{dir}/{rel}"),
                     kind: workroam_snapshot::EntryKind::File {
@@ -401,7 +440,7 @@ pub fn collect(
                         size,
                         exec: false,
                     },
-                    mtime: None,
+                    mtime,
                 });
             }
             sessions.insert(a.id.clone(), dir);
@@ -620,6 +659,9 @@ pub struct PullPlan {
     pub occupied: bool,
     pub archived: bool,
     pub repos: Vec<String>,
+    /// A pull of this snapshot was interrupted; pulling finishes it (§9.3).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub interrupted_pull: Option<String>,
 }
 
 impl PullPlan {
@@ -841,6 +883,7 @@ fn occupied(p: &Project<'_>) -> bool {
 
 pub async fn plan_pull(p: &Project<'_>, target: Option<&str>) -> Result<PullPlan> {
     p.ensure_bound_dir()?;
+    let interrupted = interrupted_pull(p);
     let head = p.ws.head(&p.name).await?.map(|(h, _)| h);
     let state = p.state();
     let target = target
@@ -866,6 +909,7 @@ pub async fn plan_pull(p: &Project<'_>, target: Option<&str>) -> Result<PullPlan
         occupied: occupied(p),
         archived,
         repos: vec![],
+        interrupted_pull: interrupted,
     };
     if plan.up_to_date || plan.occupied {
         if plan.up_to_date && !plan.occupied && p.dir.exists() {
@@ -919,6 +963,9 @@ pub struct PullOutcome {
     pub from_device: Option<DeviceRef>,
     pub handoff_updated: bool,
     pub duration_ms: u64,
+    /// This pull finished one that an earlier process left half done.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub resumed: bool,
 }
 
 pub async fn pull(p: &mut Project<'_>, o: &PullOptions) -> Result<PullOutcome> {
@@ -958,7 +1005,19 @@ pub async fn apply_snapshot(
     let _syncing = SyncingGuard::new(&p.dir, "pull")?;
     let _sleep = workroam_platform::inhibit::SleepGuard::acquire("Workroam is pulling");
     let oplog = OpLog::new(&p.dir);
-    oplog.begin(target, "pull")?;
+    // Replay: steps a previous process already completed are not repeated
+    // (a second conflict copy would otherwise appear).
+    let already: BTreeSet<String> = match oplog.pending() {
+        Some((snap, kind)) if snap == target && kind == "pull" => {
+            tracing::info!("resuming the interrupted pull of {}", short(target));
+            out.resumed = true;
+            oplog.done_paths()
+        }
+        _ => {
+            oplog.begin(target, "pull")?;
+            BTreeSet::new()
+        }
+    };
     let state = p.state();
     let man = read_manifest(p, target)?;
     out.from_device = Some(man.device.clone());
@@ -976,7 +1035,9 @@ pub async fn apply_snapshot(
             Action::Write { path, .. }
             | Action::Merge { path, .. }
             | Action::Conflict { path, .. } => {
-                wanted.insert(path.clone(), a.clone());
+                if !already.contains(path) {
+                    wanted.insert(path.clone(), a.clone());
+                }
             }
             Action::KeepLocal { path } => out.kept_local.push(path.clone()),
             Action::Delete { .. } => {}
@@ -1090,6 +1151,9 @@ pub async fn apply_snapshot(
     }
     for a in &acts {
         if let Action::Delete { path, expect } = a {
+            if already.contains(path) {
+                continue;
+            }
             let abs = workroam_core::paths::from_snapshot_path(&dir, path);
             let current = workroam_platform::fsutil::file_sha256(&abs).ok().flatten();
             let ok = expect.is_empty()

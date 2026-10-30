@@ -27,6 +27,8 @@ pub struct SyncFile {
     pub abs: PathBuf,
     /// Content differs from disk (AGENTS.md without the machine block).
     pub bytes: Option<Vec<u8>>,
+    /// Modification time on disk (see `LocalFile::mtime`).
+    pub mtime: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 pub fn default_config(name: &str) -> ProjectConfig {
@@ -178,6 +180,7 @@ impl<'a> Project<'a> {
                         meta,
                         abs: f.abs,
                         bytes: Some(stripped),
+                        mtime: f.mtime,
                     },
                 );
             } else {
@@ -187,6 +190,7 @@ impl<'a> Project<'a> {
                         meta: f.meta,
                         abs: f.abs,
                         bytes: None,
+                        mtime: f.mtime,
                     },
                 );
             }
@@ -214,7 +218,7 @@ impl<'a> Project<'a> {
                 SourceEntry {
                     path: rel.clone(),
                     kind,
-                    mtime: None,
+                    mtime: f.mtime,
                 }
             })
             .collect()

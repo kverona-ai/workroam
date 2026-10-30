@@ -85,16 +85,29 @@ fn unpack(file: &Path, dest: &Path) -> Result<()> {
             Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => break,
             Err(e) => return Err(e.into()),
         }
-        let mut name = vec![0u8; u32::from_le_bytes(len) as usize];
+        let len = u32::from_le_bytes(len) as usize;
+        if len > 4096 {
+            return Err(bad());
+        }
+        let mut name = vec![0u8; len];
         r.read_exact(&mut name).map_err(|_| bad())?;
         let name = String::from_utf8(name).map_err(|_| bad())?;
-        if name.split('/').any(|c| c == ".." || c.is_empty()) || name.starts_with('/') {
+        if !workroam_core::paths::is_safe_relative(&name) {
             return Err(bad());
         }
         let mut size = [0u8; 8];
         r.read_exact(&mut size).map_err(|_| bad())?;
-        let mut data = vec![0u8; u64::from_le_bytes(size) as usize];
-        r.read_exact(&mut data).map_err(|_| bad())?;
+        // Read what the header announces without trusting it for the
+        // allocation: a corrupt size ends at EOF and fails the check.
+        let size = u64::from_le_bytes(size);
+        let mut data = Vec::new();
+        (&mut r)
+            .take(size)
+            .read_to_end(&mut data)
+            .map_err(|_| bad())?;
+        if data.len() as u64 != size {
+            return Err(bad());
+        }
         let out = dest.join(&name);
         if let Some(d) = out.parent() {
             std::fs::create_dir_all(d)?;

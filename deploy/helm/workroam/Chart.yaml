@@ -2,8 +2,8 @@ apiVersion: v2
 name: workroam
 description: Self-hosted storage for Workroam (RustFS), with the optional workroam-server, behind one HTTPS host.
 type: application
-version: 0.1.0
-appVersion: "0.1.0"
+version: 0.1.1
+appVersion: "0.1.1"
 home: https://github.com/kverona-ai/workroam
 sources:
   - https://github.com/kverona-ai/workroam

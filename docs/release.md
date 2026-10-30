@@ -14,7 +14,7 @@
 ## 发布一个版本
 
 1. 确认 `main` 上 CI 全绿，PRD §10 的验收门槛都已达到；
-2. 修改根 `Cargo.toml` 中的 `[workspace.package] version`（以及 `apps/desktop/src-tauri/tauri.conf.json` 的 `version`，如果单独写了），`cargo check` 更新 `Cargo.lock`；
+2. 修改根 `Cargo.toml` 中的 `[workspace.package] version`，以及 `apps/desktop/src-tauri/` 下 `Cargo.toml`、`tauri.conf.json` 的版本和 `deploy/helm/workroam/Chart.yaml` 的 `version` / `appVersion`；在根目录运行 `cargo check` 更新根 `Cargo.lock`，在 `apps/desktop/src-tauri/` 运行 `cargo metadata --format-version 1 >/dev/null` 更新桌面应用的 `Cargo.lock`（其中还记录了 `workroam-core`、`workroam-ipc` 等路径依赖的版本，不要手改）；
 3. 把英文 `CHANGELOG.md` 中的 `## [Unreleased]` 与中文 `CHANGELOG.zh-CN.md` 中的 `## [未发布]` 都改为 `## [0.1.0] - YYYY-MM-DD`，并在上方各留一个新的空段落。发布说明以英文为主（来自 `CHANGELOG.md`），中文完整版折叠在“简体中文”里（来自 `CHANGELOG.zh-CN.md`），两份要同时更新；
 4. 合并上述改动后打 tag 并推送：
 

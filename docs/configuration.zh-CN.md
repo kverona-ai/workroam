@@ -84,7 +84,7 @@ workroam --json config list                  # 机器可读输出
 | `sync.auto` | project | `off` / `ask` / `auto` | `ask` | 自动同步：从不、弹卡片询问、不询问直接同步 |
 | `sync.agent_requires_approval` | project | `true` / `false` | `true` | Agent 发起的同步需要你批准 |
 | `sync.idle_minutes` | machine | 数字 | `15` | 多少分钟没有改动后提示自动推送 |
-| `sync.on_sleep` | machine | `off` / `ask` / `auto` | `ask` | 电脑休眠或关机前推送 |
+| `sync.on_sleep` | machine | `off` / `ask` / `auto` | `ask` | 电脑休眠或关机前推送并释放租约。macOS 会为推送最多等待 25 秒；Windows 与 Linux 不等待，作业在唤醒后继续（连接中断导致失败时会像其他作业一样提示）。`ask` 弹出授权卡片；关机前无人能回答，只有 `auto` 会推送 |
 | `sync.on_wake` | machine | `true` / `false` | `true` | 唤醒并联网后检查是否有新进度 |
 | `sync.approval_timeout` | machine | 时长（`10m`、`1h`） | `10m` | 授权卡片等待你回应的时间 |
 | `notify.ntfy` | machine | URL | 空 | 手机通知的 ntfy 主题（直接发送，或由完整模式服务端转发） |

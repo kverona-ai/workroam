@@ -190,14 +190,8 @@ pub fn router(app: Shared) -> Router {
 
 async fn health(axum::extract::State(app): axum::extract::State<Shared>) -> axum::Json<Value> {
     let p = app.persist.lock().unwrap();
-    let online: Vec<Value> = app
-        .live
-        .lock()
-        .unwrap()
-        .sessions
-        .values()
-        .map(|s| serde_json::json!({"name": s.name, "since": s.since}))
-        .collect();
+    // Counts only: this endpoint is public, device names are not.
+    let online = app.live.lock().unwrap().sessions.len();
     axum::Json(serde_json::json!({
         "ok": true,
         "version": crate::VERSION,

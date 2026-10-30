@@ -1,0 +1,12 @@
+id = "grok-bot"
+name = "Grok Bot"
+adapter_version = 1
+
+[connect]
+kind = "cloud"
+transport = "streamable-http"
+auth = "oauth"
+setup = { open_url = "https://grok.com/connectors" }
+skill_upload = "manual"
+webhook = "optional"
+cloud_computer = true

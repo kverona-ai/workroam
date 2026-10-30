@@ -1,0 +1,6 @@
+[package]
+name = "workroam-setup"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

@@ -1,0 +1,31 @@
+id = "grok"
+name = "Grok Build"
+adapter_version = 1
+agent_versions = ">=0.1.0"
+detect = { command = "grok --version" }
+
+[rules]
+read = ["AGENTS.md", "CLAUDE.md"]
+import = []
+
+[skills]
+source = ".agents/skills"
+link = ".grok/skills"
+
+[mcp]
+path = ".grok/config.toml"
+format = "codex-toml"
+import = true
+
+[sessions]
+dir = "~/.grok/sessions/{path_key}/"
+path_key = "dash-path-key"
+rewrite_fields = ["cwd"]
+
+[exclude]
+paths = ["~/.grok/auth.json", "~/.grok/credentials.json"]
+
+[connect]
+kind = "local"
+skill = true
+mcp = "stdio"

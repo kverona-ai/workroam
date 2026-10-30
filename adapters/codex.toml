@@ -1,0 +1,30 @@
+id = "codex"
+name = "Codex"
+adapter_version = 1
+agent_versions = ">=0.30.0"
+detect = { command = "codex --version" }
+
+[rules]
+read = ["AGENTS.md"]
+import = []
+
+[skills]
+source = ".agents/skills"
+
+[mcp]
+path = ".codex/config.toml"
+format = "codex-toml"
+import = true
+
+[sessions]
+dir = "~/.codex/sessions/"
+path_key = "cwd-filter"
+rewrite_fields = ["cwd"]
+
+[exclude]
+paths = ["~/.codex/auth.json"]
+
+[connect]
+kind = "local"
+skill = true
+mcp = "stdio"

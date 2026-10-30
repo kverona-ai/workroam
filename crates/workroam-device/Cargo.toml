@@ -1,0 +1,6 @@
+[package]
+name = "workroam-device"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

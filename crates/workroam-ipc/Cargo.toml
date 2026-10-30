@@ -1,0 +1,6 @@
+[package]
+name = "workroam-ipc"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

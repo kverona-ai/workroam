@@ -1,0 +1,26 @@
+id = "antigravity"
+name = "Antigravity"
+adapter_version = 1
+agent_versions = ">=1.0.0"
+detect = { command = "antigravity --version" }
+
+[rules]
+read = ["AGENTS.md"]
+generate = [{ path = ".agents/rules/workroam.md", template = "Read and follow the project rules in ../../AGENTS.md.\n", when = "always" }]
+import = []
+
+[skills]
+source = ".agents/skills"
+
+[mcp]
+path = ".agents/mcp_config.json"
+format = "agents-mcp-json"
+import = true
+
+[exclude]
+paths = ["~/.gemini/oauth_creds.json"]
+
+[connect]
+kind = "local"
+skill = true
+mcp = "stdio"

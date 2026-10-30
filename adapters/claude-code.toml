@@ -1,0 +1,32 @@
+id = "claude"
+name = "Claude Code"
+adapter_version = 1
+agent_versions = ">=1.0.0"
+detect = { command = "claude --version" }
+
+[rules]
+read = ["AGENTS.md"]
+generate = [{ path = "CLAUDE.md", template = "@AGENTS.md\n", when = "missing" }]
+import = ["CLAUDE.md"]
+
+[skills]
+source = ".agents/skills"
+link = ".claude/skills"
+
+[mcp]
+path = ".mcp.json"
+format = "claude-mcp-json"
+import = true
+
+[sessions]
+dir = "~/.claude/projects/{path_key}/"
+path_key = "dash-path-key"
+rewrite_fields = ["cwd"]
+
+[exclude]
+paths = ["~/.claude/.credentials.json", "~/.claude.json"]
+
+[connect]
+kind = "local"
+skill = true
+mcp = "stdio"

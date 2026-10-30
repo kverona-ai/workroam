@@ -204,6 +204,8 @@ jobs:
       VERSION: ${{ needs.prepare.outputs.version }}
       TARGET: ${{ matrix.target }}
       APPIMAGE_EXTRACT_AND_RUN: 1
+      # src-tauri 不在根 workspace 里，统一用根目录的 target，collect-desktop.sh 从这里找安装包
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
     steps:
       - uses: actions/checkout@v7
         with:
@@ -219,6 +221,9 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           key: desktop-${{ matrix.target }}
+          workspaces: |
+            . -> target
+            apps/desktop/src-tauri -> ../../../target
       - uses: ./.github/actions/desktop-prepare
         with:
           target: ${{ matrix.target }}

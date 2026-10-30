@@ -117,6 +117,9 @@ pub struct ScanSpec<'a> {
 pub struct LocalFile {
     pub meta: FileMeta,
     pub abs: PathBuf,
+    /// Modification time on disk; snapshots keep it so unchanged files are
+    /// recognised by the previous snapshot and not re-read.
+    pub mtime: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 /// Repository working trees carried by git (bundle / remote) rather than as files.
@@ -242,6 +245,7 @@ pub fn scan(spec: &ScanSpec) -> Result<BTreeMap<String, LocalFile>> {
                 LocalFile {
                     meta,
                     abs: e.path().to_path_buf(),
+                    mtime: lmeta.modified().ok().map(chrono::DateTime::from),
                 },
             );
         }

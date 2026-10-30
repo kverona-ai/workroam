@@ -411,6 +411,25 @@ fn build_source(entries: Vec<SourceEntry>) -> Result<VecSource> {
             dirs.insert(acc.clone());
         }
     }
+    // A directory is as new as the newest entry below it, so a tree that did
+    // not change serialises the same and is not uploaded again.
+    let mut dir_mtime: std::collections::HashMap<String, DateTime<Utc>> =
+        std::collections::HashMap::new();
+    for e in &entries {
+        let t = e.mtime.unwrap_or(now);
+        let mut acc = String::new();
+        let parts: Vec<&str> = e.path.split('/').collect();
+        for part in &parts[..parts.len() - 1] {
+            if !acc.is_empty() {
+                acc.push('/');
+            }
+            acc.push_str(part);
+            let cur = dir_mtime.entry(acc.clone()).or_insert(t);
+            if t > *cur {
+                *cur = t;
+            }
+        }
+    }
     let mut items: Vec<(String, Option<SourceEntry>)> =
         dirs.into_iter().map(|d| (d, None)).collect();
     items.extend(entries.into_iter().map(|e| (e.path.clone(), Some(e))));
@@ -423,7 +442,7 @@ fn build_source(entries: Vec<SourceEntry>) -> Result<VecSource> {
             None => {
                 let meta = Metadata {
                     mode: Some(GO_MODE_DIR | 0o755),
-                    mtime: jiff_ts(now),
+                    mtime: jiff_ts(dir_mtime.get(&path).copied().unwrap_or(now)),
                     ..Default::default()
                 };
                 out.push((

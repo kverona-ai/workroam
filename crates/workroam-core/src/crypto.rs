@@ -165,7 +165,7 @@ pub fn password_open(password: &str, data: &[u8]) -> Result<Vec<u8>> {
     password_open_raw(password, &data[4..])
 }
 
-/// Recovery key: 8 groups of 5 Crockford base32 characters (200 bits).
+/// Recovery key: 8 groups of 5 base32 (RFC 4648) characters (200 bits).
 pub fn new_recovery_key() -> String {
     let b: [u8; 25] = random_bytes();
     let s = data_encoding::BASE32_NOPAD.encode(&b);

@@ -190,6 +190,51 @@ async fn setup_init_push_approve_archive() {
     .await
     .unwrap();
 
+    // MCP secrets: referenced names per project, set / remove on this computer.
+    let mcp_path = dir.join(".workroam").join("mcp.toml");
+    let old_mcp = std::fs::read(&mcp_path).ok();
+    std::fs::create_dir_all(mcp_path.parent().unwrap()).unwrap();
+    std::fs::write(
+        &mcp_path,
+        "[servers.jira]\nurl = \"https://jira.example.com/mcp\"\nheaders = { Authorization = \"Bearer ${secret:jira_token}\" }\n",
+    )
+    .unwrap();
+    let l = c
+        .call("secret.list", json!({"project": "demo"}))
+        .await
+        .unwrap();
+    assert_eq!(l["secrets"][0]["name"], "jira_token");
+    assert_eq!(l["secrets"][0]["set"], false);
+    assert_eq!(l["secrets"][0]["servers"][0], "jira");
+    let e = c
+        .call("secret.set", json!({"name": "bad name", "value": "x"}))
+        .await
+        .unwrap_err();
+    assert_eq!(e.code, Code::InvalidArgs);
+    c.call(
+        "secret.set",
+        json!({"name": "jira_token", "value": "t0k3n"}),
+    )
+    .await
+    .unwrap();
+    let l = c
+        .call("secret.list", json!({"project": "demo"}))
+        .await
+        .unwrap();
+    assert_eq!(l["secrets"][0]["set"], true);
+    c.call("secret.remove", json!({"name": "jira_token"}))
+        .await
+        .unwrap();
+    let e = c
+        .call("secret.remove", json!({"name": "jira_token"}))
+        .await
+        .unwrap_err();
+    assert_eq!(e.code, Code::InvalidArgs);
+    match old_mcp {
+        Some(b) => std::fs::write(&mcp_path, b).unwrap(),
+        None => std::fs::remove_file(&mcp_path).unwrap(),
+    }
+
     // Status, history, archive and restore through jobs.
     let st = c.call("status", json!({"project": "demo"})).await.unwrap();
     assert_eq!(st["projects"][0]["project"], "demo");

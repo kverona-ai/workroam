@@ -27,7 +27,7 @@ This page lists every file, setting and environment variable Workroam reads. Mos
 | `~/.workroam/logs/` | `workroamd.log`, rotated daily |
 | `~/.workroam/state/` | Local state of the background service |
 | `~/.workroam/adapters/` | Your own agent adapters, which override the built-in ones with the same `id` |
-| System keychain | Storage access key, encryption password and other secrets: macOS Keychain, Windows Credential Manager, Linux Secret Service. They are never written to `machine.toml` |
+| System keychain | Storage access key, encryption password, MCP secrets (`workroam secret set`) and other secrets: macOS Keychain, Windows Credential Manager, Linux Secret Service. They are never written to `machine.toml` |
 | `~/.workroam/secrets.json` | Only when no keychain is available, or with `WORKROAM_SECRETS=file` (mode 0600) |
 
 The background service listens on a local socket: `~/Library/Application Support/Workroam/workroamd.sock` on macOS, `$XDG_RUNTIME_DIR/workroam/workroamd.sock` (or `~/.workroam/workroamd.sock`) on Linux, and the named pipe `\\.\pipe\workroam-<user>` on Windows.
@@ -84,7 +84,7 @@ Each key has a scope:
 | `sync.auto` | project | `off` / `ask` / `auto` | `ask` | Automatic sync: never, ask with a card, or sync without asking |
 | `sync.agent_requires_approval` | project | `true` / `false` | `true` | Syncs started by an agent wait for your approval |
 | `sync.idle_minutes` | machine | number | `15` | Minutes without changes before an automatic push is offered |
-| `sync.on_sleep` | machine | `off` / `ask` / `auto` | `ask` | Push before the computer sleeps or shuts down |
+| `sync.on_sleep` | machine | `off` / `ask` / `auto` | `ask` | Push (and release the lease) before the computer sleeps or shuts down. macOS waits up to 25 s for the push; Windows and Linux do not wait, so the job finishes after waking (or fails like any other job if the connection was cut). `ask` shows the usual approval card; before a shutdown only `auto` pushes |
 | `sync.on_wake` | machine | `true` / `false` | `true` | Check for new progress after waking up and reconnecting |
 | `sync.approval_timeout` | machine | duration (`10m`, `1h`) | `10m` | How long an approval card waits for your answer |
 | `notify.ntfy` | machine | URL | empty | ntfy topic for phone notifications (sent directly, or forwarded by a full-mode server) |
@@ -267,6 +267,7 @@ In any value, `{project_dir}` becomes the project folder on this computer and `{
 | `WORKROAM_RECOVERY_KEY` | Recovery key for `password reset` (instead of `--recovery-key-stdin`) |
 | `WORKROAM_ADMIN_TOKEN` | Admin API token, when the storage needs one to create a scoped key |
 | `WORKROAM_BACKUP_SECRET_KEY` | Secret key of the off-site backup bucket for `backup add` |
+| `WORKROAM_SECRET_VALUE` | Value for `secret set` (instead of `--value-stdin`) |
 
 Prefer stdin or these variables to command-line arguments for secrets: arguments are visible to other users in the process list.
 

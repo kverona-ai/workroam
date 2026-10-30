@@ -693,7 +693,54 @@ const agentSection = act("agent.list", (r, v) => {
   const devSel = h("select", { class: "input sel", onchange: act("settings.remote", (e) => setConfig("remote.default_device", e.target.value)) }, h("option", { value: "" }, t("this_device")));
   ipc("device.list").then((ds) => ds.forEach((d) => devSel.append(h("option", { value: d.name, selected: v["remote.default_device"] === d.name }, d.name))), () => {});
   return h("div", {}, h("h4", {}, t("set.agents")), h("div", { class: "setgrp" }, ...rows, ...conns,
+    setrow(t("mcp_secrets"), t("mcp_secrets.d"), secretChips()),
     setrow(t("default_device"), r.relay?.connected ? t("relay_on", { url: r.relay.public_url || r.relay.url || "" }) : t("relay_off"), devSel)));
+});
+
+// secret.set: the `${secret:name}` values of .workroam/mcp.toml live in this
+// computer's keychain (`workroam secret set / remove / list`).
+async function secretRefs() {
+  const names = new Map();
+  for (const p of S.status?.projects || []) {
+    const r = await ipc("secret.list", { project: p.project }).catch(() => null);
+    for (const s of r?.secrets || []) {
+      const x = names.get(s.name) || { name: s.name, set: !!s.set, where: [] };
+      x.set = x.set || !!s.set;
+      x.where.push(`${p.project}: ${(s.servers || []).join(", ")}`);
+      names.set(s.name, x);
+    }
+  }
+  return [...names.values()];
+}
+
+function secretChips() {
+  const box = h("span", { class: "inrow", style: "flex-wrap:wrap" }, btn(t("secret_set_dots"), () => mcpSecret(), { cls: "sm", ic: "key" }));
+  secretRefs().then((refs) => fill(box,
+    ...refs.map((s) => { const p = pill(s.set ? s.name : t("secret_unset", { name: s.name }), s.set ? "ok" : ""); p.title = s.where.join("\n"); return p; }),
+    btn(t("secret_set_dots"), () => mcpSecret(refs), { cls: "sm", ic: "key" })), () => {});
+  return box;
+}
+
+const mcpSecret = act("secret.set", async (refs) => {
+  refs = refs || (await secretRefs().catch(() => []));
+  const r = await sheet(t("mcp_secrets"), (close) => {
+    const name = input({ mono: true, list: "secret-names", placeholder: "jira_token" });
+    const value = input({ mono: true, type: "password" });
+    return [h("p", { class: "hint" }, t("mcp_secrets.d")), h("datalist", { id: "secret-names" }, ...refs.map((s) => h("option", { value: s.name }))),
+      field(t("secret_name"), name), field(t("secret_value"), value),
+      acts(btn(t("cancel"), () => close(null)), btn(t("delete"), () => close({ name: name.value.trim(), remove: true }), { cls: "danger" }),
+        btn(t("save"), () => close({ name: name.value.trim(), value: value.value }), { cls: "primary" }))];
+  });
+  if (!r || !r.name) return;
+  if (r.remove) {
+    if (!(await ask(t("delete"), t("secret_remove.d", { name: r.name }), { ok: t("delete"), danger: true }))) return;
+    await ipc("secret.remove", { name: r.name });
+    toast(t("removed", { name: r.name }), "ok");
+  } else {
+    await ipc("secret.set", { name: r.name, value: r.value });
+    toast(t("secret_saved", { name: r.name }), "ok");
+  }
+  settings();
 });
 
 const connectLocal = act("agent.connect_local", async (agent) => {

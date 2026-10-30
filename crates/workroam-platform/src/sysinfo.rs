@@ -2,6 +2,44 @@
 
 use workroam_core::model::OsKind;
 
+/// Is a process with this id still running? Used to tell a sync that is
+/// in progress from the marker a dead process left behind.
+pub fn process_alive(pid: u32) -> bool {
+    if pid == 0 {
+        return false;
+    }
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::Foundation::CloseHandle;
+        use windows_sys::Win32::System::Threading::{
+            OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+        };
+        // SAFETY: plain Win32 calls; a null handle means no such process.
+        unsafe {
+            let h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+            if h.is_null() {
+                return false;
+            }
+            CloseHandle(h);
+            true
+        }
+    }
+    #[cfg(unix)]
+    {
+        if pid > i32::MAX as u32 {
+            return false;
+        }
+        // SAFETY: signal 0 sends nothing; it only reports whether the
+        // process exists (EPERM: it exists but belongs to someone else).
+        let r = unsafe { libc::kill(pid as libc::pid_t, 0) };
+        r == 0 || std::io::Error::last_os_error().raw_os_error() == Some(libc::EPERM)
+    }
+    #[cfg(not(any(windows, unix)))]
+    {
+        true
+    }
+}
+
 pub fn hostname() -> String {
     for var in ["COMPUTERNAME", "HOSTNAME"] {
         if let Ok(h) = std::env::var(var) {

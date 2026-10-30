@@ -741,6 +741,14 @@ desktop = ["agent.webhook"]
 since = "0.1"
 
 [[section.block.row]]
+id = "secret.set"
+cells = ["MCP 密钥（`${secret:名称}`）", "设置“Agent”→“MCP 密钥”：已引用的密钥与是否已设置，“设置密钥…”保存或删除", "`workroam secret set <名称> [--value-stdin]` / `remove <名称>` / `list`", "系统密钥库"]
+ipc = ["secret.set", "secret.remove", "secret.list"]
+cli = ["workroam secret set jira_token --value-stdin", "workroam secret remove jira_token", "workroam secret list -p demo"]
+desktop = ["secret.set"]
+since = "0.1"
+
+[[section.block.row]]
 id = "credentials.update"
 cells = ["更新访问密钥", "设置“存储”→“更新访问密钥”", "`workroam credentials update --access-key <ID> --secret-key-stdin`", "系统密钥库"]
 ipc = ["credentials.update"]

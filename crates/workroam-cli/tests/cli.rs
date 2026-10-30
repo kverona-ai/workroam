@@ -129,6 +129,45 @@ fn setup_init_status_and_mcp() {
     assert_eq!(v["command"], "status");
     assert_eq!(v["result"]["projects"][0]["project"], "demo");
 
+    // MCP secrets: set on this computer, listed per project.
+    let mcp = dir.join(".workroam").join("mcp.toml");
+    let old_mcp = std::fs::read(&mcp).ok();
+    std::fs::create_dir_all(mcp.parent().unwrap()).unwrap();
+    std::fs::write(
+        &mcp,
+        "[servers.jira]\nurl = \"https://jira.example.com/mcp\"\nheaders = { Authorization = \"Bearer ${secret:jira_token}\" }\n",
+    )
+    .unwrap();
+    let (code, out) = workroam(&home, &dir, &["--json", "secret", "list"], "");
+    assert_eq!(code, 0, "{out}");
+    let v = last_json(&out);
+    assert_eq!(v["result"]["secrets"][0]["name"], "jira_token");
+    assert_eq!(v["result"]["secrets"][0]["set"], false);
+    let (code, out) = workroam(
+        &home,
+        &dir,
+        &["--json", "secret", "set", "jira_token", "--value-stdin"],
+        "t0k3n\n",
+    );
+    assert_eq!(code, 0, "{out}");
+    let (code, out) = workroam(&home, &dir, &["--json", "secret", "list"], "");
+    assert_eq!(code, 0, "{out}");
+    assert_eq!(last_json(&out)["result"]["secrets"][0]["set"], true);
+    // Without a terminal the value must come from stdin or the environment.
+    let (code, out) = workroam(&home, &dir, &["--json", "secret", "set", "other"], "");
+    assert_eq!(code, 2, "{out}");
+    let (code, out) = workroam(
+        &home,
+        &dir,
+        &["--json", "secret", "remove", "jira_token"],
+        "",
+    );
+    assert_eq!(code, 0, "{out}");
+    match old_mcp {
+        Some(b) => std::fs::write(&mcp, b).unwrap(),
+        None => std::fs::remove_file(&mcp).unwrap(),
+    }
+
     // An agent push needs the background service for its approval card.
     let (code, out) = workroam(&home, &dir, &["--json", "push"], "");
     assert_eq!(code, 30, "{out}");

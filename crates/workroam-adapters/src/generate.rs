@@ -5,7 +5,7 @@ use crate::envblock;
 use crate::model::Adapter;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use workroam_core::config::{McpConfig, McpServerDef};
 use workroam_core::model::OsKind;
@@ -78,6 +78,44 @@ pub fn resolve(
         out.replace_range(a..a + rel + 1, &v);
     }
     Ok(out)
+}
+
+/// A `${secret:name}` name: letters, digits, `_`, `-` and `.`, at most 64 characters.
+pub fn is_secret_name(name: &str) -> bool {
+    !name.is_empty()
+        && name.len() <= 64
+        && name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.'))
+}
+
+/// The `${secret:name}` references of an MCP config: name → servers using it.
+pub fn secret_refs(mcp: &McpConfig) -> BTreeMap<String, BTreeSet<String>> {
+    fn walk(v: &serde_json::Value, server: &str, out: &mut BTreeMap<String, BTreeSet<String>>) {
+        match v {
+            serde_json::Value::String(s) => {
+                let mut rest = s.as_str();
+                while let Some(a) = rest.find("${secret:") {
+                    let tail = &rest[a + 9..];
+                    let Some(e) = tail.find('}') else { break };
+                    out.entry(tail[..e].to_string())
+                        .or_default()
+                        .insert(server.to_string());
+                    rest = &tail[e + 1..];
+                }
+            }
+            serde_json::Value::Array(xs) => xs.iter().for_each(|x| walk(x, server, out)),
+            serde_json::Value::Object(m) => m.values().for_each(|x| walk(x, server, out)),
+            _ => {}
+        }
+    }
+    let mut out = BTreeMap::new();
+    for (name, def) in &mcp.servers {
+        if let Ok(v) = serde_json::to_value(def) {
+            walk(&v, name, &mut out);
+        }
+    }
+    out
 }
 
 /// Servers for one agent, with per-OS overrides applied and values resolved.
@@ -483,5 +521,48 @@ mod tests {
             &agents[0],
         );
         assert_eq!(s["db"].command.as_deref(), Some("db-mcp.exe"));
+    }
+}
+
+#[cfg(test)]
+mod secret_tests {
+    use super::*;
+
+    #[test]
+    fn secret_names() {
+        for ok in ["db", "jira_token", "a.b-c", "X1"] {
+            assert!(is_secret_name(ok), "{ok}");
+        }
+        for bad in ["", "bad name", "a}b", "${x}", "名字", &"x".repeat(65)] {
+            assert!(!is_secret_name(bad), "{bad}");
+        }
+    }
+
+    #[test]
+    fn secret_refs_cover_every_field_and_override() {
+        let mcp: McpConfig = toml::from_str(
+            r#"
+[servers.jira]
+url = "https://jira.example.com/mcp"
+headers = { Authorization = "Bearer ${secret:jira_token}", X-Two = "${secret:a}-${secret:b}" }
+
+[servers.db]
+command = "db-mcp"
+args = ["--token", "${secret:db}"]
+env = { DB_PASS = "${secret:db}" }
+
+[servers.db.windows]
+args = ["--token", "${secret:db_win}"]
+
+[servers.plain]
+command = "echo"
+"#,
+        )
+        .unwrap();
+        let refs = secret_refs(&mcp);
+        let names: Vec<&str> = refs.keys().map(String::as_str).collect();
+        assert_eq!(names, ["a", "b", "db", "db_win", "jira_token"]);
+        assert_eq!(refs["db"].iter().collect::<Vec<_>>(), ["db"]);
+        assert_eq!(refs["jira_token"].iter().collect::<Vec<_>>(), ["jira"]);
     }
 }

@@ -48,6 +48,7 @@ fn main() -> ExitCode {
         let d = workroamd::Daemon::new(true);
         workroamd::triggers::spawn(d.clone());
         workroamd::relay::ensure_running(&d);
+        on_signal(d.clone());
         match workroamd::server::listen(d, &path).await {
             Ok(()) => ExitCode::SUCCESS,
             Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
@@ -60,6 +61,54 @@ fn main() -> ExitCode {
             }
         }
     })
+}
+
+/// `SIGTERM` (logout / shutdown on macOS and Linux) and the Windows
+/// shutdown and logoff events stop the service in order; Ctrl-C, the
+/// console closing and `daemon.shutdown` stop it without the pre-shutdown
+/// push.
+fn on_signal(d: std::sync::Arc<workroamd::Daemon>) {
+    tokio::spawn(async move {
+        #[cfg(unix)]
+        let system = {
+            use tokio::signal::unix::{signal, SignalKind};
+            let (Ok(mut term), Ok(mut int)) = (
+                signal(SignalKind::terminate()),
+                signal(SignalKind::interrupt()),
+            ) else {
+                return;
+            };
+            tokio::select! {
+                _ = term.recv() => true,
+                _ = int.recv() => false,
+                _ = d.stop.notified() => false,
+            }
+        };
+        #[cfg(windows)]
+        let system = {
+            use tokio::signal::windows::{ctrl_c, ctrl_close, ctrl_logoff, ctrl_shutdown};
+            let (Ok(mut sd), Ok(mut lo), Ok(mut c), Ok(mut cl)) =
+                (ctrl_shutdown(), ctrl_logoff(), ctrl_c(), ctrl_close())
+            else {
+                return;
+            };
+            tokio::select! {
+                _ = sd.recv() => true,
+                _ = lo.recv() => true,
+                _ = c.recv() => false,
+                _ = cl.recv() => false,
+                _ = d.stop.notified() => false,
+            }
+        };
+        #[cfg(not(any(unix, windows)))]
+        let system = {
+            d.stop.notified().await;
+            false
+        };
+        // Let the reply to `daemon.shutdown` go out first.
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        d.shutdown(system).await;
+    });
 }
 
 fn init_logging(stderr: bool) -> Option<tracing_appender::non_blocking::WorkerGuard> {

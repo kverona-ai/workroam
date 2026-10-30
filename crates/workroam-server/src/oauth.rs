@@ -20,6 +20,11 @@ use workroam_ipc::relay::ToDevice;
 pub const ACCESS_TTL: i64 = 3600;
 pub const REFRESH_TTL_DAYS: i64 = 30;
 const AUTH_TTL: Duration = Duration::from_secs(10 * 60);
+/// Open authorization requests at once (all clients / one client): each one
+/// puts a card on every device, so an unauthenticated caller must not be
+/// able to flood them.
+const MAX_PENDING: usize = 20;
+const MAX_PENDING_PER_CLIENT: usize = 3;
 
 pub fn new_secret(prefix: &str) -> String {
     let b: [u8; 32] = workroam_core::crypto::random_bytes();
@@ -232,6 +237,28 @@ pub async fn authorize(State(app): State<Shared>, Query(q): Query<AuthorizeQuery
         || q.code_challenge_method.as_deref() != Some("S256")
     {
         return (StatusCode::BAD_REQUEST, page("Workroam", "<h1>Unsupported request</h1><p>Use the authorization code flow with PKCE (S256).</p>")).into_response();
+    }
+    {
+        let mut live = app.live.lock().unwrap();
+        live.auth.retain(|_, r| r.created.elapsed() < AUTH_TTL);
+        let pending = live
+            .auth
+            .values()
+            .filter(|r| matches!(r.status, AuthStatus::Pending));
+        let mine = pending
+            .clone()
+            .filter(|r| r.client_id == client.client_id)
+            .count();
+        if mine >= MAX_PENDING_PER_CLIENT || pending.count() >= MAX_PENDING {
+            return (
+                StatusCode::TOO_MANY_REQUESTS,
+                page(
+                    "Workroam",
+                    "<h1>Too many open requests</h1><p>Approve or decline the earlier ones on your computer first, or wait ten minutes.</p>",
+                ),
+            )
+                .into_response();
+        }
     }
     let req = AuthRequest {
         poll_secret: new_secret("wrq_"),

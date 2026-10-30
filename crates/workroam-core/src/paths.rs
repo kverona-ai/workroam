@@ -192,16 +192,46 @@ pub fn to_snapshot_path(base: &Path, p: &Path) -> Option<String> {
 pub fn from_snapshot_path(base: &Path, p: &str) -> PathBuf {
     let mut out = base.to_path_buf();
     for part in p.split('/') {
-        if !part.is_empty() && part != "." && part != ".." {
+        // `C:` or a backslash in a component would let `push` leave `base`
+        // on Windows; snapshots never contain them (xp::check_paths).
+        if !part.is_empty() && part != "." && part != ".." && !part.contains(['\\', ':']) {
             out.push(part);
         }
     }
     out
 }
 
+/// A `/` separated path from untrusted input that stays inside the
+/// directory it is joined to: relative, no `.` or `..` or empty component,
+/// no backslash or drive letter.
+pub fn is_safe_relative(p: &str) -> bool {
+    !p.is_empty()
+        && !p.starts_with('/')
+        && !p.contains(['\\', ':'])
+        && !p.contains('\0')
+        && p.split('/').all(|c| !c.is_empty() && c != "." && c != "..")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn safe_relative_paths() {
+        for ok in ["a", "a/b.txt", ".workroam/local/x", "docs/plan.md"] {
+            assert!(is_safe_relative(ok), "{ok}");
+        }
+        for bad in [
+            "", "/a", "a/../b", "../a", "a//b", "./a", "a\\b", "C:/x", "a\0b",
+        ] {
+            assert!(!is_safe_relative(bad), "{bad:?}");
+        }
+        let base = Path::new("/base");
+        assert_eq!(
+            from_snapshot_path(base, "C:/x/../y\\z/w"),
+            Path::new("/base/x/w")
+        );
+    }
 
     #[test]
     fn within_compares_real_paths() {

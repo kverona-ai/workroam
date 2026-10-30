@@ -507,6 +507,7 @@ async fn dispatch(cli: &Cli, out: &Out) -> Result<i32> {
             }))
         }
         Cmd::Agent { cmd } => agent(out, cmd).await,
+        Cmd::Secret { cmd } => secret(out, cmd, p).await,
         Cmd::Credentials {
             cmd:
                 CredentialsCmd::Update {
@@ -1708,6 +1709,73 @@ async fn agent(out: &Out, cmd: &AgentCmd) -> Result<i32> {
                 .await?;
             Ok(out.done(&v, |o, _| {
                 println!("{} webhook set for {agent}", o.green("✓"))
+            }))
+        }
+    }
+}
+
+/// `${secret:name}` values for the MCP definitions, kept in this computer's keychain.
+async fn secret(out: &Out, cmd: &SecretCmd, cli_project: &[String]) -> Result<i32> {
+    match cmd {
+        SecretCmd::Set { name, value_stdin } => {
+            let prompt = format!("Value of {name}");
+            let value = secret_from(
+                *value_stdin,
+                "WORKROAM_SECRET_VALUE",
+                "the secret value",
+                Some(prompt.as_str()),
+                out.interactive,
+            )?
+            .ok_or_else(|| {
+                Error::invalid("the secret value is required").with_hint("--value-stdin")
+            })?;
+            let c = connect(ClientKind::Cli).await?;
+            let v = c
+                .client
+                .call("secret.set", json!({"name": name, "value": value}))
+                .await?;
+            Ok(out.done(&v, |o, v| {
+                println!("{} secret {name} saved ({})", o.green("✓"), s(v, "backend"))
+            }))
+        }
+        SecretCmd::Remove { name } => {
+            let c = connect(ClientKind::Cli).await?;
+            let v = c
+                .client
+                .call("secret.remove", json!({"name": name}))
+                .await?;
+            Ok(out.done(&v, |o, _| {
+                println!("{} secret {name} removed", o.green("✓"))
+            }))
+        }
+        SecretCmd::List => {
+            let c = connect(ClientKind::Cli).await?;
+            let v = c.client.call("secret.list", scope(cli_project)).await?;
+            Ok(out.done(&v, |o, v| {
+                let list = v["secrets"].as_array().cloned().unwrap_or_default();
+                if list.is_empty() {
+                    println!(
+                        "{} refers to no ${{secret:…}} in .workroam/mcp.toml",
+                        s(v, "project")
+                    );
+                }
+                for x in &list {
+                    let servers: Vec<&str> = x["servers"]
+                        .as_array()
+                        .map(|a| a.iter().filter_map(Value::as_str).collect())
+                        .unwrap_or_default();
+                    let state = if x["set"].as_bool().unwrap_or(false) {
+                        o.green("set")
+                    } else {
+                        o.yellow("not set")
+                    };
+                    println!(
+                        "{:<24} {:<8} {}",
+                        s(x, "name"),
+                        state,
+                        o.dim(&servers.join(", "))
+                    );
+                }
             }))
         }
     }

@@ -146,6 +146,7 @@
 | 撤销云端 Agent 连接 | 设置“Agent”→连接行“撤销” | `workroam agent disconnect <agent>` | — |
 | 远程连接开关（按项目）、默认代理设备 | 项目详情“允许远程连接”；设置“Agent”→“默认代理设备” | `workroam config set remote.enabled true\|false -p <项目>`；`config set remote.default_device <设备>` | `remote.*` |
 | 事件 webhook | 设置“Agent”→连接行“webhook” | `workroam agent webhook <agent> --url <地址> --secret-stdin` | 系统密钥库 |
+| MCP 密钥（`${secret:名称}`） | 设置“Agent”→“MCP 密钥”：已引用的密钥与是否已设置，“设置密钥…”保存或删除 | `workroam secret set <名称> [--value-stdin]` / `remove <名称>` / `list` | 系统密钥库 |
 | 更新访问密钥 | 设置“存储”→“更新访问密钥” | `workroam credentials update --access-key <ID> --secret-key-stdin` | 系统密钥库 |
 | 修改加密密码 | 设置“加密”→“修改加密密码” | `workroam password change` | 仓库密钥文件 |
 | 忘记密码时用恢复密钥重设 | 设置“加密”→“使用恢复密钥重设密码” | `workroam password reset --recovery-key-stdin` | 仓库密钥文件 |

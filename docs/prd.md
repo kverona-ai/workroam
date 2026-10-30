@@ -627,6 +627,7 @@ sequenceDiagram
 | `workroam config list` / `get <键>` / `set <键> <值>` | 读写本机设置，加 `-p` 读写项目覆盖；与桌面“设置”页同一组键 |
 | `workroam agent list` / `connect <agent>` / `disconnect <agent>` | 检测到的 Agent、版本与适配器匹配情况；接入本机 Agent，连接或撤销云端个人 Agent（见 8.18） |
 | `workroam agent webhook <agent> --url <地址> --secret-stdin` | 配置云端 Agent 的事件 webhook |
+| `workroam secret set <名称> [--value-stdin]` / `remove <名称>` / `list` | MCP 定义里 `${secret:名称}` 引用的密钥：保存到本机密钥库、删除，或列出项目引用的密钥与是否已设置；只在本机解析，不同步（ADPT-06） |
 | `workroam credentials update` | 更新本机保存的访问密钥 |
 | `workroam password change` / `password reset --recovery-key-stdin` | 修改加密密码；忘记密码时用恢复密钥重设 |
 | `workroam pause [--for <时长>]` / `resume` | 暂停（默认 1 小时）/ 恢复自动同步 |

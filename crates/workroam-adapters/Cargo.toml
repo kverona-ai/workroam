@@ -1,0 +1,21 @@
+[package]
+name = "workroam-adapters"
+description = "Workroam agent adapters: loading, import, native config generation, environment block, session migration"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+workroam-core.workspace = true
+workroam-platform.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+toml.workspace = true
+tracing.workspace = true
+chrono.workspace = true
+walkdir.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

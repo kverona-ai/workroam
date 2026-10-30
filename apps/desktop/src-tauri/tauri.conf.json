@@ -1,0 +1,88 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Workroam",
+  "version": "0.1.0",
+  "identifier": "dev.workroam.desktop",
+  "mainBinaryName": "workroam-desktop",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Workroam",
+        "url": "index.html",
+        "width": 1120,
+        "height": 740,
+        "minWidth": 760,
+        "minHeight": 560,
+        "center": true,
+        "visible": false
+      },
+      {
+        "label": "cards",
+        "title": "Workroam",
+        "url": "index.html#cards",
+        "width": 372,
+        "height": 120,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "focus": false,
+        "shadow": false,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src ipc: http://ipc.localhost; media-src 'self' blob: mediastream:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "DeveloperTool",
+    "shortDescription": "Hand your agent workspace between computers",
+    "longDescription": "Workroam moves a project folder, its git state and your coding agents' sessions between your computers through your own S3-compatible storage, end-to-end encrypted.",
+    "publisher": "Workroam contributors",
+    "copyright": "Workroam contributors, Apache-2.0",
+    "homepage": "https://github.com/kverona-ai/workroam",
+    "license": "Apache-2.0",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "externalBin": [
+      "binaries/workroamd",
+      "binaries/workroam"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "11.0",
+      "infoPlist": "Info.plist"
+    },
+    "linux": {
+      "deb": {
+        "depends": [
+          "libayatana-appindicator3-1"
+        ]
+      },
+      "rpm": {
+        "depends": [
+          "libayatana-appindicator-gtk3"
+        ]
+      }
+    },
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}

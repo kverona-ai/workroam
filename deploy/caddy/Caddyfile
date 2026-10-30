@@ -1,0 +1,53 @@
+# Workroam behind one domain on port 443 (PRD DEP-02, architecture §20).
+#
+# install.sh copies this file and drops the blocks between `# >name` and
+# `# <name` that are not enabled. WORKROAM_SITE is the domain (automatic
+# HTTPS), or http://<domain> behind a Cloudflare Tunnel; STORAGE_UPSTREAM is
+# storage:9000 (RustFS), storage:3900 (Garage) or storage:8333 (SeaweedFS).
+#
+# Requests signed for S3 always go to the storage, so a bucket may have any
+# name; unsigned requests to the paths below go to workroam-server / Gitea.
+
+{$WORKROAM_SITE} {
+	# >server
+	@server {
+		path /healthz /relay /mcp /mcp/* /.well-known/oauth-* /oauth/* /pair /pair/* /devices/* /notify
+		not header Authorization AWS4-HMAC-SHA256*
+		not query X-Amz-Signature=*
+	}
+	handle @server {
+		reverse_proxy workroam-server:8787
+	}
+	# The web reader: same origin as the storage, so the bucket needs no CORS.
+	@web {
+		path /web /web/*
+		not header Authorization AWS4-HMAC-SHA256*
+		not query X-Amz-Signature=*
+	}
+	handle @web {
+		redir /web /web/
+		uri strip_prefix /web
+		reverse_proxy workroam-server:8787
+	}
+	# <server
+
+	# >gitea
+	@git {
+		path /git /git/*
+		not header Authorization AWS4-HMAC-SHA256*
+		not query X-Amz-Signature=*
+	}
+	handle @git {
+		redir /git /git/
+		uri strip_prefix /git
+		reverse_proxy gitea:3000
+	}
+	# <gitea
+
+	handle {
+		reverse_proxy {$STORAGE_UPSTREAM} {
+			# stream large uploads and downloads
+			flush_interval -1
+		}
+	}
+}

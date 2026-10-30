@@ -1,0 +1,50 @@
+[package]
+name = "workroamd"
+description = "Workroam background service: IPC server, jobs, approvals, auto-sync and the device relay"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "workroamd"
+path = "src/main.rs"
+
+[dependencies]
+workroam-core.workspace = true
+workroam-platform.workspace = true
+workroam-store.workspace = true
+workroam-snapshot.workspace = true
+workroam-lease.workspace = true
+workroam-git.workspace = true
+workroam-adapters.workspace = true
+workroam-device.workspace = true
+workroam-setup.workspace = true
+workroam-engine.workspace = true
+workroam-archive.workspace = true
+workroam-ipc.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tracing-appender.workspace = true
+notify.workspace = true
+reqwest.workspace = true
+tokio-tungstenite.workspace = true
+futures-util.workspace = true
+ed25519-dalek.workspace = true
+rand.workspace = true
+hex.workspace = true
+hmac.workspace = true
+sha2.workspace = true
+data-encoding.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

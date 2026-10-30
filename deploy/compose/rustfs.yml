@@ -1,0 +1,18 @@
+# RustFS (Apache-2.0, S3 compatible). The root key doubles as the admin key
+# the setup wizard uses once to create a key limited to one bucket.
+services:
+  storage:
+    image: ${RUSTFS_IMAGE:-rustfs/rustfs:latest}
+    restart: unless-stopped
+    environment:
+      RUSTFS_ACCESS_KEY: ${STORAGE_ADMIN_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${STORAGE_ADMIN_SECRET_KEY}
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ENABLE: "false"
+      RUSTFS_OBS_LOGGER_LEVEL: warn
+    volumes:
+      - storage-data:/data
+
+volumes:
+  storage-data:

@@ -1,0 +1,57 @@
+{{- if .Values.ingress.enabled }}
+{{- $fullname := include "workroam.fullname" . }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullname }}
+  labels:
+    {{- include "workroam.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.host | quote }}
+        {{- with .Values.server.webHost }}
+        - {{ . | quote }}
+        {{- end }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+  rules:
+    - host: {{ .Values.host | quote }}
+      http:
+        paths:
+          {{- if .Values.server.enabled }}
+          {{- range list "/healthz" "/relay" "/mcp" "/.well-known/oauth-protected-resource" "/.well-known/oauth-authorization-server" "/oauth" "/pair" "/devices" "/notify" }}
+          - path: {{ . }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullname }}-server
+                port: { name: http }
+          {{- end }}
+          {{- end }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullname }}-storage
+                port: { name: s3 }
+    {{- if and .Values.server.enabled .Values.server.webHost }}
+    - host: {{ .Values.server.webHost | quote }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $fullname }}-server
+                port: { name: http }
+    {{- end }}
+{{- end }}

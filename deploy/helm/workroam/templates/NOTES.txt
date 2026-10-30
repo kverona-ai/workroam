@@ -1,0 +1,12 @@
+Workroam storage: https://{{ .Values.host }}
+
+Admin key (used once by the setup wizard to create a key limited to one bucket):
+  kubectl get secret {{ include "workroam.secretName" . }} -n {{ .Release.Namespace }} -o jsonpath='{.data.access-key}' | base64 -d; echo
+  kubectl get secret {{ include "workroam.secretName" . }} -n {{ .Release.Namespace }} -o jsonpath='{.data.secret-key}' | base64 -d; echo
+
+In the setup wizard choose "Self-hosted", endpoint https://{{ .Values.host }},
+enter the admin key and pick "Let Workroam create a dedicated key".
+{{- if .Values.server.enabled }}
+
+workroam-server: https://{{ .Values.host }}{{ with .Values.server.webHost }}  (web reader: https://{{ . }}/){{ end }}
+{{- end }}

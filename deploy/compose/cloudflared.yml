@@ -1,0 +1,11 @@
+# Cloudflare Tunnel: no public IP or inbound ports. In the Cloudflare
+# dashboard, give the tunnel a public hostname <domain> -> http://caddy:80.
+services:
+  cloudflared:
+    image: ${CLOUDFLARED_IMAGE:-cloudflare/cloudflared:latest}
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CF_TUNNEL_TOKEN}
+    depends_on:
+      - caddy

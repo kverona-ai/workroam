@@ -1,0 +1,22 @@
+[package]
+name = "workroam-snapshot"
+description = "Workroam snapshot engine interface and its rustic_core implementation"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+workroam-core.workspace = true
+workroam-store.workspace = true
+rustic_core.workspace = true
+rustic_backend.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+jiff = "0.2"
+
+[dev-dependencies]
+tempfile.workspace = true

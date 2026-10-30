@@ -1,0 +1,14 @@
+# SeaweedFS (Apache-2.0) in single-server mode with the S3 gateway.
+# s3.json (written by install.sh) holds an admin identity and a Workroam
+# identity limited to one bucket.
+services:
+  storage:
+    image: ${SEAWEEDFS_IMAGE:-chrislusf/seaweedfs:latest}
+    restart: unless-stopped
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json -master.volumeSizeLimitMB=1024
+    volumes:
+      - ./s3.json:/etc/seaweedfs/s3.json:ro
+      - storage-data:/data
+
+volumes:
+  storage-data:

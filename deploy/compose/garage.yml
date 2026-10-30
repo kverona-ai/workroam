@@ -1,0 +1,16 @@
+# Garage (AGPL-3.0) runs as its own container: an aggregate, not a derived
+# work, so it does not affect Workroam's license (architecture §20).
+# install.sh writes garage.toml, sets up the single-node layout and creates
+# the bucket and a key limited to it.
+services:
+  storage:
+    image: ${GARAGE_IMAGE:-dxflrs/garage:v2.1.0}
+    restart: unless-stopped
+    volumes:
+      - ./garage.toml:/etc/garage.toml:ro
+      - storage-meta:/var/lib/garage/meta
+      - storage-data:/var/lib/garage/data
+
+volumes:
+  storage-meta:
+  storage-data:

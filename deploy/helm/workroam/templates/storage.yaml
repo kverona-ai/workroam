@@ -1,0 +1,65 @@
+{{- $fullname := include "workroam.fullname" . }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $fullname }}-storage
+  labels:
+    {{- include "workroam.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ $fullname }}-storage
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "workroam.selector" (dict "root" . "component" "storage") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "workroam.selector" (dict "root" . "component" "storage") | nindent 8 }}
+    spec:
+      containers:
+        - name: rustfs
+          image: "{{ .Values.storage.image.repository }}:{{ .Values.storage.image.tag }}"
+          imagePullPolicy: {{ .Values.storage.image.pullPolicy }}
+          env:
+            - name: RUSTFS_ACCESS_KEY
+              valueFrom:
+                secretKeyRef: { name: {{ include "workroam.secretName" . }}, key: access-key }
+            - name: RUSTFS_SECRET_KEY
+              valueFrom:
+                secretKeyRef: { name: {{ include "workroam.secretName" . }}, key: secret-key }
+            - { name: RUSTFS_VOLUMES, value: /data }
+            - { name: RUSTFS_ADDRESS, value: ":9000" }
+            - { name: RUSTFS_CONSOLE_ENABLE, value: "false" }
+          ports:
+            - { name: s3, containerPort: 9000 }
+          readinessProbe:
+            tcpSocket: { port: s3 }
+          volumeMounts:
+            - { name: data, mountPath: /data }
+          {{- with .Values.storage.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- with .Values.storage.persistence.storageClass }}
+        storageClassName: {{ . }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.storage.persistence.size }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-storage
+  labels:
+    {{- include "workroam.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "workroam.selector" (dict "root" . "component" "storage") | nindent 4 }}
+  ports:
+    - { name: s3, port: 9000, targetPort: s3 }

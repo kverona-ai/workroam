@@ -1,0 +1,36 @@
+[package]
+name = "workroam-cli"
+description = "The workroam command line: every desktop feature, --json for agents"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+name = "workroam_cli"
+path = "src/lib.rs"
+
+[[bin]]
+name = "workroam"
+path = "src/main.rs"
+
+[dependencies]
+workroam-core.workspace = true
+workroam-ipc.workspace = true
+workroamd.workspace = true
+workroam-device.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+chrono.workspace = true
+clap.workspace = true
+clap_complete.workspace = true
+dialoguer.workspace = true
+indicatif.workspace = true
+anstream.workspace = true
+anstyle.workspace = true
+terminal_size.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true

@@ -1,0 +1,20 @@
+# workroam-server in full mode (pairing codes, per-device keys, ntfy, web
+# reader at /web/) behind the same domain. It holds no repository password
+# and never sees plaintext.
+services:
+  workroam-server:
+    image: ${WORKROAM_SERVER_IMAGE:-ghcr.io/kverona-ai/workroam-server:latest}
+    restart: unless-stopped
+    command: ["--listen", "0.0.0.0:8787", "--full"]
+    environment:
+      WORKROAM_SERVER_PUBLIC_URL: ${WORKROAM_PUBLIC_URL}
+      WORKROAM_ADMIN_ACCESS_KEY: ${SERVER_ADMIN_ACCESS_KEY:-}
+      WORKROAM_ADMIN_SECRET_KEY: ${SERVER_ADMIN_SECRET_KEY:-}
+      WORKROAM_ADMIN_ENDPOINT: ${SERVER_ADMIN_ENDPOINT:-}
+      WORKROAM_ADMIN_TOKEN: ${SERVER_ADMIN_TOKEN:-}
+      WORKROAM_NTFY: ${WORKROAM_NTFY:-}
+    volumes:
+      - server-state:/home/nonroot/.workroam-server
+
+volumes:
+  server-state:

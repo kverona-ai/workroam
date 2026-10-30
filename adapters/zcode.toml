@@ -1,0 +1,23 @@
+id = "zcode"
+name = "ZCode"
+adapter_version = 1
+agent_versions = ">=0.1.0"
+detect = { command = "zcode --version" }
+
+[rules]
+read = ["AGENTS.md"]
+import = []
+
+[skills]
+source = ".agents/skills"
+link = ".zcode/skills"
+
+[mcp]
+path = ".zcode/mcp.json"
+format = "claude-mcp-json"
+import = true
+
+[connect]
+kind = "local"
+skill = true
+mcp = "stdio"

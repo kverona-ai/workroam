@@ -1,0 +1,12 @@
+id = "muse"
+name = "Muse"
+adapter_version = 1
+
+[connect]
+kind = "cloud"
+transport = "streamable-http"
+auth = "oauth"
+setup = { chat_prompt = "connect-remote-mcp" }
+skill_upload = "manual"
+webhook = "optional"
+cloud_computer = false

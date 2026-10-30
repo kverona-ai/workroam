@@ -1,0 +1,25 @@
+id = "pi"
+name = "Pi"
+adapter_version = 1
+agent_versions = ">=0.10.0"
+detect = { command = "pi --version" }
+
+[rules]
+read = ["AGENTS.md"]
+import = []
+
+[skills]
+source = ".agents/skills"
+link = ".pi/skills"
+
+[sessions]
+dir = "~/.pi/agent/sessions/{path_key}/"
+path_key = "pi-path-key"
+rewrite_fields = ["cwd"]
+
+[exclude]
+paths = ["~/.pi/agent/auth.json"]
+
+[connect]
+kind = "local"
+skill = true

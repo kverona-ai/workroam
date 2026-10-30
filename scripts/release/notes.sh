@@ -91,6 +91,16 @@ curl -fsSL https://github.com/$repo/releases/latest/download/install-server.sh |
 
 容器镜像（linux/amd64、linux/arm64）：\`docker pull ghcr.io/$repo-server:$version\`
 
+## 自建存储 / Self-hosted storage（可选）
+
+已有 AWS S3、Cloudflare R2、阿里云 OSS 等 S3 兼容存储时不需要部署任何东西。自建时，在有公网 IP 的 Linux 服务器上一条命令部署 RustFS / Garage / SeaweedFS 与 Caddy（自动 HTTPS）：
+
+\`\`\`sh
+curl -fsSL $base/install.sh | sh -s -- --domain s3.example.com
+\`\`\`
+
+Kubernetes 可用 Helm Chart：[\`deploy/helm/workroam\`](https://github.com/$repo/tree/v$version/deploy/helm/workroam)，说明见 [deploy/README.md](https://github.com/$repo/blob/v$version/deploy/README.md)。
+
 ## 源码 / Source
 
 - $(link "$c-source.tar.gz" "$c-source.tar.gz") · $(link "$c-source.zip" ".zip")：完整源码，可直接修改后自行构建

@@ -124,9 +124,6 @@ flowchart LR
 
 ## Install
 
-> [!IMPORTANT]
-> **v0.1.0 is coming soon.** The download links below start working with the first release. Until then you can [build from source](docs/install.md#从源码构建).
-
 Every release goes to [GitHub Releases](https://github.com/kverona-ai/workroam/releases) with builds for Windows, macOS and Linux, each on x64 and arm64. All files are listed in `SHA256SUMS` and carry build provenance.
 
 | You want to | Install |

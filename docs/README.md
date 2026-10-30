@@ -17,3 +17,4 @@
 
 - `assets/logo.svg`：项目 Logo（设计说明见 [prototype/README.md](prototype/README.md#logo)）
 - `prototype/assets/logo-mono.svg`：菜单栏 / 托盘用单色图标
+- `assets/screenshots/`：README 中的产品示例图，截取自高保真原型

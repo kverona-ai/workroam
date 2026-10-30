@@ -10,7 +10,8 @@ One S3 bucket of your own. Tell any agent on any computer to "sync down",<br>
 and your projects, code, rules, MCP / Skills and context pick up where you left off.
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-design%20phase-orange.svg)](docs/prd.md)
+[![CI](https://github.com/kverona-ai/workroam/actions/workflows/ci.yml/badge.svg)](https://github.com/kverona-ai/workroam/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/release-v0.1.0%20coming%20soon-orange.svg)](https://github.com/kverona-ai/workroam/releases)
 [![Rust](https://img.shields.io/badge/Rust-stable-dea584.svg?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](#)
 [![Storage](https://img.shields.io/badge/storage-any%20S3--compatible-2F6BFF.svg)](docs/architecture.md)
@@ -18,7 +19,7 @@ and your projects, code, rules, MCP / Skills and context pick up where you left 
 
 **English** · [简体中文](README.zh-CN.md)
 
-[Requirements](docs/prd.md) · [Architecture](docs/architecture.md) · [Decisions](docs/adr/README.md) · [Contributing](CONTRIBUTING.md)
+[Install](docs/install.md) · [Requirements](docs/prd.md) · [Architecture](docs/architecture.md) · [Decisions](docs/adr/README.md) · [Contributing](CONTRIBUTING.md)
 
 <br>
 
@@ -27,7 +28,7 @@ and your projects, code, rules, MCP / Skills and context pick up where you left 
 </div>
 
 > [!NOTE]
-> Workroam is in the **design phase** and has no usable release yet. Feedback on the design is welcome via issues. The design documents are currently written in Chinese.
+> Workroam **v0.1.0 is in development** and has not been released yet; see [Install](#install). Feedback is welcome via issues. The design documents are currently written in Chinese.
 
 ---
 
@@ -101,15 +102,41 @@ flowchart LR
 3. **Keep going**: open any agent. It reads `AGENTS.md` and `HANDOFF.md`, reports where things stand, and continues.
 4. **Back at the office**: pull the home progress. Home commits are rebased back onto real history, then you `git push` to the intranet.
 
-## Quick start (planned)
+## Install
+
+> [!IMPORTANT]
+> **v0.1.0 is coming soon.** The download links below start working with the first release. Until then you can [build from source](docs/install.md#从源码构建).
+
+Every release goes to [GitHub Releases](https://github.com/kverona-ai/workroam/releases) with builds for Windows, macOS and Linux, each on x64 and arm64. All files are listed in `SHA256SUMS` and carry build provenance.
+
+| You want to | Install |
+| --- | --- |
+| Use Workroam on your computer (recommended) | **Desktop app** from [Releases](https://github.com/kverona-ai/workroam/releases): `.dmg` on macOS, `-setup.exe` or `.msi` on Windows, `.deb`, `.rpm` or `.AppImage` on Linux. It includes the `workroam` CLI and opens the setup wizard on first launch. |
+| Use only the command line, on a server or headless machine | **CLI**: `workroam` and the `workroamd` background service |
+| Let a cloud personal agent connect (optional) | **`workroam-server`** relay, a single static binary that can run on a bot's cloud computer |
+
+```sh
+# CLI on macOS / Linux, installed to ~/.local/bin with checksum verification
+curl -fsSL https://github.com/kverona-ai/workroam/releases/latest/download/install-cli.sh | sh
+```
+
+```powershell
+# CLI on Windows (PowerShell)
+irm https://github.com/kverona-ai/workroam/releases/latest/download/install-cli.ps1 | iex
+```
+
+```sh
+# Optional relay for cloud agents
+curl -fsSL https://github.com/kverona-ai/workroam/releases/latest/download/install-server.sh | sh
+```
+
+The full guide covers package managers (Homebrew, Scoop, winget), verifying downloads, mirrors for intranets, self-hosting storage and building from source. It is in [docs/install.md](docs/install.md). For maintainers, the release process is in [docs/release.md](docs/release.md).
+
+## Quick start
 
 ```bash
-# Server: deploy storage and HTTPS with one command
-curl -fsSL https://<project-domain>/install.sh | sh -s -- --domain sync.example.com --storage rustfs
-
-# Client: the desktop app opens a setup wizard on first launch
-# (headless machines: run the same steps in the terminal;
-#  every desktop action has an equivalent workroam command)
+# First run: the desktop app opens a setup wizard; on a headless machine
+# run the same steps in the terminal (every desktop action has a command)
 workroam setup
 cd ~/projects/proj-a && workroam init
 
@@ -136,9 +163,12 @@ See [PRD · Release scope](docs/prd.md#10-发布范围与验收门槛) for detai
 
 ```text
 .
-├── docs/            # Docs: PRD, architecture, ADRs, prototype, assets
-├── crates/          # Rust code (planned, see crates/README.md)
-├── .github/         # Issue / PR templates
+├── docs/            # Docs: install, release, PRD, architecture, ADRs, prototype
+├── crates/          # Rust code (see crates/README.md)
+├── deploy/          # Deployment files for workroam-server
+├── scripts/         # Install scripts and release tooling
+├── .github/         # CI and release workflows, issue / PR templates
+├── CHANGELOG.md     # Changes per release
 ├── CONTRIBUTING.md  # Contribution guide
 └── LICENSE          # Apache-2.0
 ```

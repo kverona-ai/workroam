@@ -10,7 +10,8 @@
 项目、代码、规则、MCP / Skills 和上下文就都能接上。
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-design%20phase-orange.svg)](docs/prd.md#10-发布范围与验收门槛)
+[![CI](https://github.com/kverona-ai/workroam/actions/workflows/ci.yml/badge.svg)](https://github.com/kverona-ai/workroam/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/badge/release-v0.1.0%20coming%20soon-orange.svg)](https://github.com/kverona-ai/workroam/releases)
 [![Rust](https://img.shields.io/badge/Rust-stable-dea584.svg?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](#)
 [![Storage](https://img.shields.io/badge/storage-any%20S3--compatible-2F6BFF.svg)](docs/architecture.md#5-存储布局)
@@ -18,7 +19,7 @@
 
 [English](README.md) · **简体中文**
 
-[产品需求](docs/prd.md) · [技术架构](docs/architecture.md) · [架构决策](docs/adr/README.md) · [参与贡献](CONTRIBUTING.md)
+[安装](docs/install.md) · [产品需求](docs/prd.md) · [技术架构](docs/architecture.md) · [架构决策](docs/adr/README.md) · [参与贡献](CONTRIBUTING.md)
 
 <br>
 
@@ -27,7 +28,7 @@
 </div>
 
 > [!NOTE]
-> 项目处于**设计阶段**，还没有可用的版本。欢迎阅读文档、提 Issue 讨论设计。
+> Workroam **v0.1.0 正在开发**，还没有发布，见[安装](#安装)。欢迎提 Issue 讨论。
 
 ---
 
@@ -101,15 +102,41 @@ flowchart LR
 3. **继续**：打开任一 Agent，它读 `AGENTS.md` 和 `HANDOFF.md`，汇报进度后接着干。
 4. **回公司**：拉取家里的进度，家里的提交自动变基回真实历史，然后 `git push` 到内网。
 
-## 快速开始（规划中）
+## 安装
+
+> [!IMPORTANT]
+> **v0.1.0 即将发布。**下面的下载链接从第一个版本发布后开始可用，在此之前可以[从源码构建](docs/install.md#从源码构建)。
+
+每个版本都发布在 [GitHub Releases](https://github.com/kverona-ai/workroam/releases)，Windows、macOS、Linux 各提供 x64 与 arm64 两种架构。所有文件都列在 `SHA256SUMS` 中，并附带构建来源证明。
+
+| 你要用的 | 安装什么 |
+| --- | --- |
+| 在电脑上使用 Workroam（推荐） | 从 [Releases](https://github.com/kverona-ai/workroam/releases) 下载**桌面应用**：macOS 用 `.dmg`，Windows 用 `-setup.exe` 或 `.msi`，Linux 用 `.deb`、`.rpm` 或 `.AppImage`。桌面应用内含命令行 `workroam`，首次打开进入初始化向导 |
+| 只用命令行、服务器或无图形界面的电脑 | **命令行**：`workroam` 与后台服务 `workroamd` |
+| 让云端个人 Agent 连接（可选） | **`workroam-server`** 中继：单文件静态二进制，可直接在 bot 的云端电脑上运行 |
+
+```sh
+# 命令行：macOS / Linux，安装到 ~/.local/bin，自动校验 SHA256
+curl -fsSL https://github.com/kverona-ai/workroam/releases/latest/download/install-cli.sh | sh
+```
+
+```powershell
+# 命令行：Windows（PowerShell）
+irm https://github.com/kverona-ai/workroam/releases/latest/download/install-cli.ps1 | iex
+```
+
+```sh
+# 可选：云端 Agent 用的中继
+curl -fsSL https://github.com/kverona-ai/workroam/releases/latest/download/install-server.sh | sh
+```
+
+完整说明见 [docs/install.md](docs/install.md)，包括包管理器（Homebrew、Scoop、winget）、校验下载、内网镜像、自建存储和从源码构建。发布流程（面向维护者）见 [docs/release.md](docs/release.md)。
+
+## 快速开始
 
 ```bash
-# 服务端：一条命令部署存储与 HTTPS
-curl -fsSL https://<项目域名>/install.sh | sh -s -- --domain sync.example.com --storage rustfs
-
-# 客户端：首次启动桌面应用会自动打开初始化向导
-# （没有图形界面的机器在终端里走同样的步骤；
-#   桌面应用里的每项操作都有等价的 workroam 命令）
+# 首次使用：桌面应用会打开初始化向导；没有图形界面的机器在终端里走同样的步骤
+# （桌面应用里的每项操作都有等价的命令）
 workroam setup
 cd ~/projects/proj-a && workroam init
 
@@ -136,9 +163,12 @@ PRD 中的全部功能作为 **v0.1** 一次发布，下表门槛全部达到才
 
 ```text
 .
-├── docs/            # 文档：PRD、技术架构、ADR、原型、图片资源
-├── crates/          # Rust 代码（规划中，见 crates/README.md）
-├── .github/         # Issue / PR 模板
+├── docs/            # 文档：安装、发布、PRD、技术架构、ADR、原型
+├── crates/          # Rust 代码（见 crates/README.md）
+├── deploy/          # workroam-server 的部署文件
+├── scripts/         # 安装脚本与发布工具
+├── .github/         # CI 与发布工作流、Issue / PR 模板
+├── CHANGELOG.md     # 版本变更记录
 ├── CONTRIBUTING.md  # 贡献指南
 └── LICENSE          # Apache-2.0
 ```

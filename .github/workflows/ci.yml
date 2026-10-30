@@ -114,7 +114,7 @@ jobs:
       - uses: ./.github/actions/desktop-prepare
         if: needs.detect.outputs.desktop == 'true'
       - name: Tests
-        run: cargo nextest run --workspace --locked --no-tests=warn
+        run: cargo nextest run --workspace --locked --no-tests=warn --no-fail-fast
       - name: Doc tests
         run: cargo test --workspace --locked --doc
 

@@ -18,6 +18,6 @@ Rust 代码目录（Cargo workspace）。各 crate 的职责见 [技术架构 ·
 | `workroam-engine` | 推送 / 拉取 / 恢复流程编排、触发策略 |
 | `workroamd` | 后台服务 |
 | `workroam-cli` | 命令行与 MCP server（二进制名为 `workroam`） |
-| `workroam-server` | 可选服务端（v0.3） |
+| `workroam-server` | 可选服务端 |
 
 桌面应用在 `apps/desktop/`，Web 界面在 `apps/web/`，适配器数据文件在 `adapters/`，部署配置在 `deploy/`。

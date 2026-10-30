@@ -801,7 +801,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
 </svg>
 
 <header class="nav glass">
-  <div class="brand"><svg aria-hidden="true"><use href="#logo"/></svg>Workroam <small>高保真原型 · v0.3 形态</small></div>
+  <div class="brand"><svg aria-hidden="true"><use href="#logo"/></svg>Workroam <small>高保真原型 · v0.1</small></div>
   <nav class="tabs" aria-label="原型场景">
     <a class="tab" href="#brand">品牌</a>
     <a class="tab" href="#setup">初始化向导</a>
@@ -875,7 +875,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
         <div class="sw-c"><i style="background:var(--roam)"></i><b>Roam Blue</b><span>#2F6BFF</span></div>
         <div class="sw-c"><i style="background:var(--lagoon)"></i><b>Lagoon</b><span>#1FB6E8</span></div>
         <div class="sw-c"><i style="background:var(--mint)"></i><b>Mint</b><span>#2ED3B7</span></div>
-        <div class="sw-c"><i style="background:var(--amber)"></i><b>Baton Amber</b><span>#FFB547</span></div>
+        <div class="sw-c"><i style="background:var(--amber)"></i><b>Amber</b><span>#FFB547</span></div>
         <div class="sw-c"><i style="background:var(--fg)"></i><b>Ink</b><span>#0E1726</span></div>
       </div>
       <p class="hint">蓝 → 青 → 薄荷是一条“路线”渐变；琥珀色只留给“工作区 / 租约”这一个含义，界面里不做装饰色。</p>
@@ -968,7 +968,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
             <div style="display:grid;gap:10px">
               <label class="choice"><input type="radio" name="path" value="new" checked><span class="glyph"><svg class="ic lg"><use href="#i-plus"/></svg></span><span><span class="t">新建工作区</span><span class="d">这是我的第一台设备。连接存储、设置加密密码，大约 10 分钟。</span></span></label>
               <label class="choice"><input type="radio" name="path" value="join"><span class="glyph mint"><svg class="ic lg"><use href="#i-link"/></svg></span><span><span class="t">加入已有工作区</span><span class="d">我已经在另一台电脑上用 Workroam。准备好配对码和加密密码。</span></span></label>
-              <label class="choice"><input type="radio" name="path" value="mirror"><span class="glyph amber"><svg class="ic lg"><use href="#i-restore"/></svg></span><span><span class="t">从异地备份恢复 <span class="tag">v0.3</span></span><span class="d">原来的存储整体丢失了。连接镜像，用加密密码或恢复密钥重建工作区。</span></span></label>
+              <label class="choice"><input type="radio" name="path" value="mirror"><span class="glyph amber"><svg class="ic lg"><use href="#i-restore"/></svg></span><span><span class="t">从异地备份恢复</span><span class="d">原来的存储整体丢失了。连接镜像，用加密密码或恢复密钥重建工作区。</span></span></label>
             </div>
             <p class="hint">没有图形界面的机器：在终端运行 <code>workroam setup</code>，步骤相同。</p>
             <div class="relay demo" aria-hidden="true"><div class="track">
@@ -1151,7 +1151,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
             <div><h2>输入加密密码</h2><p class="sub">就是第一台电脑初始化时设置的那个密码。</p></div>
             <div class="field" style="max-width:380px"><label class="lbl" for="jpw">加密密码</label><input class="input" id="jpw" type="password" value="handoff-at-18:40"></div>
             <div class="callout ok"><svg class="ic"><use href="#i-check"/></svg><span>解锁成功：工作区 <code>workroam-macbook-7f3a</code> · 4 个项目 · 2 台设备</span></div>
-            <div class="field"><span class="lbl">这个工作区曾从异地备份恢复 <span class="tag">v0.3</span></span>
+            <div class="field"><span class="lbl">这个工作区曾从异地备份恢复</span>
               <label class="choice"><input type="radio" name="asdev" checked><span><span class="t">作为原设备“公司-Win11”重新加入</span><span class="d">沿用原来的设备身份和项目目录，本地已有的文件只补齐差异。</span></span></label>
               <label class="choice"><input type="radio" name="asdev"><span><span class="t">作为新设备加入</span><span class="d">原设备记录保留，可以稍后在“设备”里移除。</span></span></label>
             </div>
@@ -1291,7 +1291,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
               <div class="setrow"><div class="tx"><b>加密密码</b><span>修改后不需要重新上传数据；其他设备下次解锁时使用新密码</span></div><button class="btn sm" type="button" data-open="sheetPw">修改加密密码…</button></div>
               <div class="setrow"><div class="tx"><b>忘记加密密码</b><span>用初始化时保存的恢复密钥解锁，并设置新密码</span></div><button class="btn sm" type="button" data-open="sheetRk">使用恢复密钥重设…</button></div>
             </div></div>
-            <div><h4>异地备份 <span class="tag">v0.3 · 可选</span></h4><div class="setgrp">
+            <div><h4>异地备份 <span class="tag">可选</span></h4><div class="setgrp">
               <div class="setrow"><div class="tx"><b>镜像整个存储</b><span>只在存储本身丢失时需要。云对象存储通常不必开启。</span></div><input class="sw" type="checkbox" checked aria-label="镜像整个存储"></div>
               <div class="setrow"><div class="tx"><b>镜像目标</b><span class="mono">/Volumes/NAS/workroam-mirror</span></div><button class="btn sm" type="button">更改…</button></div>
               <div class="setrow"><div class="tx"><b>最近一次</b><span>今天 03:12 · 增量 48 MB · 用时 2 分 06 秒 · 下次：明天空闲时</span></div><span class="pill ok"><span class="dot"></span>成功</span></div>
@@ -1365,7 +1365,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
       </div></div>
 
       <div class="sheet-wrap" id="sheetImport" hidden><div class="sheet glass" role="dialog" aria-label="导入归档包">
-        <div><h3>导入归档包 <span class="tag">v0.3</span></h3><p class="hint">把导出的单文件加密归档包导入到这个工作区。</p></div>
+        <div><h3>导入归档包</h3><p class="hint">把导出的单文件加密归档包导入到这个工作区。</p></div>
         <div class="field"><label class="lbl" for="impf">归档包</label><div class="inrow"><input class="input mono" id="impf" value="/Volumes/T7/crm-legacy-2026-03-12.wrarchive"><button class="btn sm" type="button">选择…</button></div></div>
         <div class="field"><label class="lbl" for="imppw">归档包密码</label><input class="input" id="imppw" type="password" placeholder="导出时使用的加密密码"></div>
         <div class="callout ok"><svg class="ic"><use href="#i-check"/></svg><span>已识别：crm-legacy · 归档于 2026-03-12 · 1.8 GB · 2 个代码仓库</span></div>
@@ -1373,7 +1373,7 @@ input[type=range]{accent-color:var(--accent);width:150px}
       </div></div>
 
       <div class="sheet-wrap" id="sheetExportPack" hidden><div class="sheet glass" role="dialog" aria-label="导出归档包">
-        <div><h3>导出归档包 <span class="tag">v0.3</span></h3><p class="hint">得到一个加密的单文件，可以放进移动硬盘离线保存，以后在任何工作区导入。</p></div>
+        <div><h3>导出归档包</h3><p class="hint">得到一个加密的单文件，可以放进移动硬盘离线保存，以后在任何工作区导入。</p></div>
         <div class="field"><label class="lbl" for="expf">保存到</label><div class="inrow"><input class="input mono" id="expf" value="/Volumes/T7/crm-legacy-2026-03-12.wrarchive"><button class="btn sm" type="button">选择…</button></div></div>
         <p class="hint">归档包用当前加密密码保护 · 约 1.8 GB</p>
         <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-close>导出</button></div>
@@ -1688,7 +1688,7 @@ function renderWiz(){
 }
 function updateFoot(){
   const cur=steps()[idx][0], nx=$('#next'); let label='继续', dis=false, hint='每一步都可以回退修改';
-  if(cur==='welcome'){ if(path==='mirror'){dis=true;hint='从异地备份恢复将在 v0.3 提供';} }
+  if(cur==='welcome'){ if(path==='mirror'){dis=true;hint='原型未演示从异地备份恢复的后续步骤';} }
   if(cur==='perm'){ const cu=$('input[name=perm]:checked').value==='current'; $('#permWarn').hidden=!cu; if(cu&&!$('#permAck').checked){dis=true;hint='勾选“我了解风险”后继续';} }
   if(cur==='bucket'){ const seg=$('[data-group=bucket] .on').dataset.val; if(seg==='custom'&&!bucketValid()){dis=true;hint='桶名不符合规则';} if(seg==='exist'&&$$('input[name=eb]')[0].checked){dis=true;hint='这个桶已经是工作区，请选择其他桶，或返回第一步改为加入';} }
   if(cur==='check'){ if(!checksDone){dis=true;hint='正在检查…';} else if(simFail){dis=true;hint='有失败项，修复后重新检查';} else hint='警告项不会阻止继续'; }
@@ -1920,7 +1920,7 @@ const CARDS={
    <h4><span class="si" style="background:var(--bad-bg);color:var(--bad)">${icon('i-x')}</span>推送 payment-gateway 失败</h4>
    <p>存储返回 503 Service Unavailable。已上传的 3 / 5 个数据块会保留，重试时从断点继续。</p>
    <div class="acts"><button class="btn sm ghost" type="button">打开检查</button><button class="btn sm" type="button" data-dismiss>忽略</button><button class="btn sm primary" type="button" data-go="progress">重试</button></div>`},
- arrive:{cap:'到达卡片 · UX-04 · v0.3',html:()=>`<div class="hd">${LG}Workroam<span class="tm">08:57</span></div>
+ arrive:{cap:'到达卡片 · UX-04',html:()=>`<div class="hd">${LG}Workroam<span class="tm">08:57</span></div>
    <h4>服务器上有新进度</h4>
    <dl class="meta"><dt>项目</dt><dd class="mono">payment-gateway</dd><dt>来自</dt><dd>家里-MacBook · 昨天 23:16</dd><dt>变更</dt><dd>23 个文件 · 4 个提交</dd><dt>冲突</dt><dd style="color:var(--ok)">没有</dd></dl>
    <div class="acts"><button class="btn sm" type="button" data-dismiss>稍后</button><button class="btn sm primary" type="button" data-go="pulldone">拉取</button></div>`},

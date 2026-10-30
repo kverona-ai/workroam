@@ -93,7 +93,7 @@ globset = "0.4"
 walkdir = "2"
 unicode-normalization = "0.1"
 diffy = "0.4"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "http2"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "rustls-tls-native-roots", "json", "http2"] }
 url = "2"
 opendal = { version = "0.58", features = ["services-s3", "services-fs"] }
 rustic_core = "0.13"

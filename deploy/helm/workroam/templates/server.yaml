@@ -1,0 +1,81 @@
+{{- if .Values.server.enabled }}
+{{- $fullname := include "workroam.fullname" . }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $fullname }}-server
+  labels:
+    {{- include "workroam.labels" . | nindent 4 }}
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.server.persistence.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.server.persistence.size }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullname }}-server
+  labels:
+    {{- include "workroam.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  strategy: { type: Recreate }
+  selector:
+    matchLabels:
+      {{- include "workroam.selector" (dict "root" . "component" "server") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "workroam.selector" (dict "root" . "component" "server") | nindent 8 }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        fsGroup: 65532
+      containers:
+        - name: workroam-server
+          image: "{{ .Values.server.image.repository }}:{{ .Values.server.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.server.image.pullPolicy }}
+          args: ["--listen", "0.0.0.0:8787", "--full"]
+          env:
+            - { name: WORKROAM_SERVER_PUBLIC_URL, value: "https://{{ .Values.host }}" }
+            - { name: WORKROAM_ADMIN_ENDPOINT, value: "http://{{ $fullname }}-storage:9000" }
+            - name: WORKROAM_ADMIN_ACCESS_KEY
+              valueFrom:
+                secretKeyRef: { name: {{ include "workroam.secretName" . }}, key: access-key }
+            - name: WORKROAM_ADMIN_SECRET_KEY
+              valueFrom:
+                secretKeyRef: { name: {{ include "workroam.secretName" . }}, key: secret-key }
+            {{- with .Values.server.ntfy }}
+            - { name: WORKROAM_NTFY, value: {{ . | quote }} }
+            {{- end }}
+          ports:
+            - { name: http, containerPort: 8787 }
+          readinessProbe:
+            httpGet: { path: /healthz, port: http }
+          volumeMounts:
+            - { name: state, mountPath: /home/nonroot/.workroam-server }
+          {{- with .Values.server.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: state
+          persistentVolumeClaim:
+            claimName: {{ $fullname }}-server
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullname }}-server
+  labels:
+    {{- include "workroam.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "workroam.selector" (dict "root" . "component" "server") | nindent 4 }}
+  ports:
+    - { name: http, port: 8787, targetPort: http }
+{{- end }}

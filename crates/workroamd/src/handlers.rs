@@ -343,11 +343,10 @@ pub fn project_name(p: &Value) -> Result<String> {
 }
 
 pub fn project_for_dir(m: &MachineConfig, dir: &Path) -> Option<String> {
-    let dir = workroam_core::paths::normalize(dir);
     let mut best: Option<(usize, String)> = None;
     for (name, b) in &m.projects {
-        let root = workroam_core::paths::normalize(&workroam_core::paths::expand_tilde(&b.path));
-        if dir.starts_with(&root) {
+        let root = workroam_core::paths::expand_tilde(&b.path);
+        if workroam_core::paths::is_within(dir, &root) {
             let len = root.as_os_str().len();
             if best.as_ref().map(|(l, _)| len > *l).unwrap_or(true) {
                 best = Some((len, name.clone()));

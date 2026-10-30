@@ -1,4 +1,5 @@
 /* Workroam reader: the desktop app's tokens (docs/prototype/DESIGN.md), in a single page. */
+[hidden] { display: none !important; }
 :root {
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;

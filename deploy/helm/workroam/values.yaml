@@ -1,0 +1,46 @@
+# Public host name. Devices use https://<host> as the storage endpoint; the
+# workroam-server paths (/relay, /mcp, /oauth/…, /pair…) share the host.
+host: s3.example.com
+
+storage:
+  image:
+    repository: rustfs/rustfs
+    tag: latest
+    pullPolicy: IfNotPresent
+  # Root (admin) key. The setup wizard uses it once to create a key limited
+  # to one bucket. Leave empty to generate one (kept in the Secret across upgrades),
+  # or point existingSecret at a Secret with access-key / secret-key.
+  accessKey: ""
+  secretKey: ""
+  existingSecret: ""
+  persistence:
+    size: 100Gi
+    storageClass: ""
+  resources: {}
+
+server:
+  # workroam-server in full mode: pairing codes, per-device keys, ntfy, and the
+  # web reader (served at / on server.webHost when set).
+  enabled: false
+  image:
+    repository: ghcr.io/kverona-ai/workroam-server
+    tag: ""            # default: the chart's appVersion
+    pullPolicy: IfNotPresent
+  ntfy: ""
+  # Optional separate host for the web reader (an Ingress cannot strip a
+  # path prefix portably, so the reader gets its own host).
+  webHost: ""
+  persistence:
+    size: 1Gi
+    storageClass: ""
+  resources: {}
+
+ingress:
+  enabled: true
+  className: ""
+  annotations: {}
+    # cert-manager.io/cluster-issuer: letsencrypt
+    # nginx.ingress.kubernetes.io/proxy-body-size: "0"
+  tls:
+    enabled: true
+    secretName: workroam-tls

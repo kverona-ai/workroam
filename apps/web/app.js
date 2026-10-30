@@ -165,6 +165,15 @@ function projectsView(selected) {
   if (first) side.querySelectorAll(".item")[ws.projects.indexOf(first)].click();
 }
 
+// Workroam stores the snapshot metadata as JSON in the description.
+function snapNote(s) {
+  let m;
+  try { m = JSON.parse(s.description || ""); } catch { return s.description || s.label || ""; }
+  const c = m.summary || {};
+  const counts = c.added != null ? `+${c.added} ~${c.modified || 0} -${c.deleted || 0}` : "";
+  return [m.note, counts].filter(Boolean).join(" · ");
+}
+
 async function projectView(el, p) {
   const hist = ws.history(p.pid);
   const handoff = h("div", { class: "card md" }, h("p", { class: "dim" }, T.loading));
@@ -172,7 +181,7 @@ async function projectView(el, p) {
   for (const s of hist.slice(0, 200)) {
     list.append(h("button", { class: "row", onclick: () => filesView(el, p, s, []) },
       h("span", { class: "mono" }, s.id.slice(0, 8)),
-      h("span", {}, s.description || s.label || ""),
+      h("span", {}, snapNote(s)),
       h("span", { class: "dim" }, s.hostname || ""),
       h("span", { class: "dim num" }, when(s.time))));
   }

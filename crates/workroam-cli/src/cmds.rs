@@ -1059,9 +1059,9 @@ impl crate::cli::Cli {
 async fn init(out: &Out, a: &InitArgs) -> Result<i32> {
     let c = connect(ClientKind::Cli).await?;
     let dir = a.dir.clone().unwrap_or_else(cwd);
-    let dir = std::fs::canonicalize(&dir)
-        .map(|p| p.display().to_string())
-        .unwrap_or(dir);
+    let dir = workroam_core::paths::canonical(std::path::Path::new(&dir))
+        .display()
+        .to_string();
     let plan = c
         .client
         .call("project.scan", json!({"dir": dir, "name": a.name}))

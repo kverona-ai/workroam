@@ -105,6 +105,38 @@ pub fn normalize(p: &Path) -> PathBuf {
     out
 }
 
+/// The real path when it exists (symlinks, Windows 8.3 short names and
+/// letter case resolved), without the `\\?\` prefix; else [`normalize`].
+pub fn canonical(p: &Path) -> PathBuf {
+    match std::fs::canonicalize(p) {
+        Ok(c) => strip_verbatim(c),
+        Err(_) => normalize(p),
+    }
+}
+
+fn strip_verbatim(p: PathBuf) -> PathBuf {
+    let s = p.to_string_lossy();
+    if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{rest}"));
+    }
+    if let Some(rest) = s.strip_prefix(r"\\?\") {
+        return PathBuf::from(rest);
+    }
+    p
+}
+
+/// Whether `dir` is `root` or inside it, comparing real paths (and ignoring
+/// letter case on Windows and macOS, whose file systems usually do too).
+pub fn is_within(dir: &Path, root: &Path) -> bool {
+    let (d, r) = (canonical(dir), canonical(root));
+    if cfg!(any(windows, target_os = "macos")) {
+        let lower = |p: &Path| PathBuf::from(p.to_string_lossy().to_lowercase());
+        lower(&d).starts_with(lower(&r))
+    } else {
+        d.starts_with(&r)
+    }
+}
+
 /// Write a file atomically: temp file in the same directory, then rename.
 pub fn write_atomic(path: &Path, data: &[u8]) -> Result<()> {
     let dir = path.parent().unwrap_or_else(|| Path::new("."));
@@ -156,6 +188,22 @@ pub fn from_snapshot_path(base: &Path, p: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn within_compares_real_paths() {
+        let t = tempfile::tempdir().unwrap();
+        let root = t.path().join("proj");
+        std::fs::create_dir_all(root.join("src")).unwrap();
+        assert!(is_within(&root.join("src"), &root));
+        assert!(is_within(&root.join("src/./../src"), &root));
+        assert!(is_within(&canonical(&root.join("src")), &root));
+        assert!(!is_within(t.path(), &root));
+        assert!(!is_within(&t.path().join("proj2"), &root));
+        assert_eq!(
+            strip_verbatim(PathBuf::from(r"\\?\C:\x")),
+            PathBuf::from(r"C:\x")
+        );
+    }
 
     #[test]
     fn snapshot_paths() {

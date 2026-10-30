@@ -108,7 +108,7 @@ workroam pull --acquire     # 到达时
 | --- | --- | --- |
 | **v0.1** | 我自己每天在用：初始化向导与检查、配对码、CLI、快照、租约、加密、bundle 模式、Claude Code 与 Codex 适配器、授权卡片 | 公司 Windows ↔ 家里 Mac 连续使用两周不丢数据 |
 | v0.2 | 多 Agent：Grok Build、Antigravity、ZCode、Pi；会话迁移；remote 与 files 模式；专用密钥、只读设备、密钥轮换；项目归档与恢复 | 六个 Agent 换机器后都能直接开工 |
-| **v0.3** | 无感同步（最终形态）：自动同步、到达卡片、同步历史、Agent 用 MCP server、手机推送、可选服务端（配对码与 Web 界面）；可选异地备份 | 日常基本不用手动敲命令 |
+| **v0.3** | 无感同步（最终形态）：自动同步、到达卡片、同步历史、本机 Agent 用 MCP server、云端个人 Agent 远程连接器（Grok Bot、Muse）、手机推送、可选服务端（配对码与 Web 界面）；可选异地备份 | 日常基本不用手动敲命令 |
 
 详见 [PRD · 版本规划](docs/prd.md#10-版本规划与验收门槛)。
 

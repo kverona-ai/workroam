@@ -32,7 +32,8 @@
 - `cargo fmt --all` 与 `cargo clippy --all-targets -- -D warnings` 必须通过；
 - 新功能需要测试；与存储相关的改动需要通过本地 RustFS 集成测试；
 - 涉及路径、文件名、链接的改动，需要考虑 Windows、macOS、Linux 三个系统；
-- 新增依赖需要通过 `cargo deny check`。
+- 新增依赖需要通过 `cargo deny check`；
+- 以上检查都在 CI 中自动运行，PR 需要 **CI OK** 通过才能合并；CI 与发布流程见 [持续集成与发布](docs/release.md)。
 
 ### 文档规范
 

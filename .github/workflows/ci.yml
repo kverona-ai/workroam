@@ -1,0 +1,184 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  RUST_BACKTRACE: 1
+  # 横幅等交互输出在 CI 中关闭（PRD CLI-02）
+  WORKROAM_NO_BANNER: 1
+
+jobs:
+  # 仓库里还没有某部分代码时，对应的任务直接跳过，不让 main 变红
+  detect:
+    name: Detect
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.detect.outputs.rust }}
+      desktop: ${{ steps.detect.outputs.desktop }}
+      deny: ${{ steps.detect.outputs.deny }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: detect
+        run: |
+          has() { [ -e "$1" ] && echo true || echo false; }
+          {
+            echo "rust=$(has Cargo.toml)"
+            echo "desktop=$(has apps/desktop/src-tauri/tauri.conf.json)"
+            echo "deny=$(has deny.toml)"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  scripts:
+    name: Scripts and workflows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: actionlint
+        uses: raven-actions/actionlint@v2
+      - name: shellcheck
+        run: shellcheck scripts/install.sh scripts/release/*.sh
+      - name: PowerShell syntax
+        shell: pwsh
+        run: |
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$PWD/scripts/install.ps1", [ref]$null, [ref]$errors) | Out-Null
+          if ($errors) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+      - name: Install script end-to-end
+        run: scripts/release/test-install.sh
+
+  install-macos:
+    name: Install script (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: scripts/release/test-install.sh
+
+  fmt:
+    name: Rustfmt
+    needs: detect
+    if: needs.detect.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --all --check
+
+  clippy:
+    name: Clippy
+    needs: detect
+    if: needs.detect.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/linux-deps
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/desktop-prepare
+        if: needs.detect.outputs.desktop == 'true'
+      - run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+
+  test:
+    name: Test (${{ matrix.os }})
+    needs: detect
+    if: needs.detect.outputs.rust == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/linux-deps
+        if: runner.os == 'Linux'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-nextest
+      - uses: ./.github/actions/desktop-prepare
+        if: needs.detect.outputs.desktop == 'true'
+      - name: Tests
+        run: cargo nextest run --workspace --locked --no-tests=warn
+      - name: Doc tests
+        run: cargo test --workspace --locked --doc
+
+  server-musl:
+    name: workroam-server static build
+    needs: detect
+    if: needs.detect.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v2
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends musl-tools
+      - name: Build relay mode
+        run: cargo build --release --locked --target x86_64-unknown-linux-musl --bin workroam-server
+      - name: Check size and linkage (architecture §18.1)
+        run: |
+          bin=target/x86_64-unknown-linux-musl/release/workroam-server
+          size=$(stat -c %s "$bin")
+          echo "workroam-server: $((size / 1024 / 1024)) MB"
+          file "$bin"
+          file "$bin" | grep -q 'statically linked\|static-pie linked'
+          [ "$size" -le $((15 * 1024 * 1024)) ] || { echo "::error::workroam-server 超过 15 MB"; exit 1; }
+
+  deny:
+    name: cargo-deny
+    needs: detect
+    if: needs.detect.outputs.rust == 'true' && needs.detect.outputs.deny == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check
+
+  desktop:
+    name: Desktop build (${{ matrix.os }})
+    needs: detect
+    if: needs.detect.outputs.desktop == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/linux-deps
+        if: runner.os == 'Linux'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: ./.github/actions/desktop-prepare
+      - name: Build without bundling
+        working-directory: apps/desktop
+        shell: bash
+        run: npx --yes @tauri-apps/cli@^2 build --debug --no-bundle
+
+  # 分支保护只需要勾选这一个检查
+  ci-ok:
+    name: CI OK
+    if: always()
+    needs: [detect, scripts, install-macos, fmt, clippy, test, server-musl, deny, desktop]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo '${{ toJSON(needs) }}' | jq -e 'all(.[]; .result == "success" or .result == "skipped")'

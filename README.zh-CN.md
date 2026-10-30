@@ -10,7 +10,7 @@
 项目、代码、规则、MCP / Skills 和上下文就都能接上。
 
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-design%20phase-orange.svg)](docs/prd.md#10-版本规划与验收门槛)
+[![Status](https://img.shields.io/badge/status-design%20phase-orange.svg)](docs/prd.md#10-发布范围与验收门槛)
 [![Rust](https://img.shields.io/badge/Rust-stable-dea584.svg?logo=rust&logoColor=white)](https://www.rust-lang.org)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](#)
 [![Storage](https://img.shields.io/badge/storage-any%20S3--compatible-2F6BFF.svg)](docs/architecture.md#5-存储布局)
@@ -103,15 +103,19 @@ workroam push --release     # 离开时
 workroam pull               # 到达时（同时获取租约）
 ```
 
-## 路线图
+## 发布范围
 
-| 版本 | 主题 | 门槛 |
+PRD 中的全部功能作为 **v0.1** 一次发布，下表门槛全部达到才发布。
+
+| 范围 | 内容 | 门槛 |
 | --- | --- | --- |
-| **v0.1** | 我自己每天在用：初始化向导与检查、配对码、CLI、快照、租约、加密、bundle 模式、Claude Code 与 Codex 适配器、授权卡片 | 公司 Windows ↔ 家里 Mac 连续使用两周不丢数据 |
-| v0.2 | 多 Agent：Grok Build、Antigravity、ZCode、Pi；会话迁移；remote 与 files 模式；专用密钥、只读设备、密钥轮换；项目归档与恢复 | 六个 Agent 换机器后都能直接开工 |
-| **v0.3** | 无感同步（最终形态）：自动同步、到达卡片、同步历史、本机 Agent 用 MCP server、云端个人 Agent 远程连接器（Grok Bot、Muse）、手机推送、可选服务端（配对码与 Web 界面）；可选异地备份 | 日常基本不用手动敲命令 |
+| 接力与数据安全 | 初始化向导与检查、配对码、只读设备、密钥轮换、快照、租约、加密、恢复与同步历史、bundle / remote / files 模式 | 公司 Windows ↔ 家里 Mac 连续使用两周不丢数据 |
+| 多 Agent | 六个本机 Agent（Claude Code、Codex、Grok Build、Antigravity、ZCode、Pi）、会话迁移、命令行 `--json` 与 Workroam Skill、本机 MCP server | 六个 Agent 换机器后都能直接开工 |
+| 无感同步 | 自动同步、授权 / 进度 / 完成 / 到达卡片、桌面应用与命令行功能对等 | 日常基本不用手动敲命令 |
+| 归档与备份 | 项目归档与恢复、归档包、快照清理、可选异地备份 | 归档项目恢复后直接可用 |
+| 云端个人 Agent 与可选服务端 | `workroam-server` 中继模式（可部署在 bot 的云端电脑上）与远程连接器（Grok Bot、Muse）；完整模式另有 6 位配对码、手机推送与 Web 界面 | 云端个人 Agent 2 分钟内连上 |
 
-详见 [PRD · 版本规划](docs/prd.md#10-版本规划与验收门槛)。
+详见 [PRD · 发布范围](docs/prd.md#10-发布范围与验收门槛)。
 
 ## 仓库结构
 

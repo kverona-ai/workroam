@@ -103,15 +103,19 @@ workroam push --release     # when leaving
 workroam pull               # when arriving (takes the lease)
 ```
 
-## Roadmap
+## Release scope
 
-| Version | Theme | Gate |
+Workroam ships everything in the PRD as a single **v0.1** release. It goes out only when every gate below is met.
+
+| Area | Scope | Gate |
 | --- | --- | --- |
-| **v0.1** | Dogfooding: setup wizard & checks, pairing codes, CLI, snapshots, lease, encryption, bundle mode, Claude Code & Codex adapters, approval cards | Two weeks of daily Windows ↔ Mac handoffs without data loss |
-| v0.2 | More agents: Grok Build, Antigravity, ZCode, Pi; session migration; remote & files modes; scoped keys, read-only devices, key rotation; project archive & restore | Six agents work right after switching machines |
-| **v0.3** | Hands-free (target product): automatic sync, arrival cards, sync history, MCP server for local agents, remote connector for cloud personal agents (Grok Bot, Muse), mobile push, optional server with pairing codes and a web UI; optional off-site mirror | Almost no manual commands |
+| Handoff & data safety | Setup wizard & checks, pairing codes, read-only devices, key rotation, snapshots, lease, encryption, restore & sync history, bundle / remote / files modes | Two weeks of daily Windows ↔ Mac handoffs without data loss |
+| Agents | Six local agents (Claude Code, Codex, Grok Build, Antigravity, ZCode, Pi), session migration, CLI `--json` + Workroam Skill, local MCP server | Six agents work right after switching machines |
+| Hands-free | Automatic sync, approval / progress / done / arrival cards, desktop ↔ CLI parity | Almost no manual commands |
+| Archive & backup | Project archive & restore, archive packs, pruning, optional off-site mirror | Archived projects restore and just work |
+| Cloud agents & optional server | `workroam-server` relay (can run on a bot's cloud computer) with a remote connector for Grok Bot and Muse; full mode adds short pairing codes, mobile push and a web UI | A cloud personal agent connects in under 2 minutes |
 
-See [PRD · Roadmap](docs/prd.md#10-版本规划与验收门槛) for details.
+See [PRD · Release scope](docs/prd.md#10-发布范围与验收门槛) for details.
 
 ## Repository layout
 

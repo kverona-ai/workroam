@@ -5869,6 +5869,22 @@ dependencies = [
 [[package]]
 name = "workroam-archive"
 version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tracing",
+ "workroam-core",
+ "workroam-device",
+ "workroam-engine",
+ "workroam-git",
+ "workroam-lease",
+ "workroam-platform",
+ "workroam-snapshot",
+ "workroam-store",
+]
 
 [[package]]
 name = "workroam-cli"

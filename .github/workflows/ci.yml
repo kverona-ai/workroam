@@ -161,17 +161,29 @@ jobs:
       matrix:
         os: [ubuntu-22.04, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    env:
+      # src-tauri 不在根 workspace 里，与根 workspace 共用 target 目录与缓存
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/linux-deps
         if: runner.os == 'Linux'
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
       - uses: Swatinem/rust-cache@v2
+        with:
+          key: desktop
+          workspaces: |
+            . -> target
+            apps/desktop/src-tauri -> ../../../target
       - uses: ./.github/actions/desktop-prepare
       - name: Build without bundling
         working-directory: apps/desktop
         shell: bash
         run: npx --yes @tauri-apps/cli@^2 build --debug --no-bundle
+      - name: Clippy (desktop)
+        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets -- -D warnings
 
   # 分支保护只需要勾选这一个检查
   ci-ok:

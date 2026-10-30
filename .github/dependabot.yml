@@ -7,13 +7,4 @@ updates:
     groups:
       actions:
         patterns: ['*']
-  - package-ecosystem: cargo
-    directory: /
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
-  - package-ecosystem: npm
-    directory: /apps/desktop
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 5
+  # cargo（/）与 npm（/apps/desktop）在产品代码合入后再加：清单文件不存在时 Dependabot 每次都会报错

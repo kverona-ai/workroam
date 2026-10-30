@@ -6,7 +6,7 @@
 
 | 工作流 | 触发 | 内容 |
 | --- | --- | --- |
-| [`ci.yml`](../.github/workflows/ci.yml) | 每个 PR、推送到 `main` | `cargo fmt`、`clippy -D warnings`、三系统 `cargo nextest`、`workroam-server` musl 静态构建与 15 MB 体积检查（[架构 §18.1](architecture.md#181-轻量要求)）、`cargo-deny`、三系统桌面应用构建、`actionlint` 与 `shellcheck`、安装脚本端到端测试（Linux 与 macOS） |
+| [`ci.yml`](../.github/workflows/ci.yml) | 每个 PR、推送到 `main` | `cargo fmt`、`clippy -D warnings`、三系统 `cargo nextest`、`workroam-server` musl 静态构建与 15 MB 体积检查（[架构 §18.1](architecture.md#181-轻量要求)）、`cargo-deny`、三系统桌面应用构建、`actionlint` 与 `shellcheck`、Helm Chart `helm lint`、安装脚本端到端测试（Linux 与 macOS） |
 | [`release.yml`](../.github/workflows/release.yml) | 推送 `v*` tag；或手动运行 | 构建全部平台的产物，生成校验和、构建来源证明、包管理器清单与发布说明，发布 GitHub Release 与容器镜像 |
 
 仓库里还没有 `Cargo.toml` 或桌面应用时，CI 中对应的任务会跳过。分支保护只需要勾选 **CI OK** 这一个检查：它在所有任务都通过或跳过时才通过。

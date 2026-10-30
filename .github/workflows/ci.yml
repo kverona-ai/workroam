@@ -29,6 +29,7 @@ jobs:
       rust: ${{ steps.detect.outputs.rust }}
       desktop: ${{ steps.detect.outputs.desktop }}
       deny: ${{ steps.detect.outputs.deny }}
+      helm: ${{ steps.detect.outputs.helm }}
     steps:
       - uses: actions/checkout@v7
       - id: detect
@@ -38,6 +39,7 @@ jobs:
             echo "rust=$(has Cargo.toml)"
             echo "desktop=$(has apps/desktop/src-tauri/tauri.conf.json)"
             echo "deny=$(has deny.toml)"
+            echo "helm=$(has deploy/helm/workroam/Chart.yaml)"
           } | tee -a "$GITHUB_OUTPUT"
 
   scripts:
@@ -48,7 +50,9 @@ jobs:
       - name: actionlint
         uses: raven-actions/actionlint@v2
       - name: shellcheck
-        run: shellcheck scripts/install.sh scripts/release/*.sh
+        run: |
+          shellcheck scripts/install.sh scripts/release/*.sh
+          [ ! -f deploy/install.sh ] || shellcheck deploy/install.sh
       - name: PowerShell syntax
         shell: pwsh
         run: |
@@ -185,12 +189,26 @@ jobs:
       - name: Clippy (desktop)
         run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets -- -D warnings
 
+  helm:
+    name: Helm chart
+    needs: detect
+    if: needs.detect.outputs.helm == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v4
+      - name: Lint and render
+        run: |
+          helm lint --strict deploy/helm/workroam
+          helm template workroam deploy/helm/workroam > /dev/null
+          helm template workroam deploy/helm/workroam --set server.enabled=true > /dev/null
+
   # 分支保护只需要勾选这一个检查
   ci-ok:
     name: CI OK
     # 新推送取消旧运行时跳过，不在已被取代的提交上报失败；任务失败或被单独取消时照常判失败
     if: ${{ !cancelled() }}
-    needs: [detect, scripts, install-macos, fmt, clippy, test, server-musl, deny, desktop]
+    needs: [detect, scripts, install-macos, fmt, clippy, test, server-musl, deny, desktop, helm]
     runs-on: ubuntu-latest
     steps:
       - run: |

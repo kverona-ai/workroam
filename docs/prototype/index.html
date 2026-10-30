@@ -1,0 +1,1526 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Workroam 高保真原型</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: an aurora "desktop" wallpaper; a floating glass navigator switches between five scenes
+   (brand, setup wizard, main window, corner cards, tray). Every surface is Liquid Glass:
+   translucent fill + backdrop blur + specular rim. */
+:root{
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+
+  /* brand */
+  --roam:#2F6BFF;        /* Roam Blue */
+  --lagoon:#1FB6E8;      /* Lagoon */
+  --mint:#2ED3B7;        /* Mint */
+  --amber:#FFB547;       /* Baton Amber: the workspace */
+  --accent:#2F6BFF; --accent-hi:#5A8BFF; --on-accent:#FFFFFF;
+
+  /* neutrals, biased toward blue */
+  --bg:#E8EEF7; --fg:#0E1726; --fg2:#4A5669; --fg3:#7B8699;
+  --hair:rgba(14,23,38,.08); --hair2:rgba(14,23,38,.14);
+
+  /* semantic */
+  --ok:#14975B; --warn:#B86E00; --bad:#D3343C;
+  --ok-bg:rgba(20,151,91,.12); --warn-bg:rgba(255,170,0,.17); --bad-bg:rgba(211,52,60,.11); --acc-bg:rgba(47,107,255,.12); --amb-bg:rgba(255,181,71,.22);
+
+  /* glass */
+  --glass:rgba(255,255,255,.44); --glass-strong:rgba(255,255,255,.72); --pane:rgba(255,255,255,.38);
+  --rim-a:rgba(255,255,255,.95); --rim-b:rgba(255,255,255,.55); --edge:rgba(255,255,255,.5);
+  --shadow:rgba(28,48,100,.22); --shadow-s:rgba(28,48,100,.10);
+  --btn:rgba(255,255,255,.6); --btn-h:rgba(255,255,255,.85);
+  --field:rgba(255,255,255,.62); --knob:#FFFFFF; --dim:rgba(16,26,48,.18);
+  --menubar:rgba(255,255,255,.5);
+
+  /* wallpaper */
+  --blob1:#86B4FF; --blob2:#7FE6D6; --blob3:#C8BCFF; --blob4:#FFD7AA;
+
+  /* fixed in both themes */
+  --tl-r:#FF5F57; --tl-y:#FEBC2E; --tl-g:#28C840; --qr-bg:#FFFFFF; --qr-fg:#0E1726;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --accent:#5B8CFF; --accent-hi:#7FA6FF;
+    --bg:#070B16; --fg:#EEF2FA; --fg2:#AAB4C7; --fg3:#748099;
+    --hair:rgba(255,255,255,.08); --hair2:rgba(255,255,255,.16);
+    --ok:#3DDC97; --warn:#FFC14D; --bad:#FF6B70;
+    --ok-bg:rgba(61,220,151,.14); --warn-bg:rgba(255,193,77,.15); --bad-bg:rgba(255,107,112,.15); --acc-bg:rgba(91,140,255,.18); --amb-bg:rgba(255,181,71,.18);
+    --glass:rgba(26,32,50,.5); --glass-strong:rgba(48,56,82,.72); --pane:rgba(255,255,255,.05);
+    --rim-a:rgba(255,255,255,.32); --rim-b:rgba(255,255,255,.08); --edge:rgba(255,255,255,.1);
+    --shadow:rgba(0,0,0,.55); --shadow-s:rgba(0,0,0,.3);
+    --btn:rgba(255,255,255,.1); --btn-h:rgba(255,255,255,.17);
+    --field:rgba(255,255,255,.07); --knob:#F4F6FB; --dim:rgba(0,0,0,.4);
+    --menubar:rgba(20,24,38,.55);
+    --blob1:#1D3FAE; --blob2:#0B6B66; --blob3:#3A2A80; --blob4:#5C3516;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --accent:#5B8CFF; --accent-hi:#7FA6FF;
+  --bg:#070B16; --fg:#EEF2FA; --fg2:#AAB4C7; --fg3:#748099;
+  --hair:rgba(255,255,255,.08); --hair2:rgba(255,255,255,.16);
+  --ok:#3DDC97; --warn:#FFC14D; --bad:#FF6B70;
+  --ok-bg:rgba(61,220,151,.14); --warn-bg:rgba(255,193,77,.15); --bad-bg:rgba(255,107,112,.15); --acc-bg:rgba(91,140,255,.18); --amb-bg:rgba(255,181,71,.18);
+  --glass:rgba(26,32,50,.5); --glass-strong:rgba(48,56,82,.72); --pane:rgba(255,255,255,.05);
+  --rim-a:rgba(255,255,255,.32); --rim-b:rgba(255,255,255,.08); --edge:rgba(255,255,255,.1);
+  --shadow:rgba(0,0,0,.55); --shadow-s:rgba(0,0,0,.3);
+  --btn:rgba(255,255,255,.1); --btn-h:rgba(255,255,255,.17);
+  --field:rgba(255,255,255,.07); --knob:#F4F6FB; --dim:rgba(0,0,0,.4);
+  --menubar:rgba(20,24,38,.55);
+  --blob1:#1D3FAE; --blob2:#0B6B66; --blob3:#3A2A80; --blob4:#5C3516;
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font-family:var(--font); font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:0 64px; overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+.wall{position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  radial-gradient(42% 52% at 10% 14%,var(--blob1),transparent 70%),
+  radial-gradient(36% 46% at 92% 10%,var(--blob3),transparent 70%),
+  radial-gradient(48% 52% at 84% 88%,var(--blob2),transparent 70%),
+  radial-gradient(38% 42% at 16% 92%,var(--blob4),transparent 70%),
+  var(--bg)}
+h1,h2,h3,h4{margin:0;text-wrap:balance;letter-spacing:-.015em}
+p{margin:0}
+a{color:var(--accent)}
+code,.mono{font-family:var(--mono);font-size:.92em}
+.ic{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ic.sm{width:14px;height:14px}
+.ic.lg{width:22px;height:22px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- glass material ---------- */
+.glass{position:relative;background:var(--glass);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
+  border-radius:var(--r,24px);
+  box-shadow:inset 0 1px 0 var(--rim-a),inset 0 0 0 1px var(--edge),0 30px 70px -28px var(--shadow),0 2px 10px var(--shadow-s)}
+.glass::after{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;
+  background:linear-gradient(150deg,var(--rim-a),transparent 32%,transparent 68%,var(--rim-b));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude}
+.pane{background:var(--pane);border-radius:16px;box-shadow:inset 0 0 0 1px var(--hair)}
+
+/* ---------- controls ---------- */
+.btn{appearance:none;border:0;font:inherit;font-weight:560;font-size:13px;height:32px;padding:0 14px;border-radius:999px;
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;color:var(--fg);white-space:nowrap;
+  background:var(--btn);box-shadow:inset 0 1px 0 var(--rim-a),inset 0 0 0 1px var(--edge),0 1px 3px var(--shadow-s);
+  transition:transform .15s ease,background .15s ease,opacity .15s}
+.btn:hover{background:var(--btn-h)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.42;cursor:not-allowed;transform:none}
+.btn.primary{color:var(--on-accent);background:linear-gradient(180deg,var(--accent-hi),var(--accent));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 -1px 0 rgba(0,0,0,.12),0 8px 18px -8px var(--accent)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.danger{color:var(--bad)}
+.btn.danger.solid{color:var(--on-accent);background:var(--bad);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 8px 18px -8px var(--bad)}
+.btn.ghost{background:transparent;box-shadow:none;color:var(--fg2)}
+.btn.ghost:hover{background:var(--hair)}
+.btn.sm{height:26px;padding:0 10px;font-size:12px}
+.btn.icon{width:32px;padding:0}
+.btn.big{height:40px;padding:0 20px;font-size:14px}
+
+.seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--hair);gap:2px;max-width:100%;overflow-x:auto}
+.seg button{border:0;background:transparent;height:28px;padding:0 12px;border-radius:999px;font:inherit;font-size:12.5px;font-weight:560;color:var(--fg2);cursor:pointer;white-space:nowrap}
+.seg button.on{background:var(--glass-strong);color:var(--fg);box-shadow:0 1px 4px var(--shadow-s),inset 0 1px 0 var(--rim-a)}
+
+.sw{appearance:none;width:40px;height:24px;border-radius:999px;background:var(--hair2);position:relative;cursor:pointer;flex:none;transition:background .2s;margin:0}
+.sw::before{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--knob);box-shadow:0 2px 5px rgba(0,0,0,.25);transition:transform .2s}
+.sw:checked{background:var(--ok)}
+.sw:checked::before{transform:translateX(16px)}
+.cb{width:16px;height:16px;accent-color:var(--accent);margin:0;flex:none}
+
+.field{display:grid;gap:6px;min-width:0}
+.lbl{font-size:12px;font-weight:600;color:var(--fg2)}
+.hint{font-size:12px;color:var(--fg3)}
+.input{width:100%;height:36px;border-radius:12px;border:0;background:var(--field);color:var(--fg);font:inherit;padding:0 12px;
+  box-shadow:inset 0 0 0 1px var(--hair2),inset 0 1px 2px var(--shadow-s);transition:box-shadow .15s}
+.input:focus{outline:none;box-shadow:inset 0 0 0 1.5px var(--accent),0 0 0 4px var(--acc-bg)}
+.input.mono{font-family:var(--mono);font-size:13px}
+textarea.input{height:auto;padding:10px 12px;resize:vertical;line-height:1.45}
+.inrow{display:flex;gap:8px;align-items:center}
+.inrow .input{flex:1;min-width:0}
+
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;background:var(--hair);color:var(--fg2);white-space:nowrap;line-height:1.6}
+.pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)} .pill.acc{background:var(--acc-bg);color:var(--accent)}
+.pill.amb{background:var(--amb-bg);color:var(--warn)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.tag{font-size:10.5px;font-weight:700;letter-spacing:.04em;padding:1px 6px;border-radius:6px;background:var(--hair);color:var(--fg3)}
+
+.callout{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.5}
+.callout .ic{margin-top:1px}
+.callout.info{background:var(--acc-bg);color:var(--fg)} .callout.info .ic{color:var(--accent)}
+.callout.warn{background:var(--warn-bg);color:var(--fg)} .callout.warn .ic{color:var(--warn)}
+.callout.bad{background:var(--bad-bg);color:var(--fg)} .callout.bad .ic{color:var(--bad)}
+.callout.ok{background:var(--ok-bg);color:var(--fg)} .callout.ok .ic{color:var(--ok)}
+
+.bar{height:6px;border-radius:999px;background:var(--hair2);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--accent),var(--lagoon),var(--mint));transition:width .3s ease}
+
+.codebox{font-family:var(--mono);font-size:12.5px;background:var(--pane);box-shadow:inset 0 0 0 1px var(--hair);border-radius:12px;padding:10px 12px;overflow-x:auto;white-space:nowrap;color:var(--fg)}
+
+/* ---------- navigator ---------- */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;margin:12px auto 22px;max-width:1100px;--r:22px;
+  display:flex;align-items:center;gap:12px;padding:8px 8px 8px 14px}
+.nav .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:15px;letter-spacing:-.01em;flex:none}
+.nav .brand svg{width:28px;height:28px}
+.nav .brand small{font-weight:500;color:var(--fg3);font-size:12px}
+.tabs{display:flex;gap:2px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:none;justify-content:center}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:6px 13px;border-radius:999px;font-size:13px;font-weight:560;color:var(--fg2);text-decoration:none;white-space:nowrap}
+.tab:hover{background:var(--hair)}
+.tab[aria-current="page"]{background:var(--glass-strong);color:var(--fg);box-shadow:0 1px 4px var(--shadow-s),inset 0 1px 0 var(--rim-a)}
+.theme-btn{flex:none}
+
+main{max-width:1100px;margin:0 auto}
+.view{display:grid;gap:20px}
+.intro{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px 24px}
+.intro .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.08em;color:var(--fg3);text-transform:uppercase}
+.intro h1{font-size:28px;font-weight:750;margin-top:2px}
+.intro p{color:var(--fg2);max-width:64ch;margin-top:6px}
+
+/* ---------- window ---------- */
+.win{--r:28px;display:flex;flex-direction:column;overflow:hidden;height:720px}
+.titlebar{height:50px;display:flex;align-items:center;gap:14px;padding:0 18px;flex:none;position:relative;border-bottom:1px solid var(--hair)}
+.lights{display:flex;gap:8px;flex:none}
+.lights span{width:12px;height:12px;border-radius:50%;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.15)}
+.lights span:nth-child(1){background:var(--tl-r)} .lights span:nth-child(2){background:var(--tl-y)} .lights span:nth-child(3){background:var(--tl-g)}
+.win-title{font-size:13px;font-weight:600;color:var(--fg2);flex:1;text-align:center;margin-right:52px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.win-body{flex:1;min-height:0;display:grid;grid-template-columns:232px 1fr;position:relative}
+.appbody{grid-template-columns:220px 1fr}
+.win-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 20px;border-top:1px solid var(--hair);flex-wrap:wrap}
+.win-foot .hint{flex:1;min-width:180px}
+
+/* sheets (modal inside a window) */
+.sheet-wrap{position:absolute;inset:0;z-index:20;background:var(--dim);display:flex;justify-content:center;align-items:flex-start;padding:24px 16px;overflow:auto;border-radius:inherit}
+.sheet{--r:24px;width:min(560px,100%);padding:22px 22px 18px;display:grid;gap:16px;background:var(--glass-strong);animation:sheetIn .28s cubic-bezier(.2,.9,.3,1.2)}
+.sheet h3{font-size:18px}
+.sheet .acts{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+@keyframes sheetIn{from{transform:translateY(-14px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+
+/* ---------- wizard ---------- */
+.rail{padding:16px 12px;border-right:1px solid var(--hair);overflow:auto}
+.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.rail li{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:12px;font-size:13px;color:var(--fg3);font-weight:520}
+.rail li .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;background:var(--hair);flex:none}
+.rail li.done{color:var(--fg2)} .rail li.done .n{background:var(--ok-bg);color:var(--ok)}
+.rail li.cur{color:var(--fg);background:var(--glass-strong);box-shadow:0 1px 4px var(--shadow-s),inset 0 1px 0 var(--rim-a)}
+.rail li.cur .n{background:var(--accent);color:var(--on-accent)}
+.rail .rail-mobile{display:none}
+.wiz-main{display:flex;flex-direction:column;min-width:0;min-height:0}
+.stage{flex:1;overflow:auto;padding:28px 34px}
+.step{display:grid;gap:18px;max-width:640px;animation:stepIn .3s ease}
+.step[hidden]{display:none}
+@keyframes stepIn{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:none}}
+.step h2{font-size:24px;font-weight:720}
+.step .sub{color:var(--fg2);margin-top:4px;max-width:58ch}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+
+.choice{position:relative;display:flex;gap:14px;align-items:flex-start;padding:14px 16px;border-radius:18px;background:var(--pane);box-shadow:inset 0 0 0 1px var(--hair);cursor:pointer;transition:box-shadow .15s,background .15s}
+.choice:hover{background:var(--glass-strong)}
+.choice input{position:absolute;opacity:0;pointer-events:none}
+.choice:has(input:checked){background:var(--glass-strong);box-shadow:inset 0 0 0 2px var(--accent),0 10px 24px -14px var(--accent)}
+.choice:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.choice .glyph{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;color:var(--on-accent);
+  background:linear-gradient(145deg,var(--accent-hi),var(--accent));box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 6px 14px -6px var(--accent)}
+.choice .glyph.mint{background:linear-gradient(145deg,var(--mint),var(--lagoon));box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 6px 14px -6px var(--lagoon)}
+.choice .glyph.amber{background:linear-gradient(145deg,#FFD27A,#FF8A3D);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 6px 14px -6px #FF8A3D}
+.choice .t{font-weight:640;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.choice .d{font-size:13px;color:var(--fg2);margin-top:2px}
+.choice.col{flex-direction:column;align-items:flex-start;gap:8px;padding:14px}
+.choice .mono-glyph{font-family:var(--mono);font-weight:600;font-size:12px;width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--hair);color:var(--fg)}
+.choice:has(input:checked) .mono-glyph{background:var(--accent);color:var(--on-accent)}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+
+/* check list */
+.checks{display:grid;gap:2px}
+.chk{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:start;padding:9px 10px;border-radius:12px}
+.chk:nth-child(odd){background:var(--pane)}
+.chk .st{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;margin-top:1px}
+.chk .st.ok{background:var(--ok-bg);color:var(--ok)} .chk .st.warn{background:var(--warn-bg);color:var(--warn)}
+.chk .st.bad{background:var(--bad-bg);color:var(--bad)} .chk .st.wait{color:var(--fg3)}
+.chk .st .ic{width:13px;height:13px;stroke-width:2.4}
+.chk .nm{font-weight:580;font-size:13.5px}
+.chk .dt{font-size:12.5px;color:var(--fg2)}
+.chk .fix{font-size:12.5px;color:var(--fg);margin-top:4px;padding:6px 10px;border-radius:10px;background:var(--glass-strong)}
+.chk .ms{font-family:var(--mono);font-size:12px;color:var(--fg3);white-space:nowrap}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid var(--hair2);border-top-color:var(--accent);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.summary{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* recovery key */
+.rkey{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:14px;border-radius:16px;background:var(--pane);box-shadow:inset 0 0 0 1px var(--hair)}
+.rkey span{font-family:var(--mono);font-weight:600;font-size:15px;text-align:center;padding:8px 0;border-radius:10px;background:var(--glass-strong);letter-spacing:.06em}
+.rkey span small{display:block;font-size:10px;color:var(--fg3);font-weight:500;letter-spacing:0}
+.meter{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.meter i{height:5px;border-radius:999px;background:var(--hair2);transition:background .2s}
+
+.qr{background:var(--qr-bg);border-radius:18px;padding:12px;width:176px;height:176px;flex:none;box-shadow:0 10px 30px -14px var(--shadow)}
+.qr svg{width:100%;height:100%;display:block}
+
+.success-orb{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;color:var(--on-accent);
+  background:radial-gradient(circle at 35% 30%,#7DF0C8,var(--ok));box-shadow:inset 0 2px 0 rgba(255,255,255,.5),0 14px 30px -10px var(--ok)}
+.success-orb .ic{width:30px;height:30px;stroke-width:2.6}
+
+/* ---------- main app ---------- */
+.side{padding:12px 10px;border-right:1px solid var(--hair);display:flex;flex-direction:column;gap:4px;overflow:auto}
+.side .grp{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--fg3);padding:10px 10px 4px}
+.side button.it{appearance:none;border:0;background:transparent;font:inherit;color:var(--fg);display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:11px;cursor:pointer;font-size:13.5px;font-weight:520;text-align:left;width:100%}
+.side button.it .ic{color:var(--accent)}
+.side button.it:hover{background:var(--hair)}
+.side button.it.on{background:var(--glass-strong);box-shadow:0 1px 4px var(--shadow-s),inset 0 1px 0 var(--rim-a)}
+.side button.it .cnt{margin-left:auto;font-size:11.5px;color:var(--fg3);font-variant-numeric:tabular-nums}
+.side button.it .wdot{margin-left:auto;width:8px;height:8px;border-radius:50%;background:var(--warn)}
+.side .foot{margin-top:auto;padding:10px;border-radius:14px;background:var(--pane);box-shadow:inset 0 0 0 1px var(--hair);font-size:12px;display:grid;gap:4px}
+.side .foot b{font-weight:600}
+.app-main{min-width:0;min-height:0;display:flex;flex-direction:column}
+.toolbar{display:flex;align-items:center;gap:10px;padding:12px 18px;flex-wrap:wrap}
+.toolbar h2{font-size:20px;font-weight:720;margin-right:auto}
+.search{position:relative}
+.search .ic{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--fg3)}
+.search .input{height:32px;padding-left:32px;border-radius:999px;width:200px}
+.panel{flex:1;min-height:0;overflow:auto;padding:0 18px 18px}
+.panel[hidden]{display:none}
+.split{display:grid;grid-template-columns:300px minmax(0,1fr);gap:14px;min-height:100%}
+
+.plist{display:grid;gap:6px;align-content:start}
+.prow{appearance:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;display:grid;gap:4px;padding:11px 12px;border-radius:16px;background:var(--pane);box-shadow:inset 0 0 0 1px var(--hair);transition:background .15s}
+.prow:hover{background:var(--glass-strong)}
+.prow.on{background:var(--glass-strong);box-shadow:inset 0 0 0 2px var(--accent)}
+.prow .top{display:flex;align-items:center;gap:8px}
+.prow .nm{font-weight:640;font-family:var(--mono);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.prow .meta{font-size:12px;color:var(--fg2);display:flex;gap:8px;flex-wrap:wrap}
+
+.detail{display:grid;gap:14px;align-content:start;padding:18px;border-radius:20px;background:var(--pane);box-shadow:inset 0 0 0 1px var(--hair);min-width:0}
+.detail .hd{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.detail .hd h3{font-family:var(--mono);font-size:18px;font-weight:650}
+.detail .hd p{color:var(--fg2);font-size:13px}
+.kv{display:grid;grid-template-columns:120px minmax(0,1fr);gap:8px 14px;font-size:13px}
+.kv dt{color:var(--fg3)} .kv dd{margin:0;min-width:0;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sect{display:grid;gap:8px}
+.sect h4{font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--fg3)}
+.repo{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:var(--glass-strong);font-size:13px;flex-wrap:wrap}
+.repo .nm{font-family:var(--mono);font-weight:600}
+.handoff{font-size:13px;padding:12px 14px;border-radius:14px;background:var(--glass-strong);display:grid;gap:6px}
+.handoff ul{margin:0;padding-left:18px;color:var(--fg2)}
+.handoff .h{font-family:var(--mono);font-size:12px;color:var(--fg3)}
+.acts-row{display:flex;gap:8px;flex-wrap:wrap}
+.lockdir{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12.5px;padding:3px 10px;border-radius:999px;background:var(--glass-strong)}
+
+.timeline{display:grid;gap:6px;align-content:start}
+.snap{appearance:none;border:0;font:inherit;color:inherit;text-align:left;cursor:pointer;display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;padding:10px 12px;border-radius:14px;background:var(--pane);box-shadow:inset 0 0 0 1px var(--hair)}
+.snap.on{background:var(--glass-strong);box-shadow:inset 0 0 0 2px var(--accent)}
+.snap .dev{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--acc-bg);color:var(--accent)}
+.snap .dev.w{background:var(--ok-bg);color:var(--ok)}
+.snap .l1{display:flex;gap:8px;align-items:center;font-weight:620;font-size:13px}
+.snap .l2{font-size:12px;color:var(--fg2)}
+.diff{font-family:var(--mono);font-size:11.5px}
+.diff .a{color:var(--ok)} .diff .m{color:var(--warn)} .diff .d{color:var(--bad)}
+.tree{display:grid;gap:1px;font-family:var(--mono);font-size:12.5px}
+.tree label{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;cursor:pointer}
+.tree label:hover{background:var(--hair)}
+.tree .ind1{padding-left:28px} .tree .ind2{padding-left:48px}
+.tree .chg{margin-left:auto;font-size:11px}
+
+.table{display:grid;gap:6px}
+.trow{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) 80px auto;gap:12px;align-items:center;padding:12px 14px;border-radius:16px;background:var(--pane);box-shadow:inset 0 0 0 1px var(--hair)}
+.trow .nm{font-family:var(--mono);font-weight:640;font-size:13px}
+.trow .sm{font-size:12px;color:var(--fg2)}
+.trow .num{font-variant-numeric:tabular-nums;font-size:13px;text-align:right}
+
+.devrow{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px;border-radius:18px;background:var(--pane);box-shadow:inset 0 0 0 1px var(--hair)}
+.devrow .di{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:var(--glass-strong);box-shadow:inset 0 1px 0 var(--rim-a)}
+.devrow .nm{font-weight:650}
+.devrow .sm{font-size:12.5px;color:var(--fg2);display:flex;flex-wrap:wrap;gap:6px 10px;margin-top:2px}
+
+.setgrp{display:grid;gap:0;border-radius:18px;background:var(--pane);box-shadow:inset 0 0 0 1px var(--hair);overflow:hidden}
+.setrow{display:flex;align-items:center;gap:14px;padding:12px 16px;flex-wrap:wrap}
+.setrow + .setrow{border-top:1px solid var(--hair)}
+.setrow .tx{flex:1;min-width:200px}
+.setrow .tx b{font-weight:600;font-size:13.5px;display:block}
+.setrow .tx span{font-size:12.5px;color:var(--fg2)}
+.settings{display:grid;gap:18px;max-width:720px}
+.settings h4{font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--fg3);margin-bottom:6px}
+input[type=range]{accent-color:var(--accent);width:160px}
+
+.scen{display:grid;gap:10px;padding:14px;border-radius:16px;background:var(--pane);box-shadow:inset 0 0 0 1px var(--hair)}
+.scen .ttl{display:flex;gap:8px;align-items:center;font-weight:650}
+.flist{font-family:var(--mono);font-size:12px;display:grid;gap:2px;color:var(--fg2)}
+
+/* ---------- corner cards ---------- */
+.ncard{--r:22px;width:360px;max-width:100%;padding:14px 16px 14px;display:grid;gap:10px;font-size:13px}
+.ncard .hd{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--fg3);font-weight:600}
+.ncard .hd svg.lg{width:18px;height:18px}
+.ncard .hd .tm{margin-left:auto;font-weight:500}
+.ncard h4{font-size:15px;font-weight:680;display:flex;align-items:center;gap:8px}
+.ncard .meta{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px}
+.ncard .meta dt{color:var(--fg3)} .ncard .meta dd{margin:0;font-variant-numeric:tabular-nums}
+.ncard .acts{display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap;align-items:center}
+.ncard .acts .left{margin-right:auto;font-size:12px;color:var(--fg2);display:flex;align-items:center;gap:6px}
+.ncard.pinned{box-shadow:inset 0 1px 0 var(--rim-a),inset 0 0 0 1.5px var(--bad),0 30px 70px -28px var(--shadow)}
+.cardgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px;align-items:start}
+.cardcell{display:grid;gap:8px;min-width:0}
+.cardcell .cap{font-size:12px;color:var(--fg2);display:flex;gap:8px;align-items:center}
+.corner{position:fixed;top:calc(76px + env(safe-area-inset-top,0px));right:max(16px,env(safe-area-inset-right,0px));z-index:50;display:flex;flex-direction:column;gap:10px;width:min(360px,calc(100vw - 32px));pointer-events:none}
+.corner.bottom{top:auto;bottom:calc(16px + env(safe-area-inset-bottom,0px));flex-direction:column-reverse}
+.corner > *{pointer-events:auto;animation:cardIn .42s cubic-bezier(.2,.9,.25,1.15)}
+.corner.bottom > *{animation-name:cardInUp}
+@keyframes cardIn{from{transform:translateX(30px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+@keyframes cardInUp{from{transform:translateY(30px) scale(.96);opacity:0}to{transform:none;opacity:1}}
+
+/* ---------- brand ---------- */
+.hero{--r:32px;display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:36px;padding:36px;align-items:center}
+.hero .mark{width:100%;max-width:300px;aspect-ratio:1;margin:auto;filter:drop-shadow(0 30px 40px var(--shadow))}
+.hero h1{font-size:46px;font-weight:780;letter-spacing:-.035em;line-height:1.05}
+.hero .tagline{font-size:18px;color:var(--fg2);margin-top:8px}
+.concept{display:grid;gap:10px;margin-top:22px}
+.concept div{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;font-size:14px}
+.concept .sym{width:24px;height:24px;border-radius:50%;display:grid;place-items:center}
+.concept p{color:var(--fg2)} .concept b{color:var(--fg)}
+.tiles{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:18px}
+.tile{--r:24px;padding:20px;display:grid;gap:14px;align-content:start;min-width:0}
+.tile h3{font-size:13px;font-weight:700;letter-spacing:.05em;color:var(--fg3)}
+.span4{grid-column:span 4} .span5{grid-column:span 5} .span6{grid-column:span 6} .span7{grid-column:span 7} .span8{grid-column:span 8} .span12{grid-column:span 12}
+.sizes{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.sizes figure{margin:0;display:grid;gap:6px;justify-items:center;font-size:11px;color:var(--fg3);font-family:var(--mono)}
+.swatches{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.sw-c{display:grid;gap:6px;font-size:12px}
+.sw-c i{height:64px;border-radius:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),inset 0 0 0 1px var(--hair)}
+.sw-c b{font-weight:640} .sw-c span{font-family:var(--mono);font-size:11px;color:var(--fg3)}
+.lockup{display:flex;align-items:center;gap:12px;font-size:28px;font-weight:760;letter-spacing:-.03em}
+.lockup svg{width:48px;height:48px}
+.mbars{display:grid;gap:8px}
+.mbar{display:flex;align-items:center;justify-content:flex-end;gap:14px;height:30px;padding:0 12px;border-radius:10px;font-size:12px;font-weight:600}
+.mbar.l{background:#F2F4F8;color:#1C1F26} .mbar.d{background:#1A1D26;color:#F2F4F8}
+.mbar .g{width:18px;height:18px;display:grid;place-items:center;position:relative}
+.mbar .g svg{width:18px;height:18px}
+.badge-dot{position:absolute;right:-2px;bottom:-1px;width:7px;height:7px;border-radius:50%;background:#FF9F0A;box-shadow:0 0 0 1.5px currentColor}
+.mats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:14px;border-radius:18px;
+  background:radial-gradient(60% 80% at 20% 30%,var(--blob1),transparent),radial-gradient(60% 80% at 80% 70%,var(--blob2),transparent),radial-gradient(50% 60% at 60% 20%,var(--blob4),transparent)}
+.mat{--r:16px;height:96px;padding:12px;font-size:12px;font-weight:600;display:flex;flex-direction:column;justify-content:space-between}
+.mat span{font-weight:500;color:var(--fg2);font-size:11px}
+.mat.clear{background:rgba(255,255,255,.12)}
+.mat.tint{background:linear-gradient(160deg,rgba(47,107,255,.55),rgba(46,211,183,.45));color:var(--on-accent)}
+.mat.tint span{color:var(--on-accent);opacity:.85}
+.comp{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.typescale{display:grid;gap:8px}
+.typescale div{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.typescale small{font-family:var(--mono);font-size:11px;color:var(--fg3);width:110px}
+
+/* ---------- tray ---------- */
+.desk{--r:28px;min-height:560px;overflow:hidden;padding:0;display:flex;flex-direction:column}
+.menubar{height:32px;display:flex;align-items:center;gap:16px;padding:0 14px;font-size:13px;font-weight:560;background:var(--menubar);
+  -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-bottom:1px solid var(--hair)}
+.menubar .r{margin-left:auto;display:flex;gap:14px;align-items:center}
+.menubar .wr{padding:3px 6px;border-radius:6px;display:grid;place-items:center;position:relative;background:var(--hair2)}
+.menubar .wr svg{width:17px;height:17px}
+.desk-body{flex:1;display:flex;gap:22px;padding:14px 16px 22px;flex-wrap:wrap;justify-content:flex-end;align-items:flex-start}
+.menu{--r:18px;width:340px;max-width:100%;padding:6px;font-size:13px;background:var(--glass-strong)}
+.menu .head{padding:10px 10px 8px;display:grid;gap:4px}
+.menu .head b{font-size:14px}
+.menu .sep{height:1px;background:var(--hair2);margin:5px 8px}
+.menu .mi{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:9px;cursor:default}
+.menu .mi:hover{background:var(--accent);color:var(--on-accent)}
+.menu .mi:hover .k,.menu .mi:hover .sub2{color:var(--on-accent)}
+.menu .mi .k{margin-left:auto;color:var(--fg3);font-size:12px;font-family:var(--mono)}
+.menu .mi .sub2{font-size:11.5px;color:var(--fg3)}
+.menu .pj{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 10px;border-radius:9px}
+.menu .pj:hover{background:var(--hair)}
+.menu .pj .nm{font-family:var(--mono);font-size:12.5px;font-weight:600}
+.menu .pj .sub2{font-size:11.5px;color:var(--fg3)}
+.legend{--r:22px;padding:18px;display:grid;gap:14px;width:300px;max-width:100%}
+.legend .row{display:flex;align-items:center;gap:12px;font-size:13px}
+.legend .row span{color:var(--fg2);font-size:12px}
+.tray-g{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--glass-strong);position:relative;flex:none}
+.tray-g svg{width:20px;height:20px}
+.syncing svg{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+/* ---------- responsive ---------- */
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr;padding:24px}
+  .hero h1{font-size:36px}
+  .span4,.span5,.span6,.span7,.span8{grid-column:span 12}
+  .split{grid-template-columns:1fr}
+  .trow{grid-template-columns:minmax(0,1fr) auto}
+  .trow .hide-n{display:none}
+}
+@media (max-width:760px){
+  .nav{flex-wrap:wrap}
+  .nav .brand small{display:none}
+  .tabs{order:3;flex-basis:100%;justify-content:flex-start}
+  .win{height:auto;min-height:620px}
+  .win-body,.appbody{grid-template-columns:1fr}
+  .rail{border-right:0;border-bottom:1px solid var(--hair);padding:10px 16px}
+  .rail ol{display:none}
+  .rail .rail-mobile{display:grid;gap:6px;font-size:12.5px;color:var(--fg2)}
+  .stage{padding:20px 18px}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .side{flex-direction:row;border-right:0;border-bottom:1px solid var(--hair);overflow-x:auto}
+  .side .grp,.side .foot{display:none}
+  .side button.it{width:auto;flex:none}
+  .side button.it .cnt,.side button.it .wdot{margin-left:4px}
+  .search .input{width:150px}
+  .kv{grid-template-columns:1fr}
+  .kv dt{margin-top:6px}
+  .rkey{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .swatches{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mats{grid-template-columns:1fr}
+  .win-title{margin-right:0;text-align:left}
+  .sheet-wrap{position:fixed;border-radius:0}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div class="wall"></div>
+
+<!-- icon sprite -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="wr-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2F6BFF"/><stop offset=".55" stop-color="#1FB6E8"/><stop offset="1" stop-color="#2ED3B7"/></linearGradient>
+    <radialGradient id="wr-sheen" cx=".28" cy=".12" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="wr-floor" x1="0" y1="0" x2="0" y2="1"><stop offset=".6" stop-color="#0B2A6B" stop-opacity="0"/><stop offset="1" stop-color="#0B2A6B" stop-opacity=".22"/></linearGradient>
+    <linearGradient id="wr-route" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#DDF3FF" stop-opacity=".92"/></linearGradient>
+    <radialGradient id="wr-orb" cx=".38" cy=".32" r=".75"><stop offset="0" stop-color="#FFF1CC"/><stop offset=".45" stop-color="#FFB547"/><stop offset="1" stop-color="#FF7A2F"/></radialGradient>
+    <filter id="wr-lift" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="3" stdDeviation="3.5" flood-color="#0B2A6B" flood-opacity=".35"/></filter>
+  </defs>
+  <symbol id="logo-base" viewBox="0 0 160 160">
+    <rect x="4" y="4" width="152" height="152" rx="38" fill="url(#wr-bg)"/>
+    <rect x="4" y="4" width="152" height="152" rx="38" fill="url(#wr-floor)"/>
+    <rect x="4" y="4" width="152" height="152" rx="38" fill="url(#wr-sheen)"/>
+    <rect x="5" y="5" width="150" height="150" rx="37" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1.5"/>
+    <g filter="url(#wr-lift)">
+      <path d="M38 52 L59 110 L80 68 L101 110 L122 52" fill="none" stroke="url(#wr-route)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="38" cy="52" r="11" fill="#fff"/><circle cx="38" cy="52" r="4.5" fill="#2F6BFF"/>
+      <circle cx="122" cy="52" r="11" fill="#fff"/><circle cx="122" cy="52" r="4.5" fill="#2ED3B7"/>
+    </g>
+  </symbol>
+  <symbol id="orb" viewBox="-12 -12 24 24" overflow="visible">
+    <g filter="url(#wr-lift)"><circle r="12" fill="url(#wr-orb)"/><ellipse cx="-4" cy="-4.5" rx="4.5" ry="3" fill="#fff" fill-opacity=".75"/></g>
+  </symbol>
+  <symbol id="logo" viewBox="0 0 160 160">
+    <use href="#logo-base"/>
+    <g transform="translate(80 66)"><use href="#orb" x="-12" y="-12" width="24" height="24"/></g>
+  </symbol>
+  <symbol id="glyph" viewBox="0 0 160 160">
+    <g fill="currentColor" stroke="currentColor">
+      <path d="M30 46 L57 120 L80 74 L103 120 L130 46" fill="none" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="30" cy="46" r="16" stroke="none"/><circle cx="130" cy="46" r="16" stroke="none"/><circle cx="80" cy="66" r="19" stroke="none"/>
+    </g>
+  </symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h3.6l2 2h7.4A2.5 2.5 0 0 1 21 9.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-archive" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4.5" rx="1.5"/><path d="M5 8.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5M10 12.5h4"/></symbol>
+  <symbol id="i-devices" viewBox="0 0 24 24"><rect x="2" y="5" width="14" height="10" rx="2"/><path d="M6 19h6M9 15v4"/><rect x="18" y="8" width="4" height="11" rx="1.2"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.2v.1"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M16 7l2 2M14 9l2 2"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.5-8 5.5 5.5 0 0 1 10.6-1.5A4 4 0 0 1 17 18z"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></symbol>
+  <symbol id="i-desktop" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-print" viewBox="0 0 24 24"><path d="M7 9V4h10v5"/><rect x="4" y="9" width="16" height="7" rx="2"/><path d="M7 14h10v6H7z"/></symbol>
+  <symbol id="i-git" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="9" r="2"/><path d="M6 8v8M16.3 10.2C12 12 8 13 6.8 16.2"/></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 16l.7 1.8L21.5 18.5l-1.8.7L19 21l-.7-1.8-1.8-.7 1.8-.7z"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 6v12M15 6v12"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-restore" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/><path d="M12 8v4l3 2"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+  <symbol id="i-export" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7M5 10v10h14V10"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2"/></symbol>
+  <symbol id="i-bucket" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6l2 13c.3 1.4 2.8 2 6 2s5.7-.6 6-2l2-13"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17A8.5 8.5 0 0 0 12 3.5z" fill="currentColor"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="6" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18" cy="12" r="1.2"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+</defs>
+</svg>
+
+<header class="nav glass">
+  <div class="brand"><svg aria-hidden="true"><use href="#logo"/></svg>Workroam <small>高保真原型 · v0.3 形态</small></div>
+  <nav class="tabs" aria-label="原型场景">
+    <a class="tab" href="#brand">品牌</a>
+    <a class="tab" href="#setup">初始化向导</a>
+    <a class="tab" href="#app">主窗口</a>
+    <a class="tab" href="#cards">卡片</a>
+    <a class="tab" href="#tray">托盘菜单</a>
+  </nav>
+  <button class="btn icon theme-btn" id="themeBtn" type="button" title="外观：跟随系统" aria-label="切换外观"><svg class="ic"><use href="#i-auto"/></svg></button>
+</header>
+
+<main>
+
+<!-- ============================ BRAND ============================ -->
+<section class="view" data-view="brand">
+  <div class="hero glass">
+    <svg class="mark" viewBox="0 0 160 160" role="img" aria-label="Workroam 图标">
+      <use href="#logo-base"/>
+      <g id="orbRest" transform="translate(80 66)"><use href="#orb" x="-12" y="-12" width="24" height="24"/></g>
+      <!-- the roaming orb travels the route: office -> storage -> home and back -->
+      <g id="orbTravel" style="display:none"><use href="#orb" x="-12" y="-12" width="24" height="24"/>
+        <animateMotion id="orbAnim" begin="indefinite" dur="7s" repeatCount="indefinite" path="M38 52 L59 110 L80 68 L101 110 L122 52" keyPoints="0;1;1;0;0" keyTimes="0;.42;.5;.92;1" calcMode="linear"/>
+      </g>
+    </svg>
+    <div>
+      <h1>Workroam</h1>
+      <p class="tagline">带着 AI Agent 工作区，在每台电脑之间漫游。</p>
+      <div class="concept">
+        <div><span class="sym" style="background:var(--acc-bg);color:var(--accent)"><svg class="ic sm"><use href="#i-link"/></svg></span><p><b>W 形路线</b>：公司电脑 → 你的存储 → 家里电脑。字母 W 本身就是一次接力的路径。</p></div>
+        <div><span class="sym" style="background:var(--ok-bg);color:var(--ok)"><svg class="ic sm"><use href="#i-devices"/></svg></span><p><b>两端圆环</b>是加入工作区的设备，一蓝一绿，代表两种系统、两个地点。</p></div>
+        <div><span class="sym" style="background:var(--amb-bg);color:var(--warn)"><svg class="ic sm"><use href="#i-sparkle"/></svg></span><p><b>琥珀色光点</b>是你的工作区。它沿路线移动，同一时间只在一台机器上被写入，这就是租约。</p></div>
+        <div><span class="sym" style="background:var(--hair);color:var(--fg2)"><svg class="ic sm"><use href="#i-lock"/></svg></span><p><b>玻璃底板</b>：透亮但不透明，对应端到端加密，存储里只有密文。</p></div>
+      </div>
+      <div class="acts-row" style="margin-top:22px">
+        <button class="btn" type="button" id="orbBtn"><svg class="ic sm"><use href="#i-refresh"/></svg>播放漫游动画</button>
+        <span class="hint" style="align-self:center">源文件：docs/prototype/assets/logo.svg · logo-mono.svg</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tiles">
+    <div class="tile glass span7">
+      <h3>应用图标</h3>
+      <div class="sizes">
+        <figure><svg width="128" height="128"><use href="#logo"/></svg>128</figure>
+        <figure><svg width="64" height="64"><use href="#logo"/></svg>64</figure>
+        <figure><svg width="32" height="32"><use href="#logo"/></svg>32</figure>
+        <figure><svg width="20" height="20"><use href="#logo"/></svg>20</figure>
+        <figure><svg width="16" height="16"><use href="#logo"/></svg>16</figure>
+      </div>
+      <p class="hint">squircle 圆角 38/160；内描边 45% 白色模拟玻璃边缘高光；底部 22% 深色渐变提供“悬浮”体积感。</p>
+    </div>
+    <div class="tile glass span5">
+      <h3>托盘模板图标</h3>
+      <div class="mbars">
+        <div class="mbar l"><span>周四 18:40</span><span class="g"><svg><use href="#glyph"/></svg></span><span>正常</span></div>
+        <div class="mbar d"><span>周四 18:40</span><span class="g syncing"><svg><use href="#glyph"/></svg></span><span>同步中</span></div>
+        <div class="mbar l"><span>周四 18:40</span><span class="g"><svg><use href="#glyph"/></svg><i class="badge-dot"></i></span><span>警示</span></div>
+      </div>
+      <p class="hint">单色模板图，随系统菜单栏自动反色。三态对应架构文档：正常 / 同步中（呼吸）/ 警示（橙点）。</p>
+    </div>
+
+    <div class="tile glass span6">
+      <h3>标志组合</h3>
+      <div class="lockup"><svg><use href="#logo"/></svg>Workroam</div>
+      <div class="lockup" style="font-size:22px;color:var(--fg2)"><svg style="width:30px;height:30px;color:var(--fg)"><use href="#glyph"/></svg>workroam</div>
+      <p class="hint">字标使用系统字体 SF Pro Display 粗体，字距 −3%；命令行与包名使用全小写。</p>
+    </div>
+    <div class="tile glass span6">
+      <h3>色彩</h3>
+      <div class="swatches">
+        <div class="sw-c"><i style="background:var(--roam)"></i><b>Roam Blue</b><span>#2F6BFF</span></div>
+        <div class="sw-c"><i style="background:var(--lagoon)"></i><b>Lagoon</b><span>#1FB6E8</span></div>
+        <div class="sw-c"><i style="background:var(--mint)"></i><b>Mint</b><span>#2ED3B7</span></div>
+        <div class="sw-c"><i style="background:var(--amber)"></i><b>Baton Amber</b><span>#FFB547</span></div>
+        <div class="sw-c"><i style="background:var(--fg)"></i><b>Ink</b><span>#0E1726</span></div>
+      </div>
+      <p class="hint">蓝 → 青 → 薄荷是一条“路线”渐变；琥珀色只留给“工作区 / 租约”这一个含义，界面里不做装饰色。</p>
+    </div>
+
+    <div class="tile glass span7">
+      <h3>材质</h3>
+      <div class="mats">
+        <div class="mat glass">常规玻璃<span>窗口、卡片 · 模糊 30 + 饱和 180%</span></div>
+        <div class="mat glass clear">通透玻璃<span>浮在内容上的控件</span></div>
+        <div class="mat glass tint">着色玻璃<span>主操作、选中态</span></div>
+      </div>
+    </div>
+    <div class="tile glass span5">
+      <h3>字体层级</h3>
+      <div class="typescale">
+        <div><small>Display 46 / 780</small><b style="font-size:26px;letter-spacing:-.03em">工作区已就绪</b></div>
+        <div><small>Title 24 / 720</small><b style="font-size:20px">连接存储</b></div>
+        <div><small>Body 14 / 400</small><span>密钥只保存在系统钥匙串。</span></div>
+        <div><small>Mono 13 / 600</small><code>workroam push --release</code></div>
+      </div>
+    </div>
+
+    <div class="tile glass span12">
+      <h3>组件</h3>
+      <div class="comp">
+        <button class="btn primary" type="button">同意并推送</button>
+        <button class="btn" type="button">稍后</button>
+        <button class="btn danger" type="button">强制接管</button>
+        <button class="btn ghost" type="button">查看详情</button>
+        <div class="seg" data-group="demo"><button type="button" class="on">关闭</button><button type="button">询问</button><button type="button">全自动</button></div>
+        <input class="sw" type="checkbox" id="demoSw" checked aria-label="示例开关">
+      </div>
+      <div class="comp">
+        <span class="pill ok"><span class="dot"></span>已同步</span>
+        <span class="pill amb"><span class="dot"></span>本机持有租约</span>
+        <span class="pill acc"><span class="dot"></span>服务器上有新进度</span>
+        <span class="pill warn"><span class="dot"></span>12 个改动待推送</span>
+        <span class="pill bad"><span class="dot"></span>目录不存在</span>
+        <span class="pill"><span class="dot"></span>已归档</span>
+        <div style="flex:1;min-width:200px;max-width:320px"><div class="bar"><i style="width:62%"></i></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ SETUP WIZARD ============================ -->
+<section class="view" data-view="setup" hidden>
+  <div class="intro">
+    <div>
+      <div class="eyebrow">PRD 7.1 · ONB-01 – ONB-09</div>
+      <h1>首次初始化向导</h1>
+      <p>新建工作区共 8 步，加入已有工作区 5 步。每一步都能回退，结果与 <code>workroam setup</code> 完全一致。在第一步选择“加入已有工作区”可以切换到另一条路径。</p>
+    </div>
+    <button class="btn" type="button" id="wizRestart"><svg class="ic sm"><use href="#i-refresh"/></svg>从头开始</button>
+  </div>
+
+  <div class="win glass" id="wizard">
+    <div class="titlebar"><div class="lights"><span></span><span></span><span></span></div><div class="win-title">欢迎使用 Workroam</div></div>
+    <div class="win-body">
+      <aside class="rail" aria-label="步骤">
+        <ol id="railList"></ol>
+        <div class="rail-mobile"><span id="railMobileText"></span><div class="bar"><i id="railMobileBar" style="width:10%"></i></div></div>
+      </aside>
+      <div class="wiz-main">
+        <div class="stage">
+
+          <!-- welcome -->
+          <div class="step" data-step="welcome">
+            <div><h2>欢迎使用 Workroam</h2><p class="sub">这台 Mac 还没有加入工作区。工作区是你的全部同步数据，放在你自己的 S3 兼容存储里。</p></div>
+            <div style="display:grid;gap:10px">
+              <label class="choice"><input type="radio" name="path" value="new" checked><span class="glyph"><svg class="ic lg"><use href="#i-plus"/></svg></span><span><span class="t">新建工作区</span><span class="d">这是我的第一台设备。连接存储、设置加密密码，大约 10 分钟。</span></span></label>
+              <label class="choice"><input type="radio" name="path" value="join"><span class="glyph mint"><svg class="ic lg"><use href="#i-link"/></svg></span><span><span class="t">加入已有工作区</span><span class="d">我已经在另一台电脑上用 Workroam。准备好配对码和加密密码。</span></span></label>
+              <label class="choice"><input type="radio" name="path" value="mirror"><span class="glyph amber"><svg class="ic lg"><use href="#i-restore"/></svg></span><span><span class="t">从异地备份恢复 <span class="tag">v0.3</span></span><span class="d">原来的存储整体丢失了。连接镜像，用加密密码或恢复密钥重建工作区。</span></span></label>
+            </div>
+            <p class="hint">没有图形界面的机器：在终端运行 <code>workroam setup</code>，步骤相同。</p>
+          </div>
+
+          <!-- storage -->
+          <div class="step" data-step="storage" hidden>
+            <div><h2>连接存储</h2><p class="sub">选择存储类型，Workroam 会自动识别地址风格与区域。</p></div>
+            <div class="grid3" id="presets">
+              <label class="choice col"><input type="radio" name="preset" value="self" checked><span class="mono-glyph">RFS</span><span class="t">自建</span><span class="d">install.sh 部署的 RustFS</span></label>
+              <label class="choice col"><input type="radio" name="preset" value="aws"><span class="mono-glyph">S3</span><span class="t">AWS S3</span><span class="d">任意区域</span></label>
+              <label class="choice col"><input type="radio" name="preset" value="r2"><span class="mono-glyph">R2</span><span class="t">Cloudflare R2</span><span class="d">无出口流量费</span></label>
+              <label class="choice col"><input type="radio" name="preset" value="oss"><span class="mono-glyph">OSS</span><span class="t">阿里云 OSS</span><span class="d">国内访问快</span></label>
+              <label class="choice col"><input type="radio" name="preset" value="other"><span class="mono-glyph">S3?</span><span class="t">其他 S3 兼容</span><span class="d">Garage、SeaweedFS…</span></label>
+            </div>
+            <div class="field"><label class="lbl" for="endpoint">端点地址</label><input class="input mono" id="endpoint" value="https://s3.home.example"></div>
+            <div class="chips" id="detectChips">
+              <span class="pill ok"><svg class="ic sm"><use href="#i-check"/></svg>HTTPS 证书有效</span>
+              <span class="pill acc">地址风格：路径风格（自动识别）</span>
+              <span class="pill acc">区域：us-east-1（自动）</span>
+            </div>
+            <div id="selfHostCmd" class="callout info" style="display:grid;gap:8px">
+              <div style="display:flex;gap:8px"><svg class="ic"><use href="#i-cloud"/></svg><span>还没有部署？在你的服务器上运行这条命令，完成后会打印管理员凭证和这里要填的端点。</span></div>
+              <div class="codebox">./install.sh --domain s3.home.example --storage rustfs</div>
+            </div>
+          </div>
+
+          <!-- key -->
+          <div class="step" data-step="key" hidden>
+            <div><h2>访问密钥</h2><p class="sub">填写存储的 Access Key 与 Secret。</p></div>
+            <div class="field"><label class="lbl" for="ak">Access Key ID</label><input class="input mono" id="ak" value="WRKADMIN7Q2M9XHV" autocomplete="off"></div>
+            <div class="field"><label class="lbl" for="sk">Secret Access Key</label>
+              <div class="inrow"><input class="input mono" id="sk" type="password" value="r9Kd2bX7pQwZ4mTn8vL1yF6hC3sJ0eAu" autocomplete="off"><button class="btn icon" type="button" id="skEye" aria-label="显示密钥"><svg class="ic"><use href="#i-eye"/></svg></button></div>
+            </div>
+            <div class="callout info"><svg class="ic"><use href="#i-lock"/></svg><span>密钥只保存在 macOS 钥匙串，不写入任何配置文件，也不会同步到其他设备。</span></div>
+          </div>
+
+          <!-- perm -->
+          <div class="step" data-step="perm" hidden>
+            <div><h2>密钥权限方式</h2><p class="sub">Workroam 只需要访问工作区所在的桶。选择如何满足最小权限。</p></div>
+            <label class="choice"><input type="radio" name="perm" value="scoped" checked><span class="glyph"><svg class="ic lg"><use href="#i-key"/></svg></span>
+              <span style="display:grid;gap:8px;flex:1"><span><span class="t">由 Workroam 创建专用密钥 <span class="pill acc">推荐</span></span><span class="d">用你刚填的管理员密钥创建一把只能访问这个桶的新密钥。管理员密钥用完即丢弃，不保存。</span></span>
+              <span class="seg" data-group="scopedmode"><button type="button" class="on">读写</button><button type="button">只读</button></span></span></label>
+            <label class="choice"><input type="radio" name="perm" value="current"><span class="glyph mint"><svg class="ic lg"><use href="#i-shield"/></svg></span>
+              <span><span class="t">使用当前密钥</span><span class="d">Workroam 会检查这把密钥的权限范围，范围过宽时提醒你。</span></span></label>
+            <div class="callout warn" id="permWarn" hidden>
+              <svg class="ic"><use href="#i-warn"/></svg>
+              <span style="display:grid;gap:8px"><span><b>这把密钥能访问账号下全部 7 个桶。</b>建议在存储控制台把它的策略收窄到工作区所在的桶，或者改选“创建专用密钥”。</span>
+              <label style="display:flex;gap:8px;align-items:center"><input class="cb" type="checkbox" id="permAck">我了解风险，继续使用当前密钥</label></span>
+            </div>
+            <p class="hint">存储不支持创建密钥时，第一项会自动隐藏。</p>
+          </div>
+
+          <!-- bucket -->
+          <div class="step" data-step="bucket" hidden>
+            <div><h2>存储桶</h2><p class="sub">工作区放在哪个桶里。可以和其他数据共用一个桶，用前缀隔开。</p></div>
+            <div class="seg" data-group="bucket"><button type="button" data-val="default" class="on">默认新建</button><button type="button" data-val="exist">选择已有桶</button><button type="button" data-val="custom">自定义桶名</button></div>
+            <div data-pane="bucket:default" style="display:grid;gap:10px">
+              <div class="pane" style="padding:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+                <svg class="ic lg" style="color:var(--accent)"><use href="#i-bucket"/></svg>
+                <div style="flex:1;min-width:200px"><div class="mono" style="font-size:16px;font-weight:600" id="defBucket">workroam-macbook-7f3a</div><div class="hint">workroam-&lt;设备名&gt;-&lt;4 位随机&gt;，避免全局重名</div></div>
+                <button class="btn sm" type="button" id="reroll"><svg class="ic sm"><use href="#i-refresh"/></svg>换一个</button>
+              </div>
+            </div>
+            <div data-pane="bucket:exist" hidden style="display:grid;gap:8px">
+              <label class="choice"><input type="radio" name="eb" checked><span style="flex:1"><span class="t"><span class="mono">workroam-home</span><span class="pill acc">已是 Workroam 工作区</span></span><span class="d">这个桶里已经有工作区。要加入它，请返回第一步选择“加入已有工作区”。</span></span></label>
+              <label class="choice"><input type="radio" name="eb"><span style="flex:1"><span class="t"><span class="mono">backups-2024</span><span class="pill warn">非空</span></span><span class="d">桶里有其他数据，需要设置一个前缀，例如 <code>workroam/</code>。</span></span></label>
+              <label class="choice"><input type="radio" name="eb"><span style="flex:1"><span class="t"><span class="mono">dev-scratch</span><span class="pill ok">空桶</span></span><span class="d">可以直接使用。</span></span></label>
+            </div>
+            <div data-pane="bucket:custom" hidden style="display:grid;gap:8px">
+              <div class="field"><label class="lbl" for="bname">桶名</label><input class="input mono" id="bname" value="wangxy-agents" autocomplete="off"></div>
+              <div class="chips" id="bRules"></div>
+            </div>
+            <div class="field"><label class="lbl" for="prefix">桶内前缀（可选）</label><input class="input mono" id="prefix" placeholder="例如 workroam/"></div>
+          </div>
+
+          <!-- check -->
+          <div class="step" data-step="check" hidden>
+            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-end">
+              <div><h2>能力检查</h2><p class="sub">逐项确认这个存储能安全地承载工作区。</p></div>
+              <div class="summary" id="chkSummary"></div>
+            </div>
+            <div class="checks" id="chkList"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn sm" type="button" id="rerun"><svg class="ic sm"><use href="#i-refresh"/></svg>重新检查</button>
+              <button class="btn sm ghost" type="button" id="simFail">原型：模拟一个失败项</button>
+            </div>
+          </div>
+
+          <!-- crypto -->
+          <div class="step" data-step="crypto" hidden>
+            <div><h2>加密</h2><p class="sub">数据在这台电脑上加密后才上传。加密密码用来解锁工作区，新设备加入时也要输入它。</p></div>
+            <div class="grid2">
+              <div class="field"><label class="lbl" for="pw">加密密码</label><input class="input" id="pw" type="password" value="handoff-at-18:40"><div class="meter" id="meter"><i></i><i></i><i></i><i></i><i></i></div><span class="hint" id="meterTx"></span></div>
+              <div class="field"><label class="lbl" for="pw2">再输入一次</label><input class="input" id="pw2" type="password" value="handoff-at-18:40"><span class="hint" id="pwMatch"></span></div>
+            </div>
+            <div class="field">
+              <span class="lbl">恢复密钥</span>
+              <div class="rkey" id="rkey"></div>
+              <div class="acts-row">
+                <button class="btn sm" type="button" id="copyKey"><svg class="ic sm"><use href="#i-copy"/></svg><span>复制</span></button>
+                <button class="btn sm" type="button"><svg class="ic sm"><use href="#i-download"/></svg>下载 .txt</button>
+                <button class="btn sm" type="button"><svg class="ic sm"><use href="#i-print"/></svg>打印</button>
+              </div>
+              <span class="hint">忘记加密密码时，只能用它解锁工作区。Workroam 没有任何办法替你找回。</span>
+            </div>
+            <div class="pane" style="padding:14px;display:grid;gap:10px">
+              <b style="font-size:13.5px">确认已保存：输入第 3 组和第 6 组</b>
+              <div class="inrow" style="max-width:340px">
+                <input class="input mono" id="g3" maxlength="4" placeholder="第 3 组" aria-label="第 3 组" autocomplete="off">
+                <input class="input mono" id="g6" maxlength="4" placeholder="第 6 组" aria-label="第 6 组" autocomplete="off">
+                <button class="btn sm ghost" type="button" id="fillKey">原型：自动填入</button>
+              </div>
+              <span class="hint" id="keyOk">两组都正确后才能继续。</span>
+            </div>
+          </div>
+
+          <!-- local -->
+          <div class="step" data-step="local" hidden>
+            <div><h2>本机设置</h2><p class="sub">这些设置只影响这台电脑。</p></div>
+            <div class="grid2">
+              <div class="field"><label class="lbl" for="devname">设备名</label><input class="input" id="devname" value="家里-MacBook"></div>
+              <div class="field"><label class="lbl" for="root">默认项目位置</label><div class="inrow"><input class="input mono" id="root" value="~/Workroam"><button class="btn sm" type="button">选择…</button></div><span class="hint">新项目默认放在这里，每个项目仍可单独选择目录。</span></div>
+            </div>
+            <div class="field"><span class="lbl">可达主机（从本机 git 远端自动探测）</span>
+              <div class="pane" style="padding:4px 12px">
+                <div class="setrow" style="padding:9px 0"><span class="mono" style="flex:1">github.com</span><span class="pill ok"><span class="dot"></span>可达 · 38 ms</span></div>
+                <div class="setrow" style="padding:9px 0"><span class="mono" style="flex:1">git.corp.internal</span><span class="pill"><span class="dot"></span>不可达 · 公司内网</span></div>
+              </div>
+              <span class="hint">本机无法推送 git.corp.internal 的仓库，会写进 AGENTS.md 的本机环境块，Agent 只做本地提交。</span>
+            </div>
+            <div class="setgrp">
+              <div class="setrow"><div class="tx"><b>自动同步</b><span>询问：检测到离开、空闲或服务器有更新时弹出卡片</span></div><div class="seg" data-group="auto"><button type="button">关闭</button><button type="button" class="on">询问</button><button type="button">全自动</button></div></div>
+              <div class="setrow"><div class="tx"><b>开机自启</b><span>后台服务随登录启动</span></div><input class="sw" type="checkbox" checked aria-label="开机自启"></div>
+            </div>
+            <div class="field"><span class="lbl">检测到的 Agent</span>
+              <div class="chips">
+                <span class="pill ok"><svg class="ic sm"><use href="#i-check"/></svg>Claude Code 2.1.4</span>
+                <span class="pill ok"><svg class="ic sm"><use href="#i-check"/></svg>Codex 0.48.0</span>
+                <span class="pill ok"><svg class="ic sm"><use href="#i-check"/></svg>Antigravity 1.3</span>
+                <span class="pill">Grok Build · 未安装</span>
+                <span class="pill">ZCode · 未安装</span>
+                <span class="pill">Pi · 未安装</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- done -->
+          <div class="step" data-step="done" hidden>
+            <div style="display:flex;gap:16px;align-items:center"><div class="success-orb"><svg class="ic"><use href="#i-check"/></svg></div><div><h2>工作区已就绪</h2><p class="sub">workroam-macbook-7f3a · 已加密 · 1 台设备</p></div></div>
+            <div class="pane" style="padding:18px;display:flex;gap:20px;align-items:center;flex-wrap:wrap">
+              <div class="qr" id="qr1"></div>
+              <div style="flex:1;min-width:220px;display:grid;gap:10px">
+                <b>把第二台电脑加入工作区</b>
+                <p class="hint" style="font-size:13px">在新电脑的向导里选择“加入已有工作区”，扫描二维码或粘贴配对码，再输入加密密码。</p>
+                <div class="codebox" id="pairCode">wrm1:7Hq2Lx…9fKe2Q</div>
+                <div class="acts-row"><button class="btn sm" type="button" data-copy="#pairCode"><svg class="ic sm"><use href="#i-copy"/></svg><span>复制配对码</span></button></div>
+                <span class="hint">配对码里的端点、桶和密钥已用加密密码保护。只有配对码、没有密码，无法加入。</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- join: pair -->
+          <div class="step" data-step="pair" hidden>
+            <div><h2>粘贴配对码</h2><p class="sub">在已加入的电脑上打开 Workroam →“设备”→“添加设备”得到配对码。</p></div>
+            <div class="field"><label class="lbl" for="pairIn">配对码</label><textarea class="input mono" id="pairIn" rows="3">wrm1:7Hq2LxNa0pVt4Rk8sYcE1mZb6WdJ3uQo5gHf9nXi2TyL8vBr4KcA0eMs7DjP1wUq6zFh3oGn5lSx9fKe2Q</textarea></div>
+            <div class="callout ok" id="pairOk"><svg class="ic"><use href="#i-check"/></svg><span>已识别 Workroam 配对码（格式 v1）。下一步输入加密密码解锁。</span></div>
+            <button class="btn" type="button" style="justify-self:start"><svg class="ic sm"><use href="#i-qr"/></svg>改用摄像头扫描二维码</button>
+          </div>
+
+          <!-- join: password -->
+          <div class="step" data-step="jpass" hidden>
+            <div><h2>输入加密密码</h2><p class="sub">就是第一台电脑初始化时设置的那个密码。</p></div>
+            <div class="field" style="max-width:380px"><label class="lbl" for="jpw">加密密码</label><input class="input" id="jpw" type="password" value="handoff-at-18:40"></div>
+            <div class="callout ok"><svg class="ic"><use href="#i-check"/></svg><span>解锁成功：工作区 <code>workroam-macbook-7f3a</code> · 4 个项目 · 2 台设备</span></div>
+            <a href="#setup" class="hint" style="color:var(--accent)" onclick="return false">忘记密码？使用恢复密钥</a>
+          </div>
+
+          <!-- join: pick projects -->
+          <div class="step" data-step="pick" hidden>
+            <div><h2>选择本机需要的项目</h2><p class="sub">没选的项目不会下载。每个项目在这台电脑上的目录可以单独选择。</p></div>
+            <div style="display:grid;gap:8px" id="pickList"></div>
+            <p class="hint">目录为空、还没拉取前可以随时更换；一旦同步过就会锁定。</p>
+          </div>
+
+          <!-- join: done -->
+          <div class="step" data-step="jdone" hidden>
+            <div style="display:flex;gap:16px;align-items:center"><div class="success-orb"><svg class="ic"><use href="#i-check"/></svg></div><div><h2>已加入工作区</h2><p class="sub">正在拉取你选的项目，完成后会在右上角提醒。</p></div></div>
+            <div style="display:grid;gap:10px" id="jdoneList"></div>
+          </div>
+
+        </div>
+        <div class="win-foot">
+          <span class="hint" id="footHint">每一步都可以回退修改</span>
+          <div class="acts-row">
+            <button class="btn" type="button" id="back">返回</button>
+            <button class="btn primary" type="button" id="next">继续</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ MAIN APP ============================ -->
+<section class="view" data-view="app" hidden>
+  <div class="intro">
+    <div>
+      <div class="eyebrow">PRD 7.2 – 7.7 · PROJ · SNAP · ARC · DEV · UX-09</div>
+      <h1>主窗口</h1>
+      <p>项目、同步历史、归档、设备、检查与设置。点“推送并释放”会在屏幕角落弹出授权卡片；归档页的“恢复”可以逐个查看 7 种目录场景。</p>
+    </div>
+  </div>
+
+  <div class="win glass" id="appWin">
+    <div class="titlebar"><div class="lights"><span></span><span></span><span></span></div><div class="win-title">Workroam</div></div>
+    <div class="win-body appbody">
+      <aside class="side" id="side">
+        <div class="grp">工作区</div>
+        <button class="it on" type="button" data-pane="projects"><svg class="ic"><use href="#i-folder"/></svg>项目<span class="cnt">4</span></button>
+        <button class="it" type="button" data-pane="history"><svg class="ic"><use href="#i-clock"/></svg>同步历史</button>
+        <button class="it" type="button" data-pane="archive"><svg class="ic"><use href="#i-archive"/></svg>归档<span class="cnt">3</span></button>
+        <button class="it" type="button" data-pane="devices"><svg class="ic"><use href="#i-devices"/></svg>设备<span class="cnt">3</span></button>
+        <div class="grp">本机</div>
+        <button class="it" type="button" data-pane="doctor"><svg class="ic"><use href="#i-shield"/></svg>检查<span class="wdot" title="有 1 项警告"></span></button>
+        <button class="it" type="button" data-pane="settings"><svg class="ic"><use href="#i-sliders"/></svg>设置</button>
+        <div class="foot">
+          <span style="display:flex;gap:6px;align-items:center"><span class="pill ok" style="padding:0 6px"><span class="dot"></span></span><b>s3.home.example</b></span>
+          <span class="hint">workroam-macbook-7f3a · 已加密</span>
+          <span class="hint">本机：家里-MacBook</span>
+        </div>
+      </aside>
+
+      <div class="app-main">
+        <!-- projects -->
+        <div class="toolbar" data-for="projects"><h2>项目</h2><label class="search"><svg class="ic sm"><use href="#i-search"/></svg><input class="input" placeholder="搜索项目" aria-label="搜索项目" id="psearch"></label><button class="btn primary" type="button" data-open="sheetAdd"><svg class="ic sm"><use href="#i-plus"/></svg>接入项目</button></div>
+        <div class="panel" data-for="projects">
+          <div class="split"><div class="plist" id="plist"></div><div class="detail" id="pdetail"></div></div>
+        </div>
+
+        <!-- history -->
+        <div class="toolbar" data-for="history" hidden><h2>同步历史</h2><div class="seg" data-group="hproj"><button type="button" class="on">payment-gateway</button><button type="button">intranet-portal</button></div></div>
+        <div class="panel" data-for="history" hidden>
+          <div class="split">
+            <div class="timeline" id="timeline"></div>
+            <div class="detail" id="snapDetail"></div>
+          </div>
+        </div>
+
+        <!-- archive -->
+        <div class="toolbar" data-for="archive" hidden><h2>归档</h2><label class="search"><svg class="ic sm"><use href="#i-search"/></svg><input class="input" placeholder="搜索归档" aria-label="搜索归档"></label><button class="btn" type="button" data-open="sheetArchive"><svg class="ic sm"><use href="#i-archive"/></svg>归档项目…</button></div>
+        <div class="panel" data-for="archive" hidden>
+          <div class="table" id="archList"></div>
+          <p class="hint" style="margin-top:12px">归档永久保留，不受快照清理影响。各台设备上的本地文件 Workroam 一律不删除、不修改。</p>
+        </div>
+
+        <!-- devices -->
+        <div class="toolbar" data-for="devices" hidden><h2>设备</h2><button class="btn primary" type="button" data-open="sheetPair"><svg class="ic sm"><use href="#i-plus"/></svg>添加设备</button></div>
+        <div class="panel" data-for="devices" hidden>
+          <div style="display:grid;gap:8px">
+            <div class="devrow"><div class="di"><svg class="ic lg"><use href="#i-laptop"/></svg></div><div><div class="nm">家里-MacBook <span class="pill acc">本机</span></div><div class="sm"><span>macOS 15.1</span><span>读写</span><span>最后同步 2 分钟前</span><span class="pill amb"><span class="dot"></span>持有 payment-gateway</span></div></div><span></span></div>
+            <div class="devrow"><div class="di"><svg class="ic lg"><use href="#i-desktop"/></svg></div><div><div class="nm">公司-Win11</div><div class="sm"><span>Windows 11 23H2</span><span>读写</span><span>可访问内网</span><span>最后同步 昨天 18:42</span><span class="pill amb"><span class="dot"></span>持有 intranet-portal</span></div></div><button class="btn sm danger" type="button" data-open="sheetRemoveDev">移除</button></div>
+            <div class="devrow"><div class="di"><svg class="ic lg"><use href="#i-laptop"/></svg></div><div><div class="nm">借用-Ubuntu</div><div class="sm"><span>Ubuntu 24.04</span><span class="pill">只读</span><span>最后同步 3 天前</span></div></div><button class="btn sm danger" type="button" data-open="sheetRemoveDev">移除</button></div>
+          </div>
+        </div>
+
+        <!-- doctor -->
+        <div class="toolbar" data-for="doctor" hidden><h2>检查</h2><span class="hint">上次运行：今天 09:12</span><button class="btn" type="button" id="docRerun"><svg class="ic sm"><use href="#i-refresh"/></svg>重新运行</button></div>
+        <div class="panel" data-for="doctor" hidden>
+          <div style="display:grid;gap:18px;max-width:760px">
+            <div class="sect"><h4>本机</h4><div class="checks" id="localChecks"></div></div>
+            <div class="sect"><h4>存储 · s3.home.example</h4><div class="checks" id="docChecks"></div></div>
+          </div>
+        </div>
+
+        <!-- settings -->
+        <div class="toolbar" data-for="settings" hidden><h2>设置</h2></div>
+        <div class="panel" data-for="settings" hidden>
+          <div class="settings">
+            <div><h4>自动同步</h4><div class="setgrp">
+              <div class="setrow"><div class="tx"><b>全局档位</b><span>项目可单独覆盖</span></div><div class="seg" data-group="auto2"><button type="button">关闭</button><button type="button" class="on">询问</button><button type="button">全自动</button></div></div>
+              <div class="setrow"><div class="tx"><b>空闲后推送</b><span>本地有改动并空闲 <b id="idleV" style="display:inline">15</b> 分钟</span></div><input type="range" min="5" max="60" step="5" value="15" id="idle" aria-label="空闲分钟数"></div>
+              <div class="setrow"><div class="tx"><b>合盖或关机前推送</b><span>同步期间阻止休眠</span></div><input class="sw" type="checkbox" checked aria-label="合盖或关机前推送"></div>
+              <div class="setrow"><div class="tx"><b>开机联网后检查更新</b><span>服务器有新快照时弹出到达卡片</span></div><input class="sw" type="checkbox" checked aria-label="开机联网后检查更新"></div>
+            </div></div>
+            <div><h4>通知</h4><div class="setgrp">
+              <div class="setrow"><div class="tx"><b>手机推送（ntfy）</b><span>完成、失败、到达时推送到手机</span></div><input class="input mono" style="width:240px" value="https://ntfy.home.example/wr-7f3a" aria-label="ntfy 地址"></div>
+              <div class="setrow"><div class="tx"><b>同步完成时提醒</b></div><input class="sw" type="checkbox" checked aria-label="同步完成时提醒"></div>
+            </div></div>
+            <div><h4>Agent</h4><div class="setgrp">
+              <div class="setrow"><div class="tx"><b>Claude Code 2.1.4</b><span>适配器 1.4 · 规则、MCP、Skills、会话</span></div><span class="pill ok">已匹配</span></div>
+              <div class="setrow"><div class="tx"><b>Codex 0.48.0</b><span>适配器 1.2 支持到 0.46</span></div><span class="pill warn">版本较新</span></div>
+              <div class="setrow"><div class="tx"><b>Antigravity 1.3</b><span>适配器 1.0</span></div><span class="pill ok">已匹配</span></div>
+              <div class="setrow"><div class="tx"><b>Agent 发起的同步需要确认</b><span>可以在项目里单独放宽</span></div><input class="sw" type="checkbox" checked aria-label="Agent 发起的同步需要确认"></div>
+            </div></div>
+            <div><h4>异地备份 <span class="tag">v0.3 · 可选</span></h4><div class="setgrp">
+              <div class="setrow"><div class="tx"><b>镜像整个存储</b><span>只在存储本身丢失时需要。云对象存储通常不必开启。</span></div><input class="sw" type="checkbox" aria-label="镜像整个存储"></div>
+              <div class="setrow"><div class="tx"><b>镜像目标</b><span>另一个 S3 桶或本地目录（NAS、移动硬盘）</span></div><button class="btn sm" type="button">选择…</button></div>
+            </div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- sheets -->
+      <div class="sheet-wrap" id="sheetAdd" hidden><div class="sheet glass" role="dialog" aria-label="接入项目">
+        <div><h3>接入项目</h3><p class="hint">选择项目文件夹，可以放在任意位置。</p></div>
+        <div class="field"><label class="lbl" for="addDir">项目目录</label><div class="inrow"><input class="input mono" id="addDir" value="~/code/agent-console"><button class="btn sm" type="button">选择…</button></div>
+          <div class="chips"><span class="pill ok"><svg class="ic sm"><use href="#i-check"/></svg>可写</span><span class="pill ok"><svg class="ic sm"><use href="#i-check"/></svg>不与其他项目嵌套</span><span class="pill ok"><svg class="ic sm"><use href="#i-check"/></svg>不在网盘同步文件夹内</span></div></div>
+        <div class="sect"><h4>发现 2 个 git 仓库</h4>
+          <div class="repo"><svg class="ic sm"><use href="#i-git"/></svg><span class="nm">agent-console</span><span class="hint">origin git.corp.internal</span><span style="margin-left:auto;display:flex;gap:6px"><span class="pill acc">bundle</span><span class="pill">recent:50</span></span></div>
+          <div class="repo"><svg class="ic sm"><use href="#i-git"/></svg><span class="nm">vendor/ui-kit</span><span class="hint">origin github.com</span><span style="margin-left:auto;display:flex;gap:6px"><span class="pill acc">remote</span><span class="pill">full</span></span></div>
+        </div>
+        <div class="sect"><h4>导入已有 Agent 配置</h4>
+          <div class="flist"><span>CLAUDE.md → AGENTS.md（原文件改为一行 @AGENTS.md）</span><span>.mcp.json → .workroam/mcp.toml</span><span>.claude/skills/ → .agents/skills/</span></div></div>
+        <div class="callout warn"><svg class="ic"><use href="#i-warn"/></svg><span><b>跨平台检查发现 1 个问题</b>：<code>docs/Readme.md</code> 与 <code>docs/README.md</code> 只有大小写不同，Windows 上会冲突。改名后才能推送。</span></div>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-close>接入并推送</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetRemove" hidden><div class="sheet glass" role="dialog" aria-label="移除项目">
+        <h3>在这台电脑上移除 <span class="mono" data-fill="pname">blog-astro</span>？</h3>
+        <p>只解除这台电脑与项目的关联。目录里的文件 <b>不会被删除或修改</b>，其他设备和存储里的项目不受影响。</p>
+        <p class="hint">以后重新添加时可以选择新目录：新目录为空就直接拉取；里面已经是这个项目（例如你自己把文件夹搬了过去）就只比对差异。</p>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn danger solid" type="button" data-close>移除</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetArchive" hidden><div class="sheet glass" role="dialog" aria-label="归档项目">
+        <div><h3>归档 <span class="mono">payment-gateway</span></h3><p class="hint">停止同步、接力和到达提醒，在存储里留一份永久保留、可独立恢复的归档。</p></div>
+        <div class="callout info"><svg class="ic"><use href="#i-sparkle"/></svg><span>建议先让 Agent 在 <code>HANDOFF.md</code> 写一份项目总结，以后恢复时它就是最好的入口。</span></div>
+        <div class="callout warn"><svg class="ic"><use href="#i-up"/></svg><span>本地有 12 个改动还没推送，归档前会先推送一次。</span></div>
+        <dl class="kv"><dt>项目大小</dt><dd>1.82 GB（去重后新增约 4 MB）</dd><dt>代码仓库</dt><dd><span class="mono">payment-gateway</span>、<span class="mono">sdk-js</span>，打包为可独立恢复的完整包</dd></dl>
+        <div class="field"><label class="lbl" for="anote">备注</label><input class="input" id="anote" value="上线完成，运维期可能有小改动"></div>
+        <label style="display:flex;gap:10px;align-items:center"><input class="sw" type="checkbox" aria-label="保留完整历史"><span>保留完整同步历史<br><span class="hint">默认只保留最终状态，之前的快照按保留策略清理</span></span></label>
+        <p class="hint">各台设备上的本地文件保持原样，是否清理由你决定。</p>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-close>推送并归档</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetRestore" hidden><div class="sheet glass" role="dialog" aria-label="恢复归档" style="width:min(620px,100%)">
+        <div><h3>恢复 <span class="mono" data-fill="aname">crm-legacy</span></h3><p class="hint">归档于 2026-03-12 · 公司-Win11 · 1.8 GB</p></div>
+        <div class="field"><label class="lbl" for="rdir">恢复到</label><div class="inrow"><input class="input mono" id="rdir" value="~/Workroam/crm-legacy"><button class="btn sm" type="button">选择…</button></div><span class="hint">默认是本机为这个项目绑定过的目录。</span></div>
+        <div class="field"><span class="lbl">原型：切换检测结果</span><div class="seg" data-group="scen"><button type="button" class="on">①</button><button type="button">②</button><button type="button">③</button><button type="button">④</button><button type="button">⑤</button><button type="button">⑥</button><button type="button">⑦</button></div></div>
+        <div class="scen" id="scenBox"></div>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" id="scenGo" data-close>恢复</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetDelArch" hidden><div class="sheet glass" role="dialog" aria-label="删除归档">
+        <h3>删除归档 <span class="mono" data-fill="aname">crm-legacy</span>？</h3>
+        <p>存储里的归档会被删除，下一次清理时释放空间。<b>这一步无法撤销。</b>本地文件不受影响。</p>
+        <div class="field"><label class="lbl" for="delName">输入项目名确认</label><input class="input mono" id="delName" placeholder="crm-legacy" autocomplete="off"></div>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn danger solid" type="button" id="delGo" data-close disabled>删除归档</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetPair" hidden><div class="sheet glass" role="dialog" aria-label="添加设备">
+        <h3>添加设备</h3>
+        <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+          <div class="qr" id="qr2"></div>
+          <div style="flex:1;min-width:200px;display:grid;gap:10px">
+            <p style="font-size:13px">在新电脑的向导里选择“加入已有工作区”，扫描二维码或粘贴配对码，再输入加密密码。</p>
+            <div class="codebox" id="pairCode2">wrm1:7Hq2Lx…9fKe2Q</div>
+            <button class="btn sm" type="button" data-copy="#pairCode2" style="justify-self:start"><svg class="ic sm"><use href="#i-copy"/></svg><span>复制配对码</span></button>
+          </div>
+        </div>
+        <div class="setgrp"><div class="setrow"><div class="tx"><b>只读设备</b><span>只能拉取查看，不能推送或持有租约，适合临时借用的电脑</span></div><input class="sw" type="checkbox" aria-label="只读设备"></div></div>
+        <div class="acts"><button class="btn primary" type="button" data-close>完成</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetRemoveDev" hidden><div class="sheet glass" role="dialog" aria-label="移除设备">
+        <h3>移除这台设备？</h3>
+        <p>Workroam 会轮换工作区密钥，把新密钥加密分发给其余设备，然后吊销旧密钥。被移除的设备随即失去访问权限。</p>
+        <div class="callout info"><svg class="ic"><use href="#i-key"/></svg><span>那台电脑上的本地文件不受影响。</span></div>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn danger solid" type="button" data-close>移除并轮换密钥</button></div>
+      </div></div>
+
+      <div class="sheet-wrap" id="sheetSnap" hidden><div class="sheet glass" role="dialog" aria-label="恢复整个项目">
+        <h3>把 <span class="mono">payment-gateway</span> 恢复到快照 <span class="mono" data-fill="snapid">#124</span>？</h3>
+        <p>先在本地保存当前状态的冲突副本，再恢复，并生成一次新的同步。原有历史全部保留。</p>
+        <div class="codebox">~/Workroam/payment-gateway.before-restore-20261030-1842/</div>
+        <div class="acts"><button class="btn" type="button" data-close>取消</button><button class="btn primary" type="button" data-close>恢复整个项目</button></div>
+      </div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ CARDS ============================ -->
+<section class="view" data-view="cards" hidden>
+  <div class="intro">
+    <div>
+      <div class="eyebrow">PRD 8.15 · UX-01 – UX-07 · LEASE-03</div>
+      <h1>角落卡片</h1>
+      <p>主动弹出的卡片固定在屏幕角落，不抢键盘焦点，不设回车默认按钮，超时一律按“稍后”。失败卡片常驻，直到你处理。</p>
+    </div>
+    <div class="acts-row">
+      <div class="seg" data-group="corner"><button type="button" class="on">macOS · 右上</button><button type="button">Windows · 右下</button></div>
+      <button class="btn primary" type="button" id="playHandoff"><svg class="ic sm"><use href="#i-up"/></svg>演示一次推送</button>
+    </div>
+  </div>
+  <div class="cardgrid" id="cardGallery"></div>
+</section>
+
+<!-- ============================ TRAY ============================ -->
+<section class="view" data-view="tray" hidden>
+  <div class="intro">
+    <div>
+      <div class="eyebrow">PRD 6 · 桌面应用 · 托盘</div>
+      <h1>托盘菜单</h1>
+      <p>日常大部分操作不用打开主窗口。Windows 上同一份菜单从右下角托盘弹出。</p>
+    </div>
+  </div>
+  <div class="desk glass">
+    <div class="menubar"><b style="font-weight:700">访达</b><span>文件</span><span>编辑</span><span>显示</span>
+      <div class="r"><span class="wr" title="Workroam"><svg><use href="#glyph"/></svg></span><span>周四 18:40</span></div>
+    </div>
+    <div class="desk-body">
+      <div class="legend glass">
+        <b>托盘图标状态</b>
+        <div class="row"><span class="tray-g"><svg><use href="#glyph"/></svg></span><div><b>正常</b><br><span>全部已同步，或只是有待推送的改动</span></div></div>
+        <div class="row"><span class="tray-g syncing"><svg><use href="#glyph"/></svg></span><div><b>同步中</b><br><span>呼吸动画，悬停显示进度</span></div></div>
+        <div class="row"><span class="tray-g" style="color:var(--fg)"><svg><use href="#glyph"/></svg><i class="badge-dot" style="right:6px;bottom:6px"></i></span><div><b>警示</b><br><span>同步失败、存储不可达、项目目录不存在、异地备份超过 3 天未成功</span></div></div>
+      </div>
+      <div class="menu glass" role="menu" aria-label="Workroam 菜单">
+        <div class="head"><b>家里-MacBook</b><span class="hint">s3.home.example · 上次同步 2 分钟前</span></div>
+        <div class="sep"></div>
+        <div class="pj"><span class="dot" style="color:var(--amber)"></span><div><div class="nm">payment-gateway</div><div class="sub2">本机持有 · 12 个改动待推送</div></div><button class="btn sm" type="button" data-card="auth">推送</button></div>
+        <div class="pj"><span class="dot" style="color:var(--accent)"></span><div><div class="nm">intranet-portal</div><div class="sub2">公司-Win11 持有 · 有新进度</div></div><button class="btn sm" type="button" data-card="lease">拉取</button></div>
+        <div class="pj"><span class="dot" style="color:var(--bad)"></span><div><div class="nm">blog-astro</div><div class="sub2">目录不存在 · 已暂停</div></div><span></span></div>
+        <div class="sep"></div>
+        <div class="mi" role="menuitem"><svg class="ic sm"><use href="#i-up"/></svg>推送全部并释放<span class="k">⌥⌘P</span></div>
+        <div class="mi" role="menuitem"><svg class="ic sm"><use href="#i-down"/></svg>拉取最新<span class="k">⌥⌘L</span></div>
+        <div class="mi" role="menuitem"><svg class="ic sm"><use href="#i-pause"/></svg>暂停自动同步 1 小时</div>
+        <div class="sep"></div>
+        <div class="mi" role="menuitem"><svg class="ic sm"><use href="#i-folder"/></svg>打开 Workroam…</div>
+        <div class="mi" role="menuitem"><svg class="ic sm"><use href="#i-shield"/></svg>检查…<span class="sub2" style="margin-left:auto">1 项警告</span></div>
+        <div class="mi" role="menuitem"><svg class="ic sm"><use href="#i-sliders"/></svg>设置…<span class="k">⌘,</span></div>
+        <div class="sep"></div>
+        <div class="mi" role="menuitem">退出 Workroam<span class="k">⌘Q</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<div class="corner" id="corner" aria-live="polite"></div>
+
+<script>
+(function(){
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const icon=(id,c='ic sm')=>`<svg class="${c}"><use href="#${id}"/></svg>`;
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* ---------- theme ---------- */
+const themes=['system','light','dark'], themeIcon={system:'i-auto',light:'i-sun',dark:'i-moon'}, themeName={system:'跟随系统',light:'浅色',dark:'深色'};
+let theme=store.get('wr-theme')||'system';
+function applyTheme(){ if(theme==='system')document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme',theme);
+  $('#themeBtn').innerHTML=icon(themeIcon[theme],'ic'); $('#themeBtn').title='外观：'+themeName[theme]; }
+$('#themeBtn').addEventListener('click',()=>{theme=themes[(themes.indexOf(theme)+1)%3];store.set('wr-theme',theme);applyTheme();});
+applyTheme();
+
+/* ---------- router ---------- */
+const views=['brand','setup','app','cards','tray'];
+function route(){ const v=views.includes(location.hash.slice(1))?location.hash.slice(1):'brand';
+  $$('.view').forEach(s=>s.hidden=s.dataset.view!==v);
+  $$('.tab').forEach(a=>a.toggleAttribute('aria-current',a.getAttribute('href')==='#'+v)); $$('.tab').forEach(a=>{if(a.hasAttribute('aria-current'))a.setAttribute('aria-current','page')});
+  $('#corner').classList.toggle('bottom', cornerBottom && v==='cards');
+}
+window.addEventListener('hashchange',route);
+
+/* ---------- generic segmented ---------- */
+const segHandlers={};
+document.addEventListener('click',e=>{
+  const b=e.target.closest('.seg button'); if(!b)return;
+  const seg=b.parentElement; $$('button',seg).forEach(x=>x.classList.toggle('on',x===b));
+  const g=seg.dataset.group, idx=[...seg.children].indexOf(b);
+  if(b.dataset.val) $$(`[data-pane^="${g}:"]`).forEach(p=>p.hidden=p.dataset.pane!==`${g}:${b.dataset.val}`);
+  segHandlers[g]&&segHandlers[g](idx,b);
+});
+
+/* ---------- copy ---------- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-copy]'); if(!b)return;
+  const el=$(b.dataset.copy); const sp=b.querySelector('span');
+  const done=()=>{ if(sp){const o=sp.textContent;sp.textContent='已复制';setTimeout(()=>sp.textContent=o,1400);} };
+  try{navigator.clipboard.writeText(el.dataset.full||el.textContent).then(done,()=>{selectText(el);});}catch(err){selectText(el);}
+});
+function selectText(el){const r=document.createRange();r.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(r);}
+
+/* ---------- QR (decorative) ---------- */
+function qr(seed){ const n=29; let s=seed; const rnd=()=>(s=(s*1103515245+12345)&0x7fffffff)/0x7fffffff;
+  let r=''; const finder=(x,y)=>`<rect x="${x}" y="${y}" width="7" height="7" rx="1.6"/><rect x="${x+1}" y="${y+1}" width="5" height="5" rx="1.1" fill="var(--qr-bg)"/><rect x="${x+2}" y="${y+2}" width="3" height="3" rx=".8"/>`;
+  const inF=(x,y)=>(x<8&&y<8)||(x>n-9&&y<8)||(x<8&&y>n-9);
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){ if(inF(x,y))continue; if(rnd()>.52)r+=`<rect x="${x}" y="${y}" width="1" height="1" rx=".25"/>`; }
+  return `<svg viewBox="-1 -1 ${n+2} ${n+2}" role="img" aria-label="配对二维码（示意）"><g fill="var(--qr-fg)">${finder(0,0)}${finder(n-7,0)}${finder(0,n-7)}${r}</g><g transform="translate(${n/2-3.5} ${n/2-3.5})"><rect width="7" height="7" rx="1.8" fill="var(--qr-bg)"/><svg x=".6" y=".6" width="5.8" height="5.8" viewBox="0 0 160 160"><use href="#logo"/></svg></g></svg>`; }
+$('#qr1').innerHTML=qr(7); $('#qr2').innerHTML=qr(19);
+$('#pairCode').dataset.full=$('#pairCode2').dataset.full='wrm1:7Hq2LxNa0pVt4Rk8sYcE1mZb6WdJ3uQo5gHf9nXi2TyL8vBr4KcA0eMs7DjP1wUq6zFh3oGn5lSx9fKe2Q';
+
+/* ---------- logo orb ---------- */
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const orbG=$('#orbTravel'), orbRest=$('#orbRest'), anim=$('#orbAnim'); let orbOn=false;
+function setOrb(on){ orbOn=on&&!reduce&&!!(anim&&anim.beginElement); orbG.style.display=orbOn?'':'none'; orbRest.style.display=orbOn?'none':'';
+  if(orbOn)anim.beginElement(); else if(anim&&anim.endElement)anim.endElement();
+  $('#orbBtn').lastChild.textContent=orbOn?'停止漫游动画':'播放漫游动画'; }
+$('#orbBtn').addEventListener('click',()=>setOrb(!orbOn));
+setOrb(true);
+
+/* ---------- checks data ---------- */
+const CHECKS=[
+ ['DNS 解析','s3.home.example → 203.0.113.24','ok','4 ms'],
+ ['TLS 证书','Let’s Encrypt · 82 天后到期','ok','31 ms'],
+ ['凭证有效','密钥可签名请求','ok','40 ms'],
+ ['桶可访问','workroam-macbook-7f3a','ok','36 ms'],
+ ['读取','GET 1 KB 测试对象','ok','38 ms'],
+ ['写入','PUT 1 KB 测试对象','ok','44 ms'],
+ ['删除','DELETE 测试对象','ok','35 ms'],
+ ['条件创建','If-None-Match: * · 租约获取依赖它','ok','41 ms'],
+ ['条件覆盖','If-Match: ETag · 租约续约依赖它','ok','43 ms'],
+ ['分片上传','5 MB × 2 分片','ok','610 ms'],
+ ['地址风格','路径风格可用，虚拟主机风格不可用','ok','—'],
+ ['时钟偏差','本机比存储快 1.2 秒（允许 ±5 分钟）','ok','—'],
+ ['延迟','往返 38 ms','ok','—'],
+ ['带宽','下行 48 MB/s · 上行 4.2 MB/s','warn','—','上行偏慢：首次推送 1.8 GB 约需 7 分钟。之后只传改动，通常几秒完成。'],
+ ['桶版本控制','已开启','warn','—','删除的数据块会作为旧版本继续占用空间。建议给工作区前缀加一条“旧版本 7 天后过期”的生命周期规则。'],
+ ['生命周期规则','没有会影响工作区的规则','ok','—'],
+];
+const FAIL=['写入','403 AccessDenied','bad','—','密钥缺少 s3:PutObject 权限。在存储控制台给这把密钥加上对 workroam-macbook-7f3a 的写权限，或返回“密钥权限方式”改为创建专用密钥。'];
+const stIcon={ok:'i-check',warn:'i-warn',bad:'i-x'};
+function chkRow(c,state){ const st=state||c[2];
+  return `<div class="chk"><span class="st ${st}">${st==='wait'?'<span class="spin"></span>':icon(stIcon[st],'ic')}</span><div><div class="nm">${c[0]}</div><div class="dt">${st==='wait'?'检查中…':c[1]}</div>${st!=='wait'&&c[4]?`<div class="fix">${c[4]}</div>`:''}</div><span class="ms">${st==='wait'?'':c[3]}</span></div>`; }
+function summary(list){ const n={ok:0,warn:0,bad:0}; list.forEach(c=>n[c[2]]++);
+  return `<span class="pill ok">${n.ok} 通过</span><span class="pill warn">${n.warn} 警告</span><span class="pill ${n.bad?'bad':''}">${n.bad} 失败</span>`; }
+let simFail=false, checksDone=false, checkTimer=null;
+function runChecks(target,sumEl,list,onDone){
+  clearInterval(checkTimer); let i=0; checksDone=false;
+  target.innerHTML=list.map(c=>chkRow(c,'wait')).join(''); if(sumEl)sumEl.innerHTML='<span class="pill acc">检查中 0 / '+list.length+'</span>';
+  const step=()=>{ const rows=target.children; if(i<list.length){ rows[i].outerHTML=chkRow(list[i]); i++; if(sumEl&&i<list.length)sumEl.innerHTML=`<span class="pill acc">检查中 ${i} / ${list.length}</span>`; }
+    if(i>=list.length){ clearInterval(checkTimer); if(sumEl)sumEl.innerHTML=summary(list); onDone&&onDone(); } };
+  if(reduce){ while(i<list.length)step(); return; }
+  checkTimer=setInterval(step,90);
+}
+function wizChecks(){ const list=CHECKS.map(c=>c); if(simFail)list[5]=FAIL;
+  runChecks($('#chkList'),$('#chkSummary'),list,()=>{checksDone=true;updateFoot();}); }
+$('#rerun').addEventListener('click',wizChecks);
+$('#simFail').addEventListener('click',()=>{simFail=!simFail;$('#simFail').textContent=simFail?'原型：恢复正常结果':'原型：模拟一个失败项';wizChecks();});
+
+/* ---------- wizard ---------- */
+const PATHS={
+  new:[['welcome','开始'],['storage','连接存储'],['key','访问密钥'],['perm','密钥权限'],['bucket','存储桶'],['check','能力检查'],['crypto','加密'],['local','本机设置'],['done','完成']],
+  join:[['welcome','开始'],['pair','配对码'],['jpass','加密密码'],['check','能力检查'],['local','本机设置'],['pick','选择项目'],['jdone','完成']],
+};
+let path='new', idx=0;
+function steps(){return PATHS[path==='mirror'?'new':path];}
+function renderWiz(){
+  const st=steps(), cur=st[idx][0];
+  $$('#wizard .step').forEach(s=>s.hidden=s.dataset.step!==cur);
+  $('#railList').innerHTML=st.map((s,i)=>`<li class="${i<idx?'done':i===idx?'cur':''}"><span class="n">${i<idx?icon('i-check','ic sm'):i+1}</span>${s[1]}</li>`).join('');
+  $('#railMobileText').textContent=`第 ${idx+1} / ${st.length} 步 · ${st[idx][1]}`; $('#railMobileBar').style.width=((idx+1)/st.length*100)+'%';
+  $('#wizard .win-title').textContent=idx===0?'欢迎使用 Workroam':(path==='join'?'加入已有工作区':'新建工作区')+' · '+st[idx][1];
+  $('#back').style.visibility=idx===0||cur==='done'||cur==='jdone'?'hidden':'visible';
+  if(cur==='check')wizChecks();
+  if(cur==='jdone')runJoinPull();
+  updateFoot();
+}
+function updateFoot(){
+  const cur=steps()[idx][0], nx=$('#next'); let label='继续', dis=false, hint='每一步都可以回退修改';
+  if(cur==='welcome'){ if(path==='mirror'){dis=true;hint='从异地备份恢复将在 v0.3 提供';} }
+  if(cur==='perm'){ const cu=$('input[name=perm]:checked').value==='current'; $('#permWarn').hidden=!cu; if(cu&&!$('#permAck').checked){dis=true;hint='勾选“我了解风险”后继续';} }
+  if(cur==='bucket'){ const seg=$('[data-group=bucket] .on').dataset.val; if(seg==='custom'&&!bucketValid()){dis=true;hint='桶名不符合规则';} if(seg==='exist'&&$$('input[name=eb]')[0].checked){dis=true;hint='这个桶已经是工作区，请选择其他桶，或返回第一步改为加入';} }
+  if(cur==='check'){ if(!checksDone){dis=true;hint='正在检查…';} else if(simFail){dis=true;hint='有失败项，修复后重新检查';} else hint='警告项不会阻止继续'; }
+  if(cur==='crypto'){ if(!keyConfirmed()||$('#pw').value!==$('#pw2').value||score($('#pw').value)<2){dis=true;hint='设置足够强的密码，并确认已保存恢复密钥';} }
+  if(cur==='done'){label='接入第一个项目';hint='配对码也可以随时在“设备”里重新生成';}
+  if(cur==='jdone'){label='打开 Workroam';hint='';}
+  if(cur==='pick')label='拉取所选项目';
+  if(cur==='local'&&path==='new')label='完成初始化';
+  nx.textContent=label; nx.disabled=dis; $('#footHint').textContent=hint;
+}
+$('#next').addEventListener('click',()=>{
+  const st=steps(), cur=st[idx][0];
+  if(cur==='done'||cur==='jdone'){ location.hash='#app'; if(cur==='done')setTimeout(()=>openSheet('sheetAdd'),250); return; }
+  if(idx<st.length-1){idx++;renderWiz();$('#wizard .stage').scrollTop=0;}
+});
+$('#back').addEventListener('click',()=>{ if(idx>0){idx--;renderWiz();} });
+$('#wizRestart').addEventListener('click',()=>{idx=0;renderWiz();});
+$$('input[name=path]').forEach(r=>r.addEventListener('change',()=>{path=r.value;renderWiz();}));
+$$('input[name=perm]').forEach(r=>r.addEventListener('change',updateFoot)); $('#permAck').addEventListener('change',updateFoot);
+$$('input[name=eb]').forEach(r=>r.addEventListener('change',updateFoot));
+segHandlers.bucket=()=>updateFoot();
+
+// storage presets
+const PRESET={self:['https://s3.home.example',['HTTPS 证书有效','地址风格：路径风格（自动识别）','区域：us-east-1（自动）']],
+  aws:['https://s3.ap-northeast-1.amazonaws.com',['HTTPS 证书有效','地址风格：虚拟主机风格','区域：ap-northeast-1（从地址识别）']],
+  r2:['https://<account-id>.r2.cloudflarestorage.com',['HTTPS 证书有效','地址风格：路径风格','区域：auto']],
+  oss:['https://oss-cn-hangzhou.aliyuncs.com',['HTTPS 证书有效','地址风格：虚拟主机风格','区域：cn-hangzhou（从地址识别）']],
+  other:['https://',['填写端点后自动识别地址风格与区域']]};
+$$('input[name=preset]').forEach(r=>r.addEventListener('change',()=>{ const p=PRESET[r.value]; $('#endpoint').value=p[0];
+  $('#detectChips').innerHTML=p[1].map((t,i)=>i===0&&r.value!=='other'?`<span class="pill ok">${icon('i-check')}${t}</span>`:`<span class="pill acc">${t}</span>`).join('');
+  $('#selfHostCmd').style.display=r.value==='self'?'grid':'none'; }));
+$('#skEye').addEventListener('click',()=>{const i=$('#sk');i.type=i.type==='password'?'text':'password';});
+
+// bucket
+const TAKEN=['workroam','backups','test-bucket','my-bucket'];
+function bucketRules(v){ return [
+  [v.length>=3&&v.length<=63,`3–63 位（当前 ${v.length}）`],
+  [/^[a-z0-9-]*$/.test(v)&&v.length>0,'只含小写字母、数字和连字符'],
+  [/^[a-z0-9].*[a-z0-9]$/.test(v),'以字母或数字开头和结尾'],
+  [!TAKEN.includes(v),TAKEN.includes(v)?'名称已被占用':'名称可用'] ]; }
+function bucketValid(){return bucketRules($('#bname').value).every(r=>r[0]);}
+function renderRules(){ $('#bRules').innerHTML=bucketRules($('#bname').value).map(r=>`<span class="pill ${r[0]?'ok':'bad'}">${icon(r[0]?'i-check':'i-x')}${r[1]}</span>`).join(''); updateFoot(); }
+$('#bname').addEventListener('input',renderRules); renderRules();
+$('#reroll').addEventListener('click',()=>{ $('#defBucket').textContent='workroam-macbook-'+Math.random().toString(16).slice(2,6); });
+
+// crypto
+const RKEY=['R7KQ','2M9X','HV4T','8ZPL','QW3N','6JDC','YB5E','K1FA'];
+$('#rkey').innerHTML=RKEY.map((g,i)=>`<span>${g}<small>第 ${i+1} 组</small></span>`).join('');
+$('#copyKey').dataset.copy='#rkey'; $('#rkey').dataset.full=RKEY.join('-');
+function score(p){ let s=0; if(p.length>=10)s++; if(p.length>=14)s++; if(/[a-z]/.test(p)&&/[A-Z0-9]/.test(p))s++; if(/\d/.test(p))s++; if(/[^A-Za-z0-9]/.test(p))s++; return s; }
+const meterCol=['var(--bad)','var(--bad)','var(--warn)','var(--warn)','var(--ok)','var(--ok)'], meterTx=['太弱','太弱','一般','良好','强','很强'];
+function renderPw(){ const s=score($('#pw').value); $$('#meter i').forEach((m,i)=>m.style.background=i<s?meterCol[s]:''); $('#meterTx').textContent='强度：'+meterTx[s];
+  const m=$('#pw').value===$('#pw2').value; $('#pwMatch').textContent=m?'两次输入一致':'两次输入不一致'; $('#pwMatch').style.color=m?'var(--ok)':'var(--bad)'; updateFoot(); }
+function keyConfirmed(){ return $('#g3').value.toUpperCase()===RKEY[2]&&$('#g6').value.toUpperCase()===RKEY[5]; }
+function renderKeyOk(){ const ok=keyConfirmed(); $('#keyOk').textContent=ok?'已确认保存恢复密钥':'两组都正确后才能继续。'; $('#keyOk').style.color=ok?'var(--ok)':''; updateFoot(); }
+['#pw','#pw2'].forEach(s=>$(s).addEventListener('input',renderPw)); ['#g3','#g6'].forEach(s=>$(s).addEventListener('input',renderKeyOk));
+$('#fillKey').addEventListener('click',()=>{$('#g3').value=RKEY[2];$('#g6').value=RKEY[5];renderKeyOk();});
+renderPw();
+
+// join: pick
+const PICK=[['payment-gateway','~/Workroam/payment-gateway',true,'默认位置',''],['intranet-portal','~/code/portal',true,'自定义目录',''],['blog-astro','~/Library/Mobile Documents/com~apple~CloudDocs/blog-astro',false,'自定义目录','位于 iCloud 云盘中，两套同步可能互相冲突'],['ml-notebooks','~/Workroam/ml-notebooks',false,'默认位置','']];
+$('#pickList').innerHTML=PICK.map((p,i)=>`<div class="pane" style="padding:12px 14px;display:grid;gap:8px">
+  <label style="display:flex;gap:10px;align-items:center;cursor:pointer"><input class="cb" type="checkbox" ${p[2]?'checked':''} id="pk${i}"><b class="mono" style="font-size:13px">${p[0]}</b><span class="hint" style="margin-left:auto">${p[3]}</span></label>
+  <div class="inrow"><input class="input mono" value="${p[1]}" aria-label="${p[0]} 的本机目录" style="height:32px;font-size:12px"><button class="btn sm" type="button">更改…</button></div>
+  ${p[4]?`<div class="callout warn" style="padding:6px 10px;font-size:12px">${icon('i-warn','ic sm')}<span>${p[4]}</span></div>`:''}</div>`).join('');
+let joinTimer=null;
+function runJoinPull(){ const sel=PICK.filter((p,i)=>$('#pk'+i).checked); const box=$('#jdoneList');
+  box.innerHTML=sel.map((p,i)=>`<div class="pane" style="padding:12px 14px;display:grid;gap:6px"><div style="display:flex;justify-content:space-between;gap:8px"><b class="mono" style="font-size:13px">${p[0]}</b><span class="hint" data-pt="${i}">准备中</span></div><div class="bar"><i data-pb="${i}" style="width:0%"></i></div></div>`).join('')||'<p class="hint">没有选择项目。可以稍后在“项目”里添加。</p>';
+  let t=0; clearInterval(joinTimer); joinTimer=setInterval(()=>{ t+=4; sel.forEach((p,i)=>{ const v=Math.min(100,t*(i?0.7:1)); const b=$(`[data-pb="${i}"]`); if(!b)return; b.style.width=v+'%'; $(`[data-pt="${i}"]`).textContent=v>=100?'已完成 · 已生成本机配置':v<30?'下载数据块':v<80?'导入代码仓库':'生成环境块、MCP、Skills'; }); if(t>150)clearInterval(joinTimer); },80); }
+
+renderWiz();
+
+/* ---------- main app ---------- */
+const PROJ=[
+ {id:'payment-gateway',desc:'支付网关 · 风控回调改造',st:'held',pill:['amb','本机持有租约'],meta:['#128 · 2 分钟前','12 个改动待推送'],dir:'~/Workroam/payment-gateway',
+  repos:[['payment-gateway','bundle','recent:50','git.corp.internal',false],['sdk-js','remote','full','github.com',true]],agents:['Claude Code','Codex'],
+  ho:{by:'Codex · 公司-Win11 · 昨天 18:42',goal:'接入新版风控回调，替换旧的同步校验接口',done:['回调签名校验与重放保护','risk_callback 表迁移'],doing:['回调失败的重试队列（retry_worker.rs 写了一半）'],next:['补齐重试队列的集成测试','回公司后推送到内网仓库']}},
+ {id:'intranet-portal',desc:'内网门户 · 权限中心',st:'remote',pill:['acc','服务器上有新进度'],meta:['#57 · 昨天 18:42','租约：公司-Win11'],dir:'~/code/portal',
+  repos:[['intranet-portal','bundle','snapshot','git.corp.internal',false]],agents:['Claude Code'],
+  ho:{by:'Claude Code · 公司-Win11 · 昨天 18:40',goal:'权限中心接入组织架构同步',done:['组织树接口联调'],doing:['角色继承规则'],next:['在家里补前端页面','不要动 deploy/ 目录']}},
+ {id:'blog-astro',desc:'个人博客',st:'missing',pill:['bad','目录不存在'],meta:['#31 · 5 天前','已暂停同步'],dir:'~/Sites/blog-astro',repos:[['blog-astro','remote','full','github.com',true]],agents:['Codex']},
+ {id:'ml-notebooks',desc:'实验笔记本',st:'notadded',pill:['','未添加到本机'],meta:['#9 · 3 周前','在 公司-Win11 上'],dir:null,repos:[],agents:[]},
+];
+let sel='payment-gateway';
+function renderPlist(q=''){
+  $('#plist').innerHTML=PROJ.filter(p=>p.id.includes(q.trim())).map(p=>`<button type="button" class="prow ${p.id===sel?'on':''}" data-p="${p.id}">
+    <span class="top"><span class="nm">${p.id}</span><span class="pill ${p.pill[0]}"><span class="dot"></span>${p.pill[1]}</span></span>
+    <span class="meta"><span>${p.meta[0]}</span><span>${p.meta[1]}</span></span></button>`).join('');
+}
+function renderDetail(){ const p=PROJ.find(x=>x.id===sel); let h='';
+  h+=`<div class="hd"><div><h3>${p.id}</h3><p>${p.desc}</p></div><span class="pill ${p.pill[0]}"><span class="dot"></span>${p.pill[1]}</span></div>`;
+  if(p.st==='held') h+=`<div class="acts-row"><button class="btn primary" type="button" data-card="auth">${icon('i-up')}推送并释放</button><button class="btn" type="button" data-goto="history">${icon('i-clock')}历史</button><button class="btn" type="button" data-open="sheetArchive">${icon('i-archive')}归档…</button><button class="btn ghost" type="button" data-open="sheetRemove" data-name="${p.id}">在本机移除…</button></div>`;
+  if(p.st==='remote') h+=`<div class="callout info">${icon('i-down','ic')}<span>公司-Win11 昨天 18:42 推送了 23 个文件、4 个提交，并一直持有租约（13 小时未续约，可能忘记释放）。</span></div><div class="acts-row"><button class="btn primary" type="button" data-card="lease">${icon('i-down')}拉取…</button><button class="btn" type="button" data-goto="history">${icon('i-clock')}历史</button></div>`;
+  if(p.st==='missing') h+=`<div class="callout bad">${icon('i-warn','ic')}<span><b>找不到 <code>${p.dir}</code>。</b>目录可能被移动、改名或删除，这个项目在本机已暂停同步。Workroam 不会自己寻找或创建目录。</span></div><div class="acts-row"><button class="btn" type="button" data-open="sheetRemove" data-name="${p.id}">移除后重新添加…</button><button class="btn ghost" type="button">目录已放回原处，重新检查</button></div>`;
+  if(p.st==='notadded') h+=`<div class="callout info">${icon('i-folder','ic')}<span>这个项目还没有添加到本机。选择本机目录后会拉取最新快照。</span></div>
+    <div class="field"><label class="lbl" for="ndir">本机目录</label><div class="inrow"><input class="input mono" id="ndir" value="~/Workroam/ml-notebooks"><button class="btn sm" type="button">选择…</button></div><span class="hint">默认“默认项目位置/项目名”。目录为空、还没拉取前可以随时更换。</span></div>
+    <div class="acts-row"><button class="btn primary" type="button">${icon('i-down')}添加并拉取</button></div>`;
+  if(p.dir&&p.st!=='notadded') h+=`<dl class="kv"><dt>本机目录</dt><dd><span class="lockdir">${p.st==='missing'?icon('i-warn'):icon('i-lock')}${p.dir}</span>${p.st!=='missing'?'<span class="hint">已同步，目录已锁定。要换位置，先在本机移除项目再重新添加。</span>':''}</dd>
+    <dt>最新快照</dt><dd>${p.meta[0]}</dd><dt>Agent</dt><dd>${p.agents.map(a=>`<span class="pill">${a}</span>`).join('')}</dd></dl>`;
+  if(p.repos.length) h+=`<div class="sect"><h4>代码仓库</h4>${p.repos.map(r=>`<div class="repo">${icon('i-git')}<span class="nm">${r[0]}</span><span class="pill acc">${r[1]}</span><span class="pill">${r[2]}</span><span class="hint" style="margin-left:auto">${r[3]} · ${r[4]?'本机可推送':'本机不可推送，只做本地提交'}</span></div>`).join('')}</div>`;
+  if(p.ho) h+=`<div class="sect"><h4>交接文档 · .handoff/HANDOFF.md</h4><div class="handoff"><span class="h">更新：${p.ho.by}</span><div><b>当前目标</b>　${p.ho.goal}</div><div><b>已完成</b><ul>${p.ho.done.map(x=>`<li>${x}</li>`).join('')}</ul></div><div><b>进行中</b><ul>${p.ho.doing.map(x=>`<li>${x}</li>`).join('')}</ul></div><div><b>下一步</b><ul>${p.ho.next.map(x=>`<li>${x}</li>`).join('')}</ul></div></div></div>`;
+  $('#pdetail').innerHTML=h;
+}
+$('#plist').addEventListener('click',e=>{const b=e.target.closest('.prow');if(!b)return;sel=b.dataset.p;renderPlist($('#psearch').value);renderDetail();});
+$('#psearch').addEventListener('input',e=>renderPlist(e.target.value));
+renderPlist(); renderDetail();
+
+// side nav
+function showPane(name){ $$('#side .it').forEach(b=>b.classList.toggle('on',b.dataset.pane===name)); $$('#appWin [data-for]').forEach(el=>el.hidden=el.dataset.for!==name); if(name==='doctor')runDoctor(); }
+$('#side').addEventListener('click',e=>{const b=e.target.closest('.it');if(b)showPane(b.dataset.pane);});
+document.addEventListener('click',e=>{const g=e.target.closest('[data-goto]');if(g)showPane(g.dataset.goto);});
+
+// sheets
+function openSheet(id,name){ const s=$('#'+id); if(!s)return; if(name)$$('[data-fill]',s).forEach(f=>{ if(f.dataset.fill==='pname'||f.dataset.fill==='aname')f.textContent=name; }); s.hidden=false; const f=s.querySelector('input,button'); f&&f.focus({preventScroll:true}); }
+document.addEventListener('click',e=>{
+  const o=e.target.closest('[data-open]'); if(o){ openSheet(o.dataset.open,o.dataset.name); return; }
+  const c=e.target.closest('[data-close]'); if(c){ c.closest('.sheet-wrap').hidden=true; return; }
+  if(e.target.classList.contains('sheet-wrap')) e.target.hidden=true;
+});
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') $$('.sheet-wrap').forEach(s=>s.hidden=true); });
+
+// history
+const SNAPS=[
+ ['#128','家里-MacBook','m','今天 18:38','<span class="a">+3</span> <span class="m">~9</span> <span class="d">−0</span> · 2 个提交','重试队列骨架'],
+ ['#127','公司-Win11','w','昨天 18:42','<span class="a">+6</span> <span class="m">~17</span> <span class="d">−2</span> · 3 个提交','回调签名校验完成'],
+ ['#126','公司-Win11','w','昨天 12:05','<span class="a">+1</span> <span class="m">~4</span> <span class="d">−0</span> · 1 个提交','午休前推送'],
+ ['#125','家里-MacBook','m','10-28 23:16','<span class="a">+12</span> <span class="m">~3</span> <span class="d">−1</span> · 2 个提交','risk_callback 迁移'],
+ ['#124','公司-Win11','w','10-28 18:30','<span class="a">+0</span> <span class="m">~2</span> <span class="d">−0</span> · 0 个提交','只改了文档'],
+];
+let snapSel=0;
+function renderSnaps(){ $('#timeline').innerHTML=SNAPS.map((s,i)=>`<button type="button" class="snap ${i===snapSel?'on':''}" data-i="${i}"><span class="dev ${s[2]==='w'?'w':''}">${icon(s[2]==='w'?'i-building':'i-home','ic')}</span><span style="min-width:0"><span class="l1"><span class="mono">${s[0]}</span>${s[5]}</span><span class="l2">${s[1]} · ${s[3]}</span><span class="diff">${s[4]}</span></span></button>`).join('');
+  const s=SNAPS[snapSel];
+  $('#snapDetail').innerHTML=`<div class="hd"><div><h3>快照 ${s[0]}</h3><p>${s[1]} · ${s[3]} · HANDOFF：${s[5]}</p></div></div>
+   <div class="tree">
+    <label><input class="cb" type="checkbox">${icon('i-folder')}src/</label>
+    <label class="ind1"><input class="cb" type="checkbox" checked>${icon('i-doc')}risk/callback.rs<span class="chg m" style="color:var(--warn)">修改</span></label>
+    <label class="ind1"><input class="cb" type="checkbox" checked>${icon('i-doc')}risk/retry_worker.rs<span class="chg" style="color:var(--ok)">新增</span></label>
+    <label class="ind1"><input class="cb" type="checkbox">${icon('i-doc')}risk/mod.rs<span class="chg" style="color:var(--warn)">修改</span></label>
+    <label><input class="cb" type="checkbox">${icon('i-folder')}migrations/</label>
+    <label class="ind1"><input class="cb" type="checkbox">${icon('i-doc')}20261028_risk_callback.sql</label>
+    <label><input class="cb" type="checkbox">${icon('i-doc')}AGENTS.md</label>
+    <label><input class="cb" type="checkbox">${icon('i-doc')}.handoff/HANDOFF.md<span class="chg" style="color:var(--warn)">修改</span></label>
+   </div>
+   <div class="callout info">${icon('i-restore','ic')}<span>恢复到原位置会生成一次新的同步，原有历史全部保留。导出到其他目录不需要租约，也不影响工作区。</span></div>
+   <div class="acts-row"><button class="btn primary" type="button">恢复所选到原位置</button><button class="btn" type="button">${icon('i-export')}导出到其他目录…</button><button class="btn" type="button" data-open="sheetSnap">恢复整个项目…</button></div>`;
+  $$('#sheetSnap [data-fill=snapid]').forEach(f=>f.textContent=s[0]);
+}
+$('#timeline').addEventListener('click',e=>{const b=e.target.closest('.snap');if(!b)return;snapSel=+b.dataset.i;renderSnaps();});
+renderSnaps();
+
+// archive
+const ARCH=[['crm-legacy','2026-03-12 · 公司-Win11','1.8 GB','上线完成，运维期可能有小改动'],['hackathon-2025','2025-11-30 · 家里-MacBook','420 MB','比赛结束'],['thesis-latex','2025-06-18 · 家里-MacBook','96 MB','永久留存']];
+$('#archList').innerHTML=ARCH.map(a=>`<div class="trow"><div style="min-width:0"><div class="nm">${a[0]}</div><div class="sm">${a[3]}</div></div><div class="sm hide-n">${a[1]}</div><div class="num hide-n">${a[2]}</div>
+  <div class="acts-row" style="justify-content:flex-end"><button class="btn sm primary" type="button" data-open="sheetRestore" data-name="${a[0]}">恢复</button><button class="btn sm" type="button" title="导出到其他目录" aria-label="导出到其他目录">${icon('i-export')}</button><button class="btn sm danger" type="button" data-open="sheetDelArch" data-name="${a[0]}" aria-label="删除归档">${icon('i-trash')}</button></div></div>`).join('');
+const SCEN=[
+ ['ok','① 目录不存在或是空目录','直接下载归档，从完整包克隆代码仓库，生成本机配置，继续开发。',[],null,'仓库：从归档包克隆 crm-legacy（main，最近 50 个提交）'],
+ ['ok','② 本地文件与归档完全一致','不下载任何文件，只恢复同步并重新生成本机配置。',[],null,'仓库：分支与归档一致，不动'],
+ ['acc','③ 本地比归档新','归档之后只在本地改过。保留本地改动，恢复同步，这些改动会作为下一次推送。',['~ src/report/export.ts','~ src/report/export.test.ts','+ docs/ops-2026-04.md'],['保留本地改动（默认）','以归档为准'],'仓库：本地包含归档提交，不动'],
+ ['acc','④ 本地比归档旧','本地等于项目历史中一个更早的快照，归档来自其他设备。更新到归档版本，等同于一次正常拉取。',['~ src/auth/session.ts','~ package.json','+ src/report/'],null,'仓库：归档领先 7 个提交，快进'],
+ ['warn','⑤ 两边都改过','能自动合并的合并，不能合并的保留两份，交给 Agent 合并。',['合并：src/report/export.ts','冲突，保留两份：config/prod.yaml'],['合并（默认）','以归档为准','恢复到另一个目录后自己对比'],'仓库：分叉，归档中的提交放到 workroam/archive/main 分支，由你或 Agent 用 git 合并'],
+ ['bad','⑥ 目录里是别的内容','目录非空，但不是这个项目。不会写入任何文件，请换一个目录或新建子目录。',[],null,''],
+ ['acc','⑦ 换了电脑或换了路径','这台电脑从未添加过这个项目。按目录情况按 ①～⑥ 判断，Agent 会话按新路径改写。',[],null,'默认目录：~/Workroam/crm-legacy'],
+];
+function renderScen(i){ const s=SCEN[i]; const ic={ok:'i-check',acc:'i-restore',warn:'i-warn',bad:'i-x'}[s[0]]; const pc={ok:'ok',acc:'acc',warn:'warn',bad:'bad'}[s[0]];
+  $('#scenBox').innerHTML=`<div class="ttl"><span class="pill ${pc}">${icon(ic)}检测结果</span>${s[1]}</div><p style="font-size:13px">${s[2]}</p>
+   ${s[3].length?`<div class="flist">${s[3].map(f=>`<span>${f}</span>`).join('')}</div>`:''}
+   ${s[4]?`<div class="seg" data-group="scenpick">${s[4].map((o,j)=>`<button type="button" class="${j?'':'on'}">${o}</button>`).join('')}</div>`:''}
+   ${s[5]?`<p class="hint">${s[5]}</p>`:''}
+   ${i===2||i===4?'<p class="hint">选“以归档为准”时，被覆盖的本地文件先另存到 crm-legacy.before-restore-&lt;时间&gt;/。</p>':''}`;
+  $('#scenGo').textContent=i===5?'换一个目录':'恢复'; }
+segHandlers.scen=i=>renderScen(i); renderScen(0);
+$('#delName').addEventListener('input',e=>{$('#delGo').disabled=e.target.value!==$('#sheetDelArch [data-fill]').textContent;});
+
+// doctor
+const LOCAL=[['git 版本','2.47.0','ok','—'],['core.autocrlf','false（推荐）','ok','—'],['长路径','macOS 不受 260 字符限制','ok','—'],['Claude Code 适配器','2.1.4 · 适配器 1.4 支持','ok','—'],['Codex 适配器','0.48.0 · 适配器 1.2 支持到 0.46','warn','—','Agent 版本比适配器新，规则与 MCP 生成仍可用，会话迁移可能失败。更新 Workroam 后会带上新适配器。']];
+let docRan=false;
+function runDoctor(force){ if(docRan&&!force)return; docRan=true; runChecks($('#localChecks'),null,LOCAL); setTimeout(()=>runChecks2(),reduce?0:500); }
+function runChecks2(){ const t=$('#docChecks'); t.innerHTML=CHECKS.map(c=>chkRow(c)).join(''); }
+$('#docRerun').addEventListener('click',()=>runDoctor(true));
+$('#idle').addEventListener('input',e=>$('#idleV').textContent=e.target.value);
+
+/* ---------- cards ---------- */
+const LG='<svg class="lg" aria-hidden="true"><use href="#logo"/></svg>';
+const CARDS={
+ auth:{cap:'授权卡片 · UX-01',html:()=>`<div class="hd">${LG}Workroam<span class="tm">现在</span></div>
+   <h4>推送 payment-gateway？</h4>
+   <dl class="meta"><dt>发起方</dt><dd>Claude Code（Agent）</dd><dt>变更</dt><dd>12 个文件 · 1.4 MB · 3 个提交</dd><dt>目标</dt><dd>s3.home.example</dd><dt>预计</dt><dd>约 8 秒，完成后释放租约</dd></dl>
+   <div class="callout warn" style="padding:7px 10px;font-size:12px">${icon('i-warn')}<span>HANDOFF.md 自上次推送以来没有更新。</span></div>
+   <label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--fg2)"><input class="cb" type="checkbox">本项目 1 小时内不再询问</label>
+   <div class="acts"><button class="btn sm ghost" type="button">查看详情</button><button class="btn sm" type="button" data-dismiss>稍后</button><button class="btn sm primary" type="button" data-go="progress">同意</button></div>`},
+ progress:{cap:'进度卡片 · UX-02',html:()=>`<div class="hd">${LG}Workroam<span class="tm">现在</span></div>
+   <h4>正在推送 payment-gateway</h4>
+   <div style="display:grid;gap:6px"><div style="display:flex;justify-content:space-between;font-size:12.5px"><span data-stage>上传数据块 3 / 5</span><span class="mono" data-pct>62%</span></div><div class="bar"><i data-bar style="width:62%"></i></div>
+   <div style="font-size:12px;color:var(--fg2);font-variant-numeric:tabular-nums" data-rate>0.9 / 1.4 MB · 1.2 MB/s · 剩余约 1 秒</div></div>
+   <div class="acts"><span class="left">${icon('i-shield')}已阻止休眠，断网会自动续传</span><button class="btn sm" type="button" data-dismiss>取消</button></div>`},
+ done:{cap:'完成卡片 · UX-03',html:()=>`<div class="hd">${LG}Workroam<span class="tm">现在</span></div>
+   <h4><span class="pill ok" style="padding:2px 5px">${icon('i-check')}</span>已推送，租约已释放</h4>
+   <dl class="meta"><dt>快照</dt><dd class="mono">#129</dd><dt>用时</dt><dd>7 秒</dd><dt>租约</dt><dd>已释放，公司-Win11 可以拉取了</dd></dl>
+   <div class="acts"><button class="btn sm" type="button" data-dismiss>好</button></div>`},
+ fail:{cap:'失败卡片 · 常驻 · 托盘变为警示',pinned:true,html:()=>`<div class="hd">${LG}Workroam<span class="tm">18:41 · 常驻</span></div>
+   <h4><span class="pill bad" style="padding:2px 5px">${icon('i-x')}</span>推送 payment-gateway 失败</h4>
+   <p style="font-size:12.5px;color:var(--fg2)">存储返回 503 Service Unavailable。已上传的 3 / 5 个数据块会保留，重试时从断点继续。</p>
+   <div class="acts"><button class="btn sm ghost" type="button">打开检查</button><button class="btn sm" type="button" data-dismiss>忽略</button><button class="btn sm primary" type="button" data-go="progress">重试</button></div>`},
+ arrive:{cap:'到达卡片 · UX-04 · v0.3',html:()=>`<div class="hd">${LG}Workroam<span class="tm">08:57</span></div>
+   <h4>服务器上有新进度</h4>
+   <dl class="meta"><dt>项目</dt><dd class="mono">payment-gateway</dd><dt>来自</dt><dd>家里-MacBook · 昨天 23:16</dd><dt>变更</dt><dd>23 个文件 · 4 个提交</dd><dt>冲突</dt><dd style="color:var(--ok)">没有</dd></dl>
+   <div class="acts"><button class="btn sm" type="button" data-dismiss>稍后</button><button class="btn sm primary" type="button" data-go="pulldone">拉取</button></div>`},
+ lease:{cap:'租约冲突 · LEASE-03',html:()=>`<div class="hd">${LG}Workroam<span class="tm">现在</span></div>
+   <h4>intranet-portal 正被公司-Win11 持有</h4>
+   <p style="font-size:12.5px;color:var(--fg2)">最后续约在 13 小时前，那台电脑可能忘记释放了。强制接管前，会把本地当前状态另存为冲突副本，不会覆盖任何东西。</p>
+   <div class="acts"><button class="btn sm" type="button" data-dismiss>等待释放</button><button class="btn sm danger" type="button" data-go="pulldone">强制接管并拉取</button></div>`},
+ pulldone:{cap:'',html:()=>`<div class="hd">${LG}Workroam<span class="tm">现在</span></div>
+   <h4><span class="pill ok" style="padding:2px 5px">${icon('i-check')}</span>已拉取，本机持有租约</h4>
+   <p style="font-size:12.5px;color:var(--fg2)">已生成本机环境块、MCP 配置与 Skills 链接。打开任一 Agent，它会先读 HANDOFF.md。</p>
+   <div class="acts"><button class="btn sm" type="button" data-dismiss>好</button></div>`},
+};
+function cardEl(type,live){ const c=CARDS[type]; const d=document.createElement('div'); d.className='ncard glass'+(c.pinned?' pinned':''); d.dataset.type=type; if(live)d.dataset.live='1'; d.setAttribute('role','status'); d.innerHTML=c.html(); return d; }
+$('#cardGallery').innerHTML=''; ['auth','progress','done','fail','arrive','lease'].forEach(t=>{ const cell=document.createElement('div'); cell.className='cardcell'; cell.innerHTML=`<span class="cap">${CARDS[t].cap}</span>`; cell.appendChild(cardEl(t)); $('#cardGallery').appendChild(cell); });
+let progTimer=null;
+function showCard(type){ const corner=$('#corner'); clearInterval(progTimer);
+  corner.innerHTML=''; const el=cardEl(type,true); corner.appendChild(el);
+  if(type==='progress') animateProgress(el, ()=>showCard('done'));
+  if(type==='done'||type==='pulldone') setTimeout(()=>{ if(el.isConnected)el.remove(); }, 6000);
+}
+function animateProgress(el,done){ let p=0; const stages=['检查租约与仓库状态','打包代码（bundle + WIP 提交）','上传数据块','写入快照','释放租约'];
+  progTimer=setInterval(()=>{ p+=reduce?100:3; const v=Math.min(p,100); const si=Math.min(4,Math.floor(v/20.01));
+    el.querySelector('[data-bar]').style.width=v+'%'; el.querySelector('[data-pct]').textContent=v+'%';
+    el.querySelector('[data-stage]').textContent=stages[si]+(si===2?` ${Math.min(5,Math.ceil((v-40)/4))} / 5`:'');
+    el.querySelector('[data-rate]').textContent=`${(1.4*v/100).toFixed(1)} / 1.4 MB · 1.2 MB/s · 剩余约 ${Math.max(0,Math.round((100-v)/12))} 秒`;
+    if(v>=100){clearInterval(progTimer);setTimeout(done,400);} },80); }
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-card]'); if(t){ showCard(t.dataset.card); return; }
+  const g=e.target.closest('[data-go]'); if(g){ showCard(g.dataset.go); return; }
+  const d=e.target.closest('[data-dismiss]'); if(d){ const c=d.closest('.ncard'); if(c&&c.dataset.live){clearInterval(progTimer);c.remove();} }
+});
+$('#playHandoff').addEventListener('click',()=>showCard('auth'));
+let cornerBottom=false;
+segHandlers.corner=i=>{cornerBottom=i===1;$('#corner').classList.toggle('bottom',cornerBottom);};
+
+route();
+})();
+</script>
+</body>
+</html>

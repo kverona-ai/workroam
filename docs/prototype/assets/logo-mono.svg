@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 160 160" role="img" aria-label="Workroam tray icon">
+  <!-- Monochrome template glyph for the menu bar / system tray. Fill follows currentColor. -->
+  <g fill="currentColor" stroke="currentColor">
+    <path d="M30 46 L57 120 L80 74 L103 120 L130 46" fill="none" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="30" cy="46" r="16" stroke="none"/>
+    <circle cx="130" cy="46" r="16" stroke="none"/>
+    <circle cx="80" cy="66" r="19" stroke="none"/>
+  </g>
+</svg>

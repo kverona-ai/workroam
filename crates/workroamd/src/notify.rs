@@ -34,7 +34,8 @@ async fn post(url: &str, body: Vec<u8>, headers: &[(&str, String)]) {
 }
 
 pub fn sign(secret: &str, body: &[u8]) -> String {
-    let mut m = <Hmac<Sha256> as Mac>::new_from_slice(secret.as_bytes()).expect("any key length");
+    let mut m =
+        <Hmac<Sha256> as hmac::KeyInit>::new_from_slice(secret.as_bytes()).expect("any key length");
     m.update(body);
     format!("sha256={}", hex::encode(m.finalize().into_bytes()))
 }

@@ -9,9 +9,10 @@
 //! XChaCha20-Poly1305 with a key derived from the master key, like
 //! `workroam-core`.
 
-use aes256ctr_poly1305aes::aead::{Aead, KeyInit};
+use aes256ctr_poly1305aes::aead::Aead;
 use aes256ctr_poly1305aes::Aes256CtrPoly1305Aes;
 use base64::Engine;
+use chacha20poly1305::aead::{Aead as _, KeyInit as _};
 use chacha20poly1305::{XChaCha20Poly1305, XNonce};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -20,6 +21,11 @@ use std::collections::HashMap;
 use std::io::Read;
 
 pub mod abi;
+
+/// XChaCha20 nonce from a 24 byte slice (callers check the length first).
+fn xnonce(b: &[u8]) -> XNonce {
+    XNonce::try_from(b).expect("24 byte nonce")
+}
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ReadError {
@@ -258,7 +264,7 @@ impl Reader {
         use chacha20poly1305::aead::Payload;
         XChaCha20Poly1305::new(k.into())
             .decrypt(
-                XNonce::from_slice(&data[4..28]),
+                &xnonce(&data[4..28]),
                 Payload {
                     msg: &data[28..],
                     aad: format!("control/{key}").as_bytes(),
@@ -284,7 +290,7 @@ impl Reader {
         let mut key = [0u8; 32];
         scrypt::scrypt(password.as_bytes(), &raw[..16], &params, &mut key).map_err(fmt_err)?;
         XChaCha20Poly1305::new((&key).into())
-            .decrypt(XNonce::from_slice(&raw[16..40]), &raw[40..])
+            .decrypt(&xnonce(&raw[16..40]), &raw[40..])
             .map_err(|_| ReadError::WrongPassword)
     }
 
@@ -292,7 +298,8 @@ impl Reader {
     pub fn project_id(&self, name: &str) -> R<String> {
         use hmac::Mac;
         let k = self.control.as_ref().ok_or(ReadError::Locked)?;
-        let mut mac = <hmac::Hmac<Sha256> as Mac>::new_from_slice(k).expect("any key size");
+        let mut mac =
+            <hmac::Hmac<Sha256> as hmac::KeyInit>::new_from_slice(k).expect("any key size");
         mac.update(format!("project:{name}").as_bytes());
         Ok(hex::encode(&mac.finalize().into_bytes()[..16]))
     }

@@ -10,6 +10,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 - Release signing: macOS CLI and `workroam-server` binaries are now signed and notarized too, the `.dmg` is notarized and stapled, and notarization can use an App Store Connect API key; Windows files are signed through SignPath (executables first, then the installers built from them) instead of a `.pfx`; an optional GPG key signs `SHA256SUMS`; each Release run shows which signing is configured. See `docs/signing.md`
 - README and release notes state how each release is code signed and link the code signing policy
+- Dependencies: the RustCrypto crates move to their new major releases (sha2 0.11, hmac / hkdf 0.13, pbkdf2 0.13, chacha20poly1305 0.11, aes-gcm 0.11), plus toml 1.1, base64 0.23 and junction 2. The on-disk and in-bucket formats do not change; known-answer tests recorded with the previous releases check that existing data still decrypts. The web reader module is rebuilt
 
 ## [0.1.1] - 2026-10-30
 

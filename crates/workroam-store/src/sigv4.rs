@@ -9,7 +9,7 @@ use std::collections::BTreeMap;
 type HmacSha256 = Hmac<Sha256>;
 
 fn hmac(key: &[u8], data: &[u8]) -> Vec<u8> {
-    let mut m = <HmacSha256 as Mac>::new_from_slice(key).expect("any key length");
+    let mut m = <HmacSha256 as hmac::KeyInit>::new_from_slice(key).expect("any key length");
     m.update(data);
     m.finalize().into_bytes().to_vec()
 }

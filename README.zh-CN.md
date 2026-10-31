@@ -187,6 +187,14 @@ PRD 中的全部功能作为 **v0.1** 一次发布，每个范围都按最后一
 └── LICENSE          # Apache-2.0
 ```
 
+## 代码签名
+
+- **Windows**：将通过 [SignPath.io](https://about.signpath.io) 使用 [SignPath Foundation](https://signpath.org) 免费提供的代码签名证书签名。申请正在进行中，目前的 Windows 版本还没有签名。
+- **macOS**：从 v0.1.1 之后的版本起，用 Kverona LLC 的 Developer ID 签名并经过 Apple 公证。
+- **所有文件**：都列在 `SHA256SUMS` 中，并附带 GitHub 构建来源证明。
+
+谁构建、审阅和批准签名版本，见 [代码签名策略](docs/signing.zh-CN.md#代码签名策略)。
+
 ## 参与贡献
 
 欢迎任何形式的贡献，尤其是 **Agent 适配器**：它们是纯数据文件，门槛最低、价值最高。提交前请阅读 [CONTRIBUTING.md](CONTRIBUTING.md)，所有提交需要 `Signed-off-by`（DCO）。

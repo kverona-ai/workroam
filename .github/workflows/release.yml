@@ -43,6 +43,7 @@ jobs:
       publish: ${{ steps.meta.outputs.publish }}
       prerelease: ${{ steps.meta.outputs.prerelease }}
       signpath: ${{ steps.signing.outputs.signpath }}
+      apple: ${{ steps.signing.outputs.apple }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -117,6 +118,7 @@ jobs:
             echo "说明见 [docs/signing.md](https://github.com/$GITHUB_REPOSITORY/blob/main/docs/signing.md)。"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "signpath=$SIGNPATH" >> "$GITHUB_OUTPUT"
+          echo "apple=$APPLE_CERT" >> "$GITHUB_OUTPUT"
 
   binaries:
     name: CLI · ${{ matrix.target }}
@@ -615,6 +617,8 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          SIGNED_WINDOWS: ${{ needs.prepare.outputs.signpath }}
+          SIGNED_MACOS: ${{ needs.prepare.outputs.apple }}
         run: |
           scripts/release/install-scripts.sh dist "$VERSION"
           scripts/release/manifests.sh "$VERSION" dist

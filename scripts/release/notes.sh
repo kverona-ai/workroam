@@ -57,6 +57,25 @@ if [ -f "$dist/SHA256SUMS.asc" ]; then
 "
 fi
 
+# 代码签名说明：发布流水线传入 SIGNED_WINDOWS / SIGNED_MACOS（true 或 false）；
+# 为旧版本刷新说明时不传，按未签名处理
+policy="https://github.com/$repo/blob/main/docs/signing.md#code-signing-policy"
+policy_zh="https://github.com/$repo/blob/main/docs/signing.zh-CN.md#代码签名策略"
+if [ "${SIGNED_WINDOWS:-false}" = true ]; then
+  win_en="Windows builds are signed through [SignPath.io](https://about.signpath.io) with a free code signing certificate from [SignPath Foundation](https://signpath.org)."
+  win_zh="Windows 版本通过 [SignPath.io](https://about.signpath.io) 签名，证书由 [SignPath Foundation](https://signpath.org) 免费提供。"
+else
+  win_en="Windows builds in this release are not code signed. Signing through [SignPath.io](https://about.signpath.io) with a certificate from [SignPath Foundation](https://signpath.org) is being set up."
+  win_zh="本版本的 Windows 文件没有代码签名。通过 [SignPath.io](https://about.signpath.io) 使用 [SignPath Foundation](https://signpath.org) 证书签名的工作正在进行中。"
+fi
+if [ "${SIGNED_MACOS:-false}" = true ]; then
+  mac_en="macOS builds are signed with the Developer ID of Kverona LLC and notarized by Apple."
+  mac_zh="macOS 版本用 Kverona LLC 的 Developer ID 签名，并经过 Apple 公证。"
+else
+  mac_en="macOS builds in this release are ad-hoc signed only."
+  mac_zh="本版本的 macOS 文件只有 ad-hoc 签名。"
+fi
+
 d="Workroam-$version"
 c="workroam-$version"
 s="workroam-server-$version"
@@ -160,6 +179,8 @@ sha256sum -c SHA256SUMS --ignore-missing          # on macOS: shasum -a 256 -c
 ${gpg_en}gh attestation verify <file> --repo $repo         # check build provenance (SLSA)
 \`\`\`
 
+**Code signing.** $win_en $mac_en See the [code signing policy]($policy).
+
 Full guides: [Install]($docs/install.md) · [Deployment]($docs/deployment.md) · [Configuration]($docs/configuration.md)
 
 <details>
@@ -231,6 +252,8 @@ Kubernetes 可用 Helm Chart：[\`deploy/helm/workroam\`](https://github.com/$re
 sha256sum -c SHA256SUMS --ignore-missing          # macOS 用 shasum -a 256 -c
 ${gpg_zh}gh attestation verify <文件> --repo $repo         # 验证构建来源（SLSA provenance）
 \`\`\`
+
+**代码签名。** ${win_zh}${mac_zh}详见 [代码签名策略]($policy_zh)。
 
 完整文档：[安装]($docs/install.zh-CN.md) · [部署指南]($docs/deployment.zh-CN.md) · [配置说明]($docs/configuration.zh-CN.md)
 

@@ -185,6 +185,7 @@ jobs:
       - name: Check desktop Cargo.lock is up to date
         # src-tauri 有自己的 Cargo.lock；根 workspace 的依赖升级（如 Dependabot）也要同步更新它，
         # 否则发布流水线里的 --locked 构建会失败
+        shell: bash
         run: cargo metadata --locked --format-version 1 --manifest-path apps/desktop/src-tauri/Cargo.toml > /dev/null
       - name: Build without bundling
         working-directory: apps/desktop

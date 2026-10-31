@@ -187,6 +187,14 @@ See [PRD · Release scope](docs/prd.md#10-发布范围与验收门槛) for detai
 └── LICENSE          # Apache-2.0
 ```
 
+## Code signing
+
+- **Windows.** Builds are to be signed through [SignPath.io](https://about.signpath.io) with a free code signing certificate from [SignPath Foundation](https://signpath.org). The application is in progress, so current Windows builds are not signed yet.
+- **macOS.** Builds are signed with the Developer ID of Kverona LLC and notarized by Apple, starting with the release after v0.1.1.
+- **Everything.** Every file is listed in `SHA256SUMS` and carries GitHub build provenance.
+
+See the [code signing policy](docs/signing.md#code-signing-policy) for who builds, reviews and approves signed releases.
+
 ## Contributing
 
 Contributions of every kind are welcome, especially **agent adapters**: they are plain data files, the easiest place to start and the most valuable. Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. All commits require a DCO `Signed-off-by`.

@@ -9,6 +9,7 @@
 ### 变更
 
 - 发布签名：macOS 的命令行与 `workroam-server` 二进制也会签名并公证，`.dmg` 公证并装订票据，公证可以使用 App Store Connect API 密钥；Windows 改为通过 SignPath 签名（先签 exe，再签用它们打出的安装包），不再使用 `.pfx`；可选的 GPG 密钥为 `SHA256SUMS` 签名；每次运行 Release 都会显示签名的配置情况。说明见 `docs/signing.zh-CN.md`
+- README 与发布说明写明每个版本的代码签名情况，并链接代码签名策略
 
 ## [0.1.1] - 2026-10-30
 

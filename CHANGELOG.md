@@ -9,6 +9,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Changed
 
 - Release signing: macOS CLI and `workroam-server` binaries are now signed and notarized too, the `.dmg` is notarized and stapled, and notarization can use an App Store Connect API key; Windows files are signed through SignPath (executables first, then the installers built from them) instead of a `.pfx`; an optional GPG key signs `SHA256SUMS`; each Release run shows which signing is configured. See `docs/signing.md`
+- README and release notes state how each release is code signed and link the code signing policy
 
 ## [0.1.1] - 2026-10-30
 

@@ -6691,7 +6691,7 @@ name = "workroam-server"
 version = "0.1.1"
 dependencies = [
  "axum",
- "base64 0.22.1",
+ "base64 0.23.1",
  "chrono",
  "clap",
  "ed25519-dalek",
@@ -6779,7 +6779,7 @@ name = "workroam-web"
 version = "0.1.1"
 dependencies = [
  "aes256ctr_poly1305aes",
- "base64 0.22.1",
+ "base64 0.23.1",
  "chacha20poly1305",
  "data-encoding",
  "hex",

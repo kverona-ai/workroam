@@ -138,7 +138,7 @@ jobs:
           - { target: x86_64-pc-windows-msvc, os: windows-latest, cli: true, server: true }
           - { target: aarch64-pc-windows-msvc, os: windows-latest, cli: true, server: true }
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 150   # 首次公证 Apple 可能要排队半小时以上
+    timeout-minutes: 300   # 新团队的公证 Apple 可能要排队一两个小时以上（脚本最多等 4 小时）
     defaults:
       run:
         shell: bash
@@ -262,7 +262,7 @@ jobs:
           - { platform: linux, arch: x64, os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, bundles: 'deb,rpm,appimage' }
           - { platform: linux, arch: arm64, os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, bundles: 'deb,rpm,appimage' }
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 240   # 桌面应用要公证两次（.app 与 .dmg）
+    timeout-minutes: 340   # 桌面应用要公证两次：.app 最多等 4 小时，.dmg 最多等 45 分钟
     defaults:
       run:
         shell: bash

@@ -157,7 +157,9 @@ gpg --armor --export-secret-keys <fingerprint> | pbcopy    # on Linux: xclip -se
 | `GPG_PRIVATE_KEY` | The whole exported text, including the `-----BEGIN PGP PRIVATE KEY BLOCK-----` line and the closing line |
 | `GPG_PASSPHRASE` | The key's passphrase. Leave it unset if the key has none |
 
-When it generates the key, GnuPG stores a revocation certificate under `~/.gnupg/openpgp-revocs.d/`. Keep it offline together with a backup of the private key. You can upload the public key to [keys.openpgp.org](https://keys.openpgp.org) so users can find it. Every release also includes `workroam-release-key.asc`.
+- **Back up**: when it generates the key, GnuPG stores a revocation certificate under `~/.gnupg/openpgp-revocs.d/`. Keep it offline, and keep the exported private key with its passphrase in a password manager (you need them to extend the expiry or move machines). Do not delete anything in `~/.gnupg`, and you do not need to upload any of those files.
+- **No manual public key upload**: the pipeline exports the public key from `GPG_PRIVATE_KEY` and attaches it to every release as `workroam-release-key.asc`.
+- **Optional**: also upload the public key (`gpg --armor --export <fingerprint> > workroam-release-key.asc`) to [keys.openpgp.org](https://keys.openpgp.org/upload) so users can cross-check it from a third party. It emails the address in the key; until that is verified, the key is findable only by fingerprint.
 
 ### What the pipeline does
 

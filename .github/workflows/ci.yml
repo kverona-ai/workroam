@@ -182,12 +182,16 @@ jobs:
             . -> target
             apps/desktop/src-tauri -> ../../../target
       - uses: ./.github/actions/desktop-prepare
+      - name: Check desktop Cargo.lock is up to date
+        # src-tauri 有自己的 Cargo.lock；根 workspace 的依赖升级（如 Dependabot）也要同步更新它，
+        # 否则发布流水线里的 --locked 构建会失败
+        run: cargo metadata --locked --format-version 1 --manifest-path apps/desktop/src-tauri/Cargo.toml > /dev/null
       - name: Build without bundling
         working-directory: apps/desktop
         shell: bash
         run: npx --yes @tauri-apps/cli@^2 build --debug --no-bundle
       - name: Clippy (desktop)
-        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets --locked -- -D warnings
 
   helm:
     name: Helm chart

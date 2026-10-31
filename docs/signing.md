@@ -26,8 +26,8 @@ You need an Apple Developer Program account, individual or organization. Only th
 
 ### 1. Request a Developer ID Application certificate
 
-1. On a Mac, open Keychain Access and choose **Keychain Access → Certificate Assistant → Request a Certificate From a Certificate Authority**. Enter your email, choose "Saved to disk", and keep the `.certSigningRequest` file.
-2. Open [Certificates](https://developer.apple.com/account/resources/certificates/add) and choose **Developer ID Application**. Do not choose Developer ID Installer or Apple Development. Upload the file from the previous step.
+1. On a Mac, open Keychain Access and choose **Keychain Access → Certificate Assistant → Request a Certificate From a Certificate Authority**. Enter the developer account email and a common name such as the company name, leave the CA email empty, choose "Saved to disk", and keep the `.certSigningRequest` file. The private key stays on this Mac, so export the `.p12` on the same Mac later.
+2. Open [Certificates](https://developer.apple.com/account/resources/certificates/add) and choose **Developer ID Application**. Do not choose Developer ID Installer or Apple Development. Pick the **G2 Sub-CA** intermediate, because the previous Sub-CA expires on February 1, 2027. Upload the file from the previous step.
 3. Download the `.cer` and double-click it to install it into the login keychain.
 
 ### 2. Export a .p12
@@ -192,7 +192,7 @@ When these pass, release the next version as usual and signing applies automatic
 
 ## When certificates and keys expire
 
-- **Developer ID certificate.** It is valid for 5 years. Before it expires, repeat steps 1 and 2 and update `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` and `APPLE_SIGNING_IDENTITY`. Older releases that were signed with a timestamp are not affected.
+- **Developer ID certificate.** Since October 2026, Developer ID Application certificates are issued by the G2 intermediate and are valid for 1 year, down from 5. Before it expires each year, repeat steps 1 and 2 and update `APPLE_CERTIFICATE`, `APPLE_CERTIFICATE_PASSWORD` and `APPLE_SIGNING_IDENTITY`. Once it has expired, macOS signing in the pipeline fails. Older releases that were signed with a timestamp are not affected.
 - **App Store Connect API key.** It does not expire, but it can be revoked on that page. After a revocation, update the three `APPLE_API_*` secrets.
 - **GPG key.** It expires at the date set when you generated it. Extend it with `gpg --quick-set-expire <fingerprint> 3y` and export `GPG_PRIVATE_KEY` again.
 - **SignPath certificate.** SignPath Foundation maintains it, so there is nothing to do.

@@ -26,8 +26,8 @@
 
 ### 1. 申请 Developer ID Application 证书
 
-1. 在 Mac 上打开“钥匙串访问”，菜单选 **钥匙串访问 → 证书助理 → 从证书颁发机构请求证书**，填邮箱，选“存储到磁盘”，得到 `.certSigningRequest` 文件；
-2. 打开 [Certificates](https://developer.apple.com/account/resources/certificates/add)，选 **Developer ID Application**（不是 Developer ID Installer，也不是 Apple Development），上传上一步的文件；
+1. 在 Mac 上打开“钥匙串访问”，菜单选 **钥匙串访问 → 证书助理 → 从证书颁发机构请求证书**。填开发者账号邮箱和一个常用名称（如公司名），CA 邮箱留空，选“存储到磁盘”，得到 `.certSigningRequest` 文件。私钥留在这台 Mac 上，之后也要在这台 Mac 上导出 `.p12`；
+2. 打开 [Certificates](https://developer.apple.com/account/resources/certificates/add)，选 **Developer ID Application**（不是 Developer ID Installer，也不是 Apple Development），中间证书选 **G2 Sub-CA**（旧的 Previous Sub-CA 于 2027 年 2 月 1 日到期），上传上一步的文件；
 3. 下载 `.cer`，双击安装到“登录”钥匙串。
 
 ### 2. 导出 .p12
@@ -192,7 +192,7 @@ gpg --verify SHA256SUMS.asc SHA256SUMS
 
 ## 证书与密钥到期
 
-- Developer ID 证书有效期 5 年。到期前按第 1、2 步重新申请并更新 `APPLE_CERTIFICATE`、`APPLE_CERTIFICATE_PASSWORD`、`APPLE_SIGNING_IDENTITY`。已签名并带时间戳的旧版本不受影响；
+- Developer ID Application 证书自 2026 年 10 月起由 G2 中间证书签发，有效期 1 年（以前是 5 年）。每年到期前按第 1、2 步重新申请并更新 `APPLE_CERTIFICATE`、`APPLE_CERTIFICATE_PASSWORD`、`APPLE_SIGNING_IDENTITY`；证书过期后流水线的 macOS 签名会失败。已签名并带时间戳的旧版本不受影响；
 - App Store Connect API 密钥不会过期，但可以在页面上吊销，吊销后更新三个 `APPLE_API_*`；
 - GPG 密钥按生成时的期限到期，可以用 `gpg --quick-set-expire <指纹> 3y` 延期，然后重新导出 `GPG_PRIVATE_KEY`；
 - SignPath 的证书由 SignPath Foundation 维护，不需要处理。

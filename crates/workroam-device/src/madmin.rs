@@ -153,4 +153,24 @@ mod tests {
             assert!(decrypt("other", &enc).is_err());
         }
     }
+
+    /// Payloads recorded with the previous RustCrypto releases (aes-gcm 0.10,
+    /// chacha20poly1305 0.10, pbkdf2 0.12), one per cipher id.
+    #[test]
+    fn known_answers_survive_dependency_upgrades() {
+        for enc in [
+            "2b43adbf21784b44689bde810abaae2479b746e7ddaf51c20abaa28c1b40b4ec\
+             001253c8e66630ce61136969cd9ddc0f338ad1505deabc6e75894f5f3cfd0062\
+             3ffb4fa09bc45b",
+            "84a175e3c987ce6281b898d735b7c078cc0d4e379fc437bf54f7dffacdeb20fd\
+             01abf9ef4cc360e51557cc333e48a880b3426a863a6426cf50a3bd0a74f4d819\
+             a2099e13fd48fe",
+            "26b2f5648f7740529cd399a3b2ab84a42c33feb0d1db5b99c4b5fc264685a7c8\
+             023094921069652779c4023f1476e45f94f5eaac07aea8cc9ad7b80f190516d4\
+             e5c270caae2b5c",
+        ] {
+            let enc = hex::decode(enc).unwrap();
+            assert_eq!(decrypt("secret", &enc).unwrap(), br#"{"policy":"x"}"#);
+        }
+    }
 }

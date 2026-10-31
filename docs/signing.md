@@ -139,7 +139,7 @@ Linux packages need no purchased certificate. The pipeline signs `SHA256SUMS` wi
 
 ### 1. Generate a key
 
-Generate a dedicated release signing key on your own computer, not in CI, and give it a passphrase:
+Generate a dedicated release signing key on your own computer, not in CI. Replace the email with a real address you can receive mail at, because it is published in the public key. GnuPG then asks you to set a passphrase, which is the `GPG_PASSPHRASE` below:
 
 ```sh
 gpg --quick-gen-key "Workroam Release <release@example.com>" ed25519 sign 3y

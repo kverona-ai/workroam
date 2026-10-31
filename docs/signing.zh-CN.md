@@ -139,7 +139,7 @@ Linux 的安装包不需要购买证书。流水线用 GPG 密钥签名 `SHA256S
 
 ### 1. 生成密钥
 
-在自己的电脑上（不是 CI 里）生成一把专门用于发布的签名密钥，设置一个密码：
+在自己的电脑上（不是 CI 里）生成一把专门用于发布的签名密钥。把邮箱换成你们能收信的真实地址（它会公开写在公钥里）；GnuPG 会弹窗让你设置一个密码，这个密码就是下面的 `GPG_PASSPHRASE`：
 
 ```sh
 gpg --quick-gen-key "Workroam Release <release@example.com>" ed25519 sign 3y
@@ -157,7 +157,9 @@ gpg --armor --export-secret-keys <指纹> | pbcopy    # Linux 可用 xclip -sele
 | `GPG_PRIVATE_KEY` | 上面导出的整段文字，包括 `-----BEGIN PGP PRIVATE KEY BLOCK-----` 与结尾一行 |
 | `GPG_PASSPHRASE` | 密钥的密码；没有设置密码时不填 |
 
-生成密钥时 GnuPG 会在 `~/.gnupg/openpgp-revocs.d/` 下存一份吊销证书，把它和私钥备份一起离线保存。公钥可以上传到 [keys.openpgp.org](https://keys.openpgp.org) 方便用户查找；每个版本也会附带 `workroam-release-key.asc`。
+- **备份**：生成密钥时 GnuPG 会在 `~/.gnupg/openpgp-revocs.d/` 下存一份吊销证书，把它离线保存；导出的私钥和密码一起存进密码管理器（续期、换电脑都要用）。`~/.gnupg` 里的文件不要删除，也不需要上传其中任何一个。
+- **公钥不用手动上传**：流水线会从 `GPG_PRIVATE_KEY` 导出公钥，作为 `workroam-release-key.asc` 附在每个版本里。
+- **可选**：再把公钥（`gpg --armor --export <指纹> > workroam-release-key.asc`）上传到 [keys.openpgp.org](https://keys.openpgp.org/upload)，让用户能从第三方渠道核对。它会给公钥里的邮箱发验证信，验证后才能按邮箱搜到，否则只能按指纹查找。
 
 ### 流水线做了什么
 
@@ -185,6 +187,7 @@ Get-AuthenticodeSignature .\Workroam-*-setup.exe | Format-List Status, SignerCer
 ```sh
 # Linux
 gpg --import workroam-release-key.asc
+gpg --fingerprint will@kverona.llc   # 确认指纹是 6A82 4B92 90A6 55CD 1B5E  9D56 9094 6593 7E99 AFD6
 gpg --verify SHA256SUMS.asc SHA256SUMS
 ```
 

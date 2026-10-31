@@ -191,7 +191,7 @@ See [PRD · Release scope](docs/prd.md#10-发布范围与验收门槛) for detai
 
 - **Windows.** Builds are to be signed through [SignPath.io](https://about.signpath.io) with a free code signing certificate from [SignPath Foundation](https://signpath.org). The application is in progress, so current Windows builds are not signed yet.
 - **macOS.** Builds are signed with the Developer ID of Kverona LLC and notarized by Apple, starting with the release after v0.1.1.
-- **Everything.** Every file is listed in `SHA256SUMS` and carries GitHub build provenance.
+- **Everything.** Every file is listed in `SHA256SUMS` and carries GitHub build provenance. Starting with the release after v0.1.1, `SHA256SUMS` is also GPG-signed (`SHA256SUMS.asc`) by the Workroam release key `6A82 4B92 90A6 55CD 1B5E  9D56 9094 6593 7E99 AFD6` (will@kverona.llc), also on [keys.openpgp.org](https://keys.openpgp.org/search?q=6A824B9290A655CD1B5E9D56909465937E99AFD6).
 
 See the [code signing policy](docs/signing.md#code-signing-policy) for who builds, reviews and approves signed releases.
 

@@ -139,7 +139,7 @@ Linux packages need no purchased certificate. The pipeline signs `SHA256SUMS` wi
 
 ### 1. Generate a key
 
-Generate a dedicated release signing key on your own computer, not in CI, and give it a passphrase:
+Generate a dedicated release signing key on your own computer, not in CI. Replace the email with a real address you can receive mail at, because it is published in the public key. GnuPG then asks you to set a passphrase, which is the `GPG_PASSPHRASE` below:
 
 ```sh
 gpg --quick-gen-key "Workroam Release <release@example.com>" ed25519 sign 3y
@@ -157,7 +157,9 @@ gpg --armor --export-secret-keys <fingerprint> | pbcopy    # on Linux: xclip -se
 | `GPG_PRIVATE_KEY` | The whole exported text, including the `-----BEGIN PGP PRIVATE KEY BLOCK-----` line and the closing line |
 | `GPG_PASSPHRASE` | The key's passphrase. Leave it unset if the key has none |
 
-When it generates the key, GnuPG stores a revocation certificate under `~/.gnupg/openpgp-revocs.d/`. Keep it offline together with a backup of the private key. You can upload the public key to [keys.openpgp.org](https://keys.openpgp.org) so users can find it. Every release also includes `workroam-release-key.asc`.
+- **Back up**: when it generates the key, GnuPG stores a revocation certificate under `~/.gnupg/openpgp-revocs.d/`. Keep it offline, and keep the exported private key with its passphrase in a password manager (you need them to extend the expiry or move machines). Do not delete anything in `~/.gnupg`, and you do not need to upload any of those files.
+- **No manual public key upload**: the pipeline exports the public key from `GPG_PRIVATE_KEY` and attaches it to every release as `workroam-release-key.asc`.
+- **Optional**: also upload the public key (`gpg --armor --export <fingerprint> > workroam-release-key.asc`) to [keys.openpgp.org](https://keys.openpgp.org/upload) so users can cross-check it from a third party. It emails the address in the key; until that is verified, the key is findable only by fingerprint.
 
 ### What the pipeline does
 
@@ -185,6 +187,7 @@ Get-AuthenticodeSignature .\Workroam-*-setup.exe | Format-List Status, SignerCer
 ```sh
 # Linux
 gpg --import workroam-release-key.asc
+gpg --fingerprint will@kverona.llc   # check that the fingerprint is 6A82 4B92 90A6 55CD 1B5E  9D56 9094 6593 7E99 AFD6
 gpg --verify SHA256SUMS.asc SHA256SUMS
 ```
 

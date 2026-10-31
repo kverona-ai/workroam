@@ -70,9 +70,9 @@ security find-identity -v -p codesigning  # 查看签名身份
 
 ### 流水线做了什么
 
-- 桌面应用：Tauri 用证书签名 `.app`（包括随附的 `workroam`、`workroamd`），提交公证并装订票据，再签名 `.dmg`；流水线随后公证 `.dmg` 并装订票据，最后检查 `codesign --verify --deep --strict`、`stapler validate` 与 `spctl --assess`；
+- 桌面应用：Tauri 用证书签名 `.app`（包括随附的 `workroam`、`workroamd`）和 `.dmg`；流水线随后公证 `.app` 并装订票据（`.app.tar.gz` 就是用它打包的），检查 `codesign --verify --deep --strict`、`stapler validate` 与 `spctl --assess`，最后公证 `.dmg` 并装订票据。公证由 `scripts/release/macos-sign.sh` 而不是 Tauri 来做，这样等待 Apple 时网络断开只会重试等待，不会让任务失败；
 - 命令行与 `workroam-server`：用同一张证书加 hardened runtime 签名，打包提交公证。单个可执行文件不能装订票据，Gatekeeper 会在线查询公证结果；
-- 公证失败时任务失败，日志里有 `notarytool log` 的详细原因。
+- 公证被拒时任务失败，日志里有 `notarytool log` 的详细原因。Apple 处理可能要 30 分钟以上（团队最初几次提交尤其慢），每次最多等 90 分钟（`NOTARY_TIMEOUT_SECONDS`）。
 
 ## Windows（SignPath）
 

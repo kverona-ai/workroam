@@ -138,7 +138,7 @@ jobs:
           - { target: x86_64-pc-windows-msvc, os: windows-latest, cli: true, server: true }
           - { target: aarch64-pc-windows-msvc, os: windows-latest, cli: true, server: true }
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 90
+    timeout-minutes: 150   # 首次公证 Apple 可能要排队半小时以上
     defaults:
       run:
         shell: bash
@@ -262,7 +262,7 @@ jobs:
           - { platform: linux, arch: x64, os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, bundles: 'deb,rpm,appimage' }
           - { platform: linux, arch: arm64, os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, bundles: 'deb,rpm,appimage' }
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 120
+    timeout-minutes: 240   # 桌面应用要公证两次（.app 与 .dmg）
     defaults:
       run:
         shell: bash
@@ -301,23 +301,14 @@ jobs:
           SECRET_APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           SECRET_APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
           SECRET_APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-          SECRET_APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          SECRET_APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          SECRET_APPLE_ID: ${{ secrets.APPLE_ID }}
-          SECRET_APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          SECRET_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
         run: |
-          # 只导出已配置的 secret：Tauri 看到空的 APPLE_CERTIFICATE 也会尝试导入证书
-          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY \
-                      APPLE_API_KEY APPLE_API_ISSUER APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+          # 只导出已配置的 secret：Tauri 看到空的 APPLE_CERTIFICATE 也会尝试导入证书。
+          # 这里只给签名证书，不给公证凭据：公证由下一步的 macos-sign.sh 来做，
+          # 它在等待 Apple 时能扛住网络中断，Tauri 自带的公证不行。
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY; do
             value="$(printenv "SECRET_$name" || true)"
             [ -n "$value" ] && export "$name=$value"
           done
-          if [ -n "$APPLE_API_PRIVATE_KEY" ]; then
-            export APPLE_API_KEY_PATH="$RUNNER_TEMP/AuthKey.p8"
-            printf '%s\n' "$APPLE_API_PRIVATE_KEY" > "$APPLE_API_KEY_PATH"
-          fi
 
           # 没有证书时 macOS 用 ad-hoc 签名（arm64 必须有签名才能运行）
           override='{}'
@@ -337,7 +328,7 @@ jobs:
               --ci
           fi
 
-      - name: Notarize dmg and verify
+      - name: Notarize and verify
         if: matrix.platform == 'macos'
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
@@ -354,7 +345,11 @@ jobs:
             printf '%s\n' "$APPLE_API_PRIVATE_KEY" > "$APPLE_API_KEY_PATH"
           fi
           bundle="$CARGO_TARGET_DIR/$TARGET/release/bundle"
-          for app in "$bundle"/macos/*.app; do scripts/release/macos-sign.sh verify-app "$app"; done
+          # 先公证 .app 并装订票据（.app.tar.gz 由它打包），再公证 .dmg
+          for app in "$bundle"/macos/*.app; do
+            scripts/release/macos-sign.sh app "$app"
+            scripts/release/macos-sign.sh verify-app "$app"
+          done
           for dmg in "$bundle"/dmg/*.dmg; do scripts/release/macos-sign.sh dmg "$dmg"; done
           rm -f "$RUNNER_TEMP/AuthKey.p8"
 

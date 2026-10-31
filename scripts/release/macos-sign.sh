@@ -14,7 +14,7 @@
 #   公证凭据二选一：
 #     APPLE_API_KEY、APPLE_API_ISSUER、APPLE_API_KEY_PATH（App Store Connect API 密钥 .p8 的路径）
 #     APPLE_ID、APPLE_PASSWORD（App 专用密码）、APPLE_TEAM_ID
-#   NOTARY_TIMEOUT_SECONDS      命令行与 .app 公证最长等多久，默认 5400（90 分钟），超时即失败
+#   NOTARY_TIMEOUT_SECONDS      命令行与 .app 公证最长等多久，默认 14400（4 小时），超时即失败
 #   NOTARY_DMG_TIMEOUT_SECONDS  .dmg 公证最长等多久，默认 2700（45 分钟），超时只警告、不装订
 #
 # 兼容 macOS 自带的 bash 3.2。
@@ -40,7 +40,7 @@ if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
   exit 1
 fi
 
-NOTARY_TIMEOUT_SECONDS="${NOTARY_TIMEOUT_SECONDS:-5400}"
+NOTARY_TIMEOUT_SECONDS="${NOTARY_TIMEOUT_SECONDS:-14400}"
 NOTARY_DMG_TIMEOUT_SECONDS="${NOTARY_DMG_TIMEOUT_SECONDS:-2700}"
 tmp="$(mktemp -d)"
 keychain=""
@@ -102,7 +102,7 @@ notarize() { # notarize <zip|dmg> [等待秒数] [soft]
       cat "$tmp/notary-wait.err" >&2 || true
       exit 1
     fi
-    if [ -z "$status" ] && grep -q 'Timeout' "$result" 2>/dev/null; then
+    if [ -z "$status" ] && grep -qs 'Timeout' "$result" "$tmp/notary-wait.err"; then
       status="Apple 仍在处理"
     fi
     echo "仍在等待公证结果（${status:-暂时连不上 Apple}），30 秒后继续"

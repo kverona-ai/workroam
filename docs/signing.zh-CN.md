@@ -72,7 +72,7 @@ security find-identity -v -p codesigning  # 查看签名身份
 
 - 桌面应用：Tauri 用证书签名 `.app`（包括随附的 `workroam`、`workroamd`）和 `.dmg`；流水线随后公证 `.app` 并装订票据（`.app.tar.gz` 就是用它打包的），检查 `codesign --verify --deep --strict`、`stapler validate` 与 `spctl --assess`，最后公证 `.dmg` 并装订票据。公证由 `scripts/release/macos-sign.sh` 而不是 Tauri 来做，这样等待 Apple 时网络断开只会重试等待，不会让任务失败；
 - 命令行与 `workroam-server`：用同一张证书加 hardened runtime 签名，打包提交公证。单个可执行文件不能装订票据，Gatekeeper 会在线查询公证结果；
-- 公证被拒时任务失败，日志里有 `notarytool log` 的详细原因。Apple 处理可能要 30 分钟以上（团队最初几次提交尤其慢），命令行与 `.app` 最多等 90 分钟（`NOTARY_TIMEOUT_SECONDS`），超时任务失败；`.dmg` 最多等 45 分钟（`NOTARY_DMG_TIMEOUT_SECONDS`），因为里面的 `.app` 已经公证并装订了票据，到时 Apple 还没处理完的 `.dmg` 会带着签名、不装订票据照常发布（日志里有警告），Apple 处理完后 Gatekeeper 会在线查到公证结果。
+- 公证被拒时任务失败，日志里有 `notarytool log` 的详细原因。Apple 处理可能要几分钟到几个小时（新团队最初的提交尤其慢），命令行与 `.app` 最多等 4 小时（`NOTARY_TIMEOUT_SECONDS`），超时任务失败；`.dmg` 最多等 45 分钟（`NOTARY_DMG_TIMEOUT_SECONDS`），因为里面的 `.app` 已经公证并装订了票据，到时 Apple 还没处理完的 `.dmg` 会带着签名、不装订票据照常发布（日志里有警告），Apple 处理完后 Gatekeeper 会在线查到公证结果。
 
 ## Windows（SignPath）
 

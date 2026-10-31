@@ -187,6 +187,7 @@ Get-AuthenticodeSignature .\Workroam-*-setup.exe | Format-List Status, SignerCer
 ```sh
 # Linux
 gpg --import workroam-release-key.asc
+gpg --fingerprint will@kverona.llc   # check that the fingerprint is 6A82 4B92 90A6 55CD 1B5E  9D56 9094 6593 7E99 AFD6
 gpg --verify SHA256SUMS.asc SHA256SUMS
 ```
 

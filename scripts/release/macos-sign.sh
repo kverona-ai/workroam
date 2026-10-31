@@ -14,7 +14,8 @@
 #   公证凭据二选一：
 #     APPLE_API_KEY、APPLE_API_ISSUER、APPLE_API_KEY_PATH（App Store Connect API 密钥 .p8 的路径）
 #     APPLE_ID、APPLE_PASSWORD（App 专用密码）、APPLE_TEAM_ID
-#   NOTARY_TIMEOUT_SECONDS      每次公证最长等多久，默认 5400（90 分钟）
+#   NOTARY_TIMEOUT_SECONDS      命令行与 .app 公证最长等多久，默认 5400（90 分钟），超时即失败
+#   NOTARY_DMG_TIMEOUT_SECONDS  .dmg 公证最长等多久，默认 2700（45 分钟），超时只警告、不装订
 #
 # 兼容 macOS 自带的 bash 3.2。
 set -euo pipefail
@@ -40,6 +41,7 @@ if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
 fi
 
 NOTARY_TIMEOUT_SECONDS="${NOTARY_TIMEOUT_SECONDS:-5400}"
+NOTARY_DMG_TIMEOUT_SECONDS="${NOTARY_DMG_TIMEOUT_SECONDS:-2700}"
 tmp="$(mktemp -d)"
 keychain=""
 cleanup() {
@@ -57,12 +59,14 @@ fi
 
 has_notary() { [ "${#notary[@]}" -gt 0 ]; }
 
-notarize() { # notarize <zip|dmg>
+notarize() { # notarize <zip|dmg> [等待秒数] [soft]
+  # 返回 0 = 已通过；1 = 没有公证凭据；2 = soft 模式下等待超时（已提交，Apple 稍后会处理完）
   if ! has_notary; then
     echo "::warning::没有配置公证凭据（APPLE_API_* 或 APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID），$(basename "$1") 只签名不公证"
     return 1
   fi
   local name submit="$tmp/notary-submit.json" result="$tmp/notary.json" status="" id="" attempt deadline
+  local wait_seconds="${2:-$NOTARY_TIMEOUT_SECONDS}" soft="${3:-}"
   name="$(basename "$1")"
 
   # 先上传拿到提交 ID，再单独等待结果。Apple 处理可能要几十分钟，
@@ -82,7 +86,7 @@ notarize() { # notarize <zip|dmg>
   fi
   echo "提交 ID：${id}，等待 Apple 处理"
 
-  deadline=$(($(date +%s) + NOTARY_TIMEOUT_SECONDS))
+  deadline=$(($(date +%s) + wait_seconds))
   while :; do
     xcrun notarytool wait "$id" "${notary[@]}" --timeout 20m --output-format json > "$result" 2>"$tmp/notary-wait.err" || true
     status="$(jq -r '.status // empty' "$result" 2>/dev/null || true)"
@@ -90,9 +94,16 @@ notarize() { # notarize <zip|dmg>
       Accepted | Invalid | Rejected) break ;;
     esac
     if [ "$(date +%s)" -ge "$deadline" ]; then
+      if [ "$soft" = soft ]; then
+        echo "::warning::${name} 等了 $((wait_seconds / 60)) 分钟 Apple 还没处理完（${id}），先不装订票据。Apple 处理完后 Gatekeeper 会在线查到公证结果"
+        return 2
+      fi
       echo "::error::${name} 公证等待超时（${id}）" >&2
       cat "$tmp/notary-wait.err" >&2 || true
       exit 1
+    fi
+    if [ -z "$status" ] && grep -q 'Timeout' "$result" 2>/dev/null; then
+      status="Apple 仍在处理"
     fi
     echo "仍在等待公证结果（${status:-暂时连不上 Apple}），30 秒后继续"
     sleep 30
@@ -150,7 +161,9 @@ case "$mode" in
   dmg)
     [ "$#" -eq 1 ] || { echo "dmg 需要一个 .dmg 文件" >&2; exit 2; }
     codesign --verify --verbose=2 "$1"
-    if notarize "$1"; then
+    # 里面的 .app 已经公证并装订了票据，.dmg 的公证只是锦上添花：
+    # Apple 偶尔要排队一两个小时，等不到就带着签名发布，不让整个发布失败
+    if notarize "$1" "$NOTARY_DMG_TIMEOUT_SECONDS" soft; then
       xcrun stapler staple "$1"
       xcrun stapler validate "$1"
     fi

@@ -3,6 +3,7 @@
 #
 # 用法：
 #   macos-sign.sh binaries <文件...>   用 Developer ID 签名命令行二进制，并打包提交公证
+#   macos-sign.sh app <.app>           公证 Tauri 已签名的 .app，并装订（staple）公证票据
 #   macos-sign.sh dmg <文件>           公证 Tauri 已签名的 .dmg，并装订（staple）公证票据
 #   macos-sign.sh verify-app <.app>    检查 .app 的签名、公证票据与 Gatekeeper 评估
 #
@@ -13,6 +14,7 @@
 #   公证凭据二选一：
 #     APPLE_API_KEY、APPLE_API_ISSUER、APPLE_API_KEY_PATH（App Store Connect API 密钥 .p8 的路径）
 #     APPLE_ID、APPLE_PASSWORD（App 专用密码）、APPLE_TEAM_ID
+#   NOTARY_TIMEOUT_SECONDS      每次公证最长等多久，默认 5400（90 分钟）
 #
 # 兼容 macOS 自带的 bash 3.2。
 set -euo pipefail
@@ -21,9 +23,9 @@ mode="${1:-}"
 [ "$#" -gt 0 ] && shift
 
 case "$mode" in
-  binaries | dmg | verify-app) ;;
+  binaries | app | dmg | verify-app) ;;
   *)
-    echo "用法：$0 binaries <文件...> | dmg <文件> | verify-app <.app>" >&2
+    echo "用法：$0 binaries <文件...> | app <.app> | dmg <文件> | verify-app <.app>" >&2
     exit 2
     ;;
 esac
@@ -37,6 +39,7 @@ if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
   exit 1
 fi
 
+NOTARY_TIMEOUT_SECONDS="${NOTARY_TIMEOUT_SECONDS:-5400}"
 tmp="$(mktemp -d)"
 keychain=""
 cleanup() {
@@ -59,16 +62,47 @@ notarize() { # notarize <zip|dmg>
     echo "::warning::没有配置公证凭据（APPLE_API_* 或 APPLE_ID/APPLE_PASSWORD/APPLE_TEAM_ID），$(basename "$1") 只签名不公证"
     return 1
   fi
-  echo "提交公证：$(basename "$1")"
-  local result="$tmp/notary.json" status id
-  xcrun notarytool submit "$1" "${notary[@]}" --wait --timeout 2h --output-format json > "$result" || true
-  status="$(jq -r '.status // empty' "$result" 2>/dev/null || true)"
-  id="$(jq -r '.id // empty' "$result" 2>/dev/null || true)"
-  echo "公证结果：${status:-未知}（${id:-无 ID}）"
+  local name submit="$tmp/notary-submit.json" result="$tmp/notary.json" status="" id="" attempt deadline
+  name="$(basename "$1")"
+
+  # 先上传拿到提交 ID，再单独等待结果。Apple 处理可能要几十分钟，
+  # 等待期间网络断一下不能让整个任务失败，所以等待失败时用同一个 ID 继续等。
+  for attempt in 1 2 3; do
+    echo "提交公证：${name}（第 ${attempt} 次）"
+    if xcrun notarytool submit "$1" "${notary[@]}" --output-format json > "$submit"; then
+      id="$(jq -r '.id // empty' "$submit" 2>/dev/null || true)"
+      [ -n "$id" ] && break
+    fi
+    cat "$submit" >&2 || true
+    sleep 30
+  done
+  if [ -z "$id" ]; then
+    echo "::error::${name} 提交公证失败" >&2
+    exit 1
+  fi
+  echo "提交 ID：${id}，等待 Apple 处理"
+
+  deadline=$(($(date +%s) + NOTARY_TIMEOUT_SECONDS))
+  while :; do
+    xcrun notarytool wait "$id" "${notary[@]}" --timeout 20m --output-format json > "$result" 2>"$tmp/notary-wait.err" || true
+    status="$(jq -r '.status // empty' "$result" 2>/dev/null || true)"
+    case "$status" in
+      Accepted | Invalid | Rejected) break ;;
+    esac
+    if [ "$(date +%s)" -ge "$deadline" ]; then
+      echo "::error::${name} 公证等待超时（${id}）" >&2
+      cat "$tmp/notary-wait.err" >&2 || true
+      exit 1
+    fi
+    echo "仍在等待公证结果（${status:-暂时连不上 Apple}），30 秒后继续"
+    sleep 30
+  done
+
+  echo "公证结果：${status}（${id}）"
   if [ "$status" != Accepted ]; then
     cat "$result" >&2 || true
-    if [ -n "$id" ]; then xcrun notarytool log "$id" "${notary[@]}" >&2 || true; fi
-    echo "::error::$(basename "$1") 公证失败：${status:-提交失败}" >&2
+    xcrun notarytool log "$id" "${notary[@]}" >&2 || true
+    echo "::error::${name} 公证失败：${status}" >&2
     exit 1
   fi
 }
@@ -103,6 +137,15 @@ case "$mode" in
     cp "$@" "$tmp/payload/"
     (cd "$tmp" && ditto -c -k --keepParent payload payload.zip)
     notarize "$tmp/payload.zip" || true
+    ;;
+  app)
+    [ "$#" -eq 1 ] || { echo "app 需要一个 .app" >&2; exit 2; }
+    codesign --verify --deep --strict --verbose=2 "$1"
+    (cd "$(dirname "$1")" && ditto -c -k --keepParent "$(basename "$1")" "$tmp/app.zip")
+    if notarize "$tmp/app.zip"; then
+      xcrun stapler staple "$1"
+      xcrun stapler validate "$1"
+    fi
     ;;
   dmg)
     [ "$#" -eq 1 ] || { echo "dmg 需要一个 .dmg 文件" >&2; exit 2; }

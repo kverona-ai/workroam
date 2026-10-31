@@ -70,9 +70,9 @@ When both are configured, the API key wins. With a certificate but no notarizati
 
 ### What the pipeline does
 
-- **Desktop app.** Tauri signs the `.app` with the certificate, including the bundled `workroam` and `workroamd`. It then notarizes and staples the app, and signs the `.dmg`. The pipeline notarizes and staples the `.dmg` too. Finally it checks `codesign --verify --deep --strict`, `stapler validate` and `spctl --assess`.
+- **Desktop app.** Tauri signs the `.app` with the certificate, including the bundled `workroam` and `workroamd`, and signs the `.dmg`. The pipeline then notarizes and staples the `.app` (the `.app.tar.gz` asset is packed from it), checks `codesign --verify --deep --strict`, `stapler validate` and `spctl --assess`, and finally notarizes and staples the `.dmg`. Notarization is done by `scripts/release/macos-sign.sh` rather than by Tauri, so that a network drop while waiting for Apple only retries the wait instead of failing the job.
 - **CLI and `workroam-server`.** They are signed with the same certificate and the hardened runtime, then zipped and notarized. A bare executable cannot have a ticket stapled, so Gatekeeper looks up the notarization online.
-- **Failures.** A failed notarization fails the job, and the log includes the detailed `notarytool log`.
+- **Failures.** A rejected notarization fails the job, and the log includes the detailed `notarytool log`. Apple can take more than 30 minutes, especially for a team's first submissions; each wait is capped at 90 minutes (`NOTARY_TIMEOUT_SECONDS`).
 
 ## Windows (SignPath)
 

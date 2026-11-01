@@ -698,41 +698,11 @@ jobs:
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
-  homebrew:
-    name: Homebrew tap
+  package-managers:
+    name: Package managers
     needs: [prepare, assemble]
     if: needs.prepare.outputs.publish == 'true' && needs.prepare.outputs.prerelease == 'false'
-    runs-on: ubuntu-latest
-    env:
-      TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-      TAP_REPO: ${{ vars.HOMEBREW_TAP_REPO || 'kverona-ai/homebrew-tap' }}
-      VERSION: ${{ needs.prepare.outputs.version }}
-    steps:
-      - name: Check token
-        id: token
-        run: |
-          if [ -z "$TAP_TOKEN" ]; then
-            echo "::notice::未配置 HOMEBREW_TAP_TOKEN，跳过更新 ${TAP_REPO}；formula 与 cask 已作为 Release 附件发布"
-            echo "ok=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ok=true" >> "$GITHUB_OUTPUT"
-          fi
-      - uses: actions/download-artifact@v8
-        if: steps.token.outputs.ok == 'true'
-        with:
-          name: release-dist
-          path: release
-      - name: Push formula and cask
-        if: steps.token.outputs.ok == 'true'
-        run: |
-          git clone "https://x-access-token:${TAP_TOKEN}@github.com/${TAP_REPO}.git" tap
-          mkdir -p tap/Formula tap/Casks
-          [ -f release/dist/workroam.rb ] && cp release/dist/workroam.rb tap/Formula/
-          [ -f release/dist/workroam-desktop.rb ] && cp release/dist/workroam-desktop.rb tap/Casks/
-          cd tap
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Formula Casks
-          git diff --cached --quiet && { echo "没有变化"; exit 0; }
-          git commit -m "workroam $VERSION"
-          git push
+    uses: ./.github/workflows/package-managers.yml
+    with:
+      tag: ${{ needs.prepare.outputs.tag }}
+    secrets: inherit

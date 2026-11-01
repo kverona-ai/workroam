@@ -1,0 +1,87 @@
+name: Package managers
+
+# 把已发布版本的 Homebrew formula / cask 与 Scoop 清单推到 tap / bucket 仓库。
+# Release 发布正式版本后自动调用；也可以手动运行，为已发布的版本补推：
+#   Actions → Package managers → Run workflow，填写 tag（如 v0.1.2）
+#
+# Secrets（没配置时跳过对应渠道，清单仍作为 Release 附件发布）：
+#   HOMEBREW_TAP_TOKEN   对 tap 仓库（以及 bucket 仓库）有 Contents 读写权限的 fine-grained token
+#   SCOOP_BUCKET_TOKEN   可选，单独给 bucket 仓库用；不设时用 HOMEBREW_TAP_TOKEN
+# Variables（可选）：HOMEBREW_TAP_REPO（默认 kverona-ai/homebrew-tap）、SCOOP_BUCKET_REPO（默认 kverona-ai/scoop-bucket）
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 已发布的 tag（如 v0.1.2）
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  push:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Homebrew tap
+            channel: homebrew
+          - name: Scoop bucket
+            channel: scoop
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag }}
+      CHANNEL: ${{ matrix.channel }}
+      HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      SCOOP_TOKEN: ${{ secrets.SCOOP_BUCKET_TOKEN || secrets.HOMEBREW_TAP_TOKEN }}
+      HOMEBREW_REPO: ${{ vars.HOMEBREW_TAP_REPO || 'kverona-ai/homebrew-tap' }}
+      SCOOP_REPO: ${{ vars.SCOOP_BUCKET_REPO || 'kverona-ai/scoop-bucket' }}
+    steps:
+      - name: Push manifests
+        run: |
+          case "$TAG" in v[0-9]*.[0-9]*.[0-9]*) ;; *) echo "::error::tag 应形如 v0.1.2"; exit 1 ;; esac
+          version="${TAG#v}"
+          if [ "$CHANNEL" = homebrew ]; then
+            token="$HOMEBREW_TOKEN"; repo="$HOMEBREW_REPO"
+            files=(workroam.rb:Formula/workroam.rb workroam-desktop.rb:Casks/workroam-desktop.rb)
+          else
+            token="$SCOOP_TOKEN"; repo="$SCOOP_REPO"
+            files=(workroam.json:bucket/workroam.json)
+          fi
+          if [ -z "$token" ]; then
+            echo "::notice::没有可用的 token，跳过 ${repo}；清单已作为 Release 附件发布"
+            exit 0
+          fi
+
+          mkdir -p release
+          for pair in "${files[@]}"; do
+            gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p "${pair%%:*}" -D release --clobber
+          done
+
+          if ! git clone -q "https://x-access-token:${token}@github.com/${repo}.git" target; then
+            echo "::error::无法克隆 ${repo}：仓库不存在，或 token 没有这个仓库的权限"
+            exit 1
+          fi
+          cd target
+          for pair in "${files[@]}"; do
+            mkdir -p "$(dirname "${pair#*:}")"
+            cp "../release/${pair%%:*}" "${pair#*:}"
+            git add "${pair#*:}"
+          done
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --cached --quiet; then
+            echo "${repo} 已经是 ${version}，没有变化"
+            exit 0
+          fi
+          git commit -q -m "workroam ${version}"
+          git push -q origin HEAD
+          echo "已更新 ${repo} 到 ${version}"

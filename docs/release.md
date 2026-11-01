@@ -79,18 +79,21 @@ Windows 的文件分两步签名：各平台编译完成后，`windows-sign` 把
 
 | Secret | 用途 | 没有时 |
 | --- | --- | --- |
-| `HOMEBREW_TAP_TOKEN` | 对 tap 仓库有写权限的 fine-grained token | 不更新 tap，formula 与 cask 仍作为 Release 附件发布 |
+| `HOMEBREW_TAP_TOKEN` | 对 tap 仓库（以及 Scoop bucket 仓库）有 Contents 读写权限的 fine-grained token | 不更新 tap 与 bucket，formula、cask 与 Scoop 清单仍作为 Release 附件发布 |
+| `SCOOP_BUCKET_TOKEN` | 可选，单独用于 Scoop bucket 的 token | 用 `HOMEBREW_TAP_TOKEN` |
 
 | Variable | 用途 | 默认 |
 | --- | --- | --- |
 | `HOMEBREW_TAP_REPO` | Homebrew tap 仓库 | `kverona-ai/homebrew-tap` |
+| `SCOOP_BUCKET_REPO` | Scoop bucket 仓库 | `kverona-ai/scoop-bucket` |
 
 `GITHUB_TOKEN` 自带，用于创建 Release、推送 `ghcr.io` 镜像与构建来源证明，不需要配置。首次推送镜像后，到组织的 Packages 页面把 `workroam-server` 设为 Public，用户才能匿名拉取。
 
 ## 包管理器渠道
 
 - **Homebrew**：创建公开仓库 `kverona-ai/homebrew-tap` 并配置 `HOMEBREW_TAP_TOKEN` 后，每次正式发布自动更新 `Formula/workroam.rb` 与 `Casks/workroam-desktop.rb`；用户执行 `brew install kverona-ai/tap/workroam`；
-- **Scoop**：清单 `workroam.json` 作为 Release 附件发布，可直接 `scoop install <地址>`；它带有 `checkver` 与 `autoupdate`，也可以提交到自建 bucket 或 Scoop Extras；
+- **Scoop**：清单 `workroam.json` 作为 Release 附件发布，可直接 `scoop install <地址>`；创建公开仓库 `kverona-ai/scoop-bucket` 并让 token 能写入后，每次正式发布自动更新 `bucket/workroam.json`，用户执行 `scoop bucket add kverona https://github.com/kverona-ai/scoop-bucket` 后 `scoop install kverona/workroam`；
+- **补推**：tap 或 bucket 当时没配好时，在 Actions 中手动运行 **Package managers** 工作流并填写 tag（如 `v0.1.2`），会从已发布的 Release 附件重新推送；
 - **winget**：首次收录需要向 [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) 提交 PR，内容即 `winget-manifests-<版本>.zip` 中的清单（可先用 `winget validate` 与 `winget install --manifest` 本地验证）；收录之后的版本可以用 `wingetcreate update` 或 `komac` 自动提交。
 
 ## 在本机运行发布脚本

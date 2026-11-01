@@ -29,7 +29,7 @@ tag 与 Cargo 版本不一致时，流水线在第一步失败，不会产出任
 
 **发布前演练。** 在 Actions → Release → Run workflow 中不填 tag 直接运行：会完整构建所有产物，但不创建 Release、不推送镜像。产物在本次运行的 Artifacts 中（`release-dist` 是汇总后的全部文件），发布说明显示在运行摘要里。
 
-**重新发布。** 某个平台失败、修复后需要重跑：Run workflow 并填写已存在的 tag，流水线会重新构建，并覆盖上传到同一个 Release。
+**重新发布。** 某个平台失败、修复后需要重跑：Run workflow 并填写已存在的 tag，流水线会重新构建，并覆盖上传到同一个 Release。注意构建用的是 tag 指向的代码；如果修复在 main 上、而这个 tag 还没有发布 Release（发布中途失败），同时勾选 **retag**，流水线会先把 tag 移到 main 的最新提交。已发布的 tag 不会被移动。
 
 **刷新发布说明。** 修改了 CHANGELOG 或说明模板（`scripts/release/notes.sh`）后，Actions → Release notes → Run workflow 并填写 tag，会用 `main` 上的脚本与 CHANGELOG 重新生成该版本的说明，附件不变。
 

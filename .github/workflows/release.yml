@@ -6,6 +6,7 @@ name: Release
 #   tag 留空：只构建，不发布，产物在本次运行的 Artifacts 中（用于发布前演练）
 #   tag 填写已存在的 tag：重新构建并发布或更新该版本
 #   tag 填写尚不存在的 tag：在所选分支的最新提交上创建该 tag 后发布（无法推送 tag 时使用）
+#   勾选 retag：tag 已存在但还没发布 Release 时，先把它移到所选分支的最新提交（发布中途失败、修复后重发）
 # 步骤见 docs/release.md；签名需要配置的 secrets 见 docs/signing.md。
 
 on:
@@ -17,6 +18,11 @@ on:
         description: 要发布的 tag（如 v0.1.0）；留空只构建不发布
         required: false
         default: ''
+      retag:
+        description: tag 已存在、但还没有发布 Release 时，把它移到所选分支的最新提交再构建（上次发布中途失败、修复后重发时用）
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -51,18 +57,34 @@ jobs:
       - id: meta
         env:
           INPUT_TAG: ${{ github.event.inputs.tag }}
+          INPUT_RETAG: ${{ github.event.inputs.retag }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "$GITHUB_EVENT_NAME" = push ]; then
             tag="$GITHUB_REF_NAME"; ref="refs/tags/$tag"; publish=true
           elif [ -n "$INPUT_TAG" ]; then
             tag="$INPUT_TAG"; ref="refs/tags/$tag"; publish=true
             case "$tag" in v[0-9]*.[0-9]*.[0-9]*) ;; *) echo "::error::tag 应形如 v0.1.0"; exit 1 ;; esac
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             if ! git rev-parse -q --verify "$ref" >/dev/null; then
-              git config user.name 'github-actions[bot]'
-              git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
               git tag -a "$tag" -m "Workroam $tag" "$GITHUB_SHA"
               git push origin "$ref"
               echo "::notice::已在 ${GITHUB_REF_NAME}（${GITHUB_SHA::7}）上创建 tag $tag"
+            elif [ "$INPUT_RETAG" = true ] && [ "$(git rev-parse "$ref^{commit}")" != "$GITHUB_SHA" ]; then
+              # 只移动还没有对外发布的 tag：已发布的版本不能悄悄换内容
+              if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" >/dev/null 2>"$RUNNER_TEMP/release.err"; then
+                echo "::error::$tag 已经发布了 Release，不能移动；请发布新版本号"
+                exit 1
+              elif ! grep -q 'HTTP 404' "$RUNNER_TEMP/release.err"; then
+                cat "$RUNNER_TEMP/release.err" >&2
+                echo "::error::无法确认 $tag 是否已发布，没有移动 tag"
+                exit 1
+              fi
+              old="$(git rev-parse --short "$ref^{commit}")"
+              git tag -f -a "$tag" -m "Workroam $tag" "$GITHUB_SHA"
+              git push -f origin "$ref"
+              echo "::notice::已把 tag $tag 从 ${old} 移到 ${GITHUB_REF_NAME}（${GITHUB_SHA::7}）"
             fi
             git checkout -q "$ref"
           else

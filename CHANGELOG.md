@@ -6,9 +6,13 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-01
+
 ### Changed
 
-- Release signing: macOS CLI and `workroam-server` binaries are now signed and notarized too, the `.dmg` is notarized and stapled, and notarization can use an App Store Connect API key; Windows files are signed through SignPath (executables first, then the installers built from them) instead of a `.pfx`; an optional GPG key signs `SHA256SUMS`; each Release run shows which signing is configured. See `docs/signing.md`
+- macOS builds are signed with the Developer ID of Kverona LLC and notarized by Apple: the desktop app (`.app` with its ticket stapled, and the `.dmg`), the `workroam` / `workroamd` CLI and `workroam-server`
+- `SHA256SUMS` is GPG-signed (`SHA256SUMS.asc`) by the Workroam release key `6A82 4B92 90A6 55CD 1B5E  9D56 9094 6593 7E99 AFD6`; the public key is attached as `workroam-release-key.asc` and is on keys.openpgp.org
+- Windows builds are still not code signed. The release pipeline can sign them through SignPath (executables first, then the installers built from them) once it is configured; it no longer uses a `.pfx`. See `docs/signing.md`
 - README and release notes state how each release is code signed and link the code signing policy
 - Dependencies: the RustCrypto crates move to their new major releases (sha2 0.11, hmac / hkdf 0.13, pbkdf2 0.13, chacha20poly1305 0.11, aes-gcm 0.11), plus toml 1.1, base64 0.23 and junction 2. The on-disk and in-bucket formats do not change; known-answer tests recorded with the previous releases check that existing data still decrypts. The web reader module is rebuilt
 

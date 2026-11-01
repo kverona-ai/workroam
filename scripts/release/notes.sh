@@ -65,8 +65,8 @@ if [ "${SIGNED_WINDOWS:-false}" = true ]; then
   win_en="Windows builds are signed through [SignPath.io](https://about.signpath.io) with a free code signing certificate from [SignPath Foundation](https://signpath.org)."
   win_zh="Windows 版本通过 [SignPath.io](https://about.signpath.io) 签名，证书由 [SignPath Foundation](https://signpath.org) 免费提供。"
 else
-  win_en="Windows builds in this release are not code signed. Signing through [SignPath.io](https://about.signpath.io) with a certificate from [SignPath Foundation](https://signpath.org) is being set up."
-  win_zh="本版本的 Windows 文件没有代码签名。通过 [SignPath.io](https://about.signpath.io) 使用 [SignPath Foundation](https://signpath.org) 证书签名的工作正在进行中。"
+  win_en="Windows builds in this release are not code signed, so SmartScreen may warn on first run; check them against \`SHA256SUMS\` first."
+  win_zh="本版本的 Windows 文件没有代码签名，首次运行时 SmartScreen 可能会提示，请先用 \`SHA256SUMS\` 核对。"
 fi
 if [ "${SIGNED_MACOS:-false}" = true ]; then
   mac_en="macOS builds are signed with the Developer ID of Kverona LLC and notarized by Apple."

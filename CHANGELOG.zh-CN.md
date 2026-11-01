@@ -6,9 +6,13 @@
 
 ## [未发布]
 
+## [0.1.2] - 2026-11-01
+
 ### 变更
 
-- 发布签名：macOS 的命令行与 `workroam-server` 二进制也会签名并公证，`.dmg` 公证并装订票据，公证可以使用 App Store Connect API 密钥；Windows 改为通过 SignPath 签名（先签 exe，再签用它们打出的安装包），不再使用 `.pfx`；可选的 GPG 密钥为 `SHA256SUMS` 签名；每次运行 Release 都会显示签名的配置情况。说明见 `docs/signing.zh-CN.md`
+- macOS 版本用 Kverona LLC 的 Developer ID 签名并经过 Apple 公证：桌面应用（`.app` 已装订公证票据，以及 `.dmg`）、命令行 `workroam` / `workroamd` 和 `workroam-server`
+- `SHA256SUMS` 带有 GPG 签名（`SHA256SUMS.asc`），签名密钥是 Workroam 发布密钥 `6A82 4B92 90A6 55CD 1B5E  9D56 9094 6593 7E99 AFD6`；公钥附在 `workroam-release-key.asc` 里，也发布在 keys.openpgp.org
+- Windows 版本仍然没有代码签名。发布流水线已经支持通过 SignPath 签名（先签 exe，再签用它们打出的安装包），配置好后即可启用；不再使用 `.pfx`。说明见 `docs/signing.zh-CN.md`
 - README 与发布说明写明每个版本的代码签名情况，并链接代码签名策略
 - 依赖：RustCrypto 系列升级到新的大版本（sha2 0.11、hmac / hkdf 0.13、pbkdf2 0.13、chacha20poly1305 0.11、aes-gcm 0.11），另有 toml 1.1、base64 0.23、junction 2。本地与存储桶中的数据格式不变，用旧版本记录的已知答案测试确认已有数据仍能解密。网页阅读器模块已重新构建
 

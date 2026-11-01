@@ -13,7 +13,7 @@
 | 平台 | 签什么 | 方式 | 需要 |
 | --- | --- | --- | --- |
 | macOS | 桌面应用 `.app` 与 `.dmg`，命令行 `workroam`、`workroamd`，`workroam-server` | Developer ID 签名 + Apple 公证（notarization），`.app` 与 `.dmg` 装订公证票据 | Apple Developer Program 账号 |
-| Windows | 所有 `.exe`（含桌面应用内的随附二进制），`.msi` 与 `-setup.exe` 安装程序 | [SignPath Foundation](https://signpath.org) 为开源项目免费提供的证书，通过 SignPath 签名 | SignPath 开源项目申请通过 |
+| Windows（未启用） | 所有 `.exe`（含桌面应用内的随附二进制），`.msi` 与 `-setup.exe` 安装程序 | [SignPath Foundation](https://signpath.org) 为开源项目免费提供的证书，通过 SignPath 签名 | SignPath 开源项目申请通过 |
 | Linux | `SHA256SUMS`（它列出了所有文件的校验和） | GPG 分离签名 `SHA256SUMS.asc`，同时附上公钥 `workroam-release-key.asc` | 一把本地生成的 GPG 密钥 |
 
 另外，每次正式发布都会为所有文件生成 GitHub 构建来源证明（SLSA provenance），不需要配置。
@@ -75,6 +75,8 @@ security find-identity -v -p codesigning  # 查看签名身份
 - 公证被拒时任务失败，日志里有 `notarytool log` 的详细原因。Apple 处理可能要几分钟到几个小时（新团队最初的提交尤其慢），命令行与 `.app` 最多等 4 小时（`NOTARY_TIMEOUT_SECONDS`），超时任务失败；`.dmg` 最多等 45 分钟（`NOTARY_DMG_TIMEOUT_SECONDS`），因为里面的 `.app` 已经公证并装订了票据，到时 Apple 还没处理完的 `.dmg` 会带着签名、不装订票据照常发布（日志里有警告），Apple 处理完后 Gatekeeper 会在线查到公证结果。
 
 ## Windows（SignPath）
+
+> **现状**：SignPath Foundation 在 2026 年 11 月拒绝了 Workroam 的申请，所以目前 Windows 版本没有签名。下面的流水线步骤保留不动：以后配置好 `SIGNPATH_API_TOKEN` 和 `SIGNPATH_ORGANIZATION_ID`（比如以后重新申请通过），签名会自动生效，不需要改别的。
 
 Workroam 使用 [SignPath Foundation](https://signpath.org) 为开源项目免费提供的代码签名证书。证书属于 SignPath Foundation，所以 Windows 上显示的发布者是 **SignPath Foundation**；SignPath 会核实每个被签名的文件都是从本仓库、由 GitHub Actions 构建出来的。
 

@@ -189,9 +189,9 @@ PRD 中的全部功能作为 **v0.1** 一次发布，每个范围都按最后一
 
 ## 代码签名
 
-- **Windows**：将通过 [SignPath.io](https://about.signpath.io) 使用 [SignPath Foundation](https://signpath.org) 免费提供的代码签名证书签名。申请正在进行中，目前的 Windows 版本还没有签名。
-- **macOS**：从 v0.1.1 之后的版本起，用 Kverona LLC 的 Developer ID 签名并经过 Apple 公证。
-- **所有文件**：都列在 `SHA256SUMS` 中，并附带 GitHub 构建来源证明。从 v0.1.1 之后的版本起，`SHA256SUMS` 还带有 GPG 签名（`SHA256SUMS.asc`），签名密钥是 Workroam 发布密钥 `6A82 4B92 90A6 55CD 1B5E  9D56 9094 6593 7E99 AFD6`（will@kverona.llc），也可以在 [keys.openpgp.org](https://keys.openpgp.org/search?q=6A824B9290A655CD1B5E9D56909465937E99AFD6) 查到。
+- **Windows**：目前没有代码签名，首次运行时 Windows SmartScreen 可能会提示（点“更多信息”→“仍要运行”）。运行前请先用 `SHA256SUMS` 和构建来源证明核对下载的文件。
+- **macOS**：从 v0.1.2 起，用 Kverona LLC 的 Developer ID 签名并经过 Apple 公证。
+- **所有文件**：都列在 `SHA256SUMS` 中，并附带 GitHub 构建来源证明。从 v0.1.2 起，`SHA256SUMS` 还带有 GPG 签名（`SHA256SUMS.asc`），签名密钥是 Workroam 发布密钥 `6A82 4B92 90A6 55CD 1B5E  9D56 9094 6593 7E99 AFD6`（will@kverona.llc），也可以在 [keys.openpgp.org](https://keys.openpgp.org/search?q=6A824B9290A655CD1B5E9D56909465937E99AFD6) 查到。
 
 谁构建、审阅和批准签名版本，见 [代码签名策略](docs/signing.zh-CN.md#代码签名策略)。
 

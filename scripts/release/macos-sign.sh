@@ -14,7 +14,8 @@
 #   公证凭据二选一：
 #     APPLE_API_KEY、APPLE_API_ISSUER、APPLE_API_KEY_PATH（App Store Connect API 密钥 .p8 的路径）
 #     APPLE_ID、APPLE_PASSWORD（App 专用密码）、APPLE_TEAM_ID
-#   NOTARY_TIMEOUT_SECONDS      命令行与 .app 公证最长等多久，默认 14400（4 小时），超时即失败
+#   NOTARY_TIMEOUT_SECONDS      命令行与 .app 公证最长等多久，默认 7200（2 小时）；超时只警告：
+#                               已签名的文件照常发布、不装订票据，Apple 处理完后 Gatekeeper 在线查到公证结果
 #   NOTARY_DMG_TIMEOUT_SECONDS  .dmg 公证最长等多久，默认 2700（45 分钟），超时只警告、不装订
 #
 # 兼容 macOS 自带的 bash 3.2。
@@ -40,7 +41,7 @@ if [ -z "${APPLE_SIGNING_IDENTITY:-}" ]; then
   exit 1
 fi
 
-NOTARY_TIMEOUT_SECONDS="${NOTARY_TIMEOUT_SECONDS:-14400}"
+NOTARY_TIMEOUT_SECONDS="${NOTARY_TIMEOUT_SECONDS:-7200}"
 NOTARY_DMG_TIMEOUT_SECONDS="${NOTARY_DMG_TIMEOUT_SECONDS:-2700}"
 tmp="$(mktemp -d)"
 keychain=""
@@ -147,13 +148,15 @@ case "$mode" in
     mkdir -p "$tmp/payload"
     cp "$@" "$tmp/payload/"
     (cd "$tmp" && ditto -c -k --keepParent payload payload.zip)
-    notarize "$tmp/payload.zip" || true
+    notarize "$tmp/payload.zip" "$NOTARY_TIMEOUT_SECONDS" soft || true
     ;;
   app)
     [ "$#" -eq 1 ] || { echo "app 需要一个 .app" >&2; exit 2; }
     codesign --verify --deep --strict --verbose=2 "$1"
     (cd "$(dirname "$1")" && ditto -c -k --keepParent "$(basename "$1")" "$tmp/app.zip")
-    if notarize "$tmp/app.zip"; then
+    # Apple 对新团队的提交有时要排队好几个小时：等不到就带着签名发布，
+    # 提交仍在 Apple 那边处理，处理完后 Gatekeeper 联网打开时能查到公证结果
+    if notarize "$tmp/app.zip" "$NOTARY_TIMEOUT_SECONDS" soft; then
       xcrun stapler staple "$1"
       xcrun stapler validate "$1"
     fi
@@ -161,7 +164,7 @@ case "$mode" in
   dmg)
     [ "$#" -eq 1 ] || { echo "dmg 需要一个 .dmg 文件" >&2; exit 2; }
     codesign --verify --verbose=2 "$1"
-    # 里面的 .app 已经公证并装订了票据，.dmg 的公证只是锦上添花：
+    # 里面的 .app 已经提交过公证（通常也已装订票据），.dmg 的公证只是锦上添花：
     # Apple 偶尔要排队一两个小时，等不到就带着签名发布，不让整个发布失败
     if notarize "$1" "$NOTARY_DMG_TIMEOUT_SECONDS" soft; then
       xcrun stapler staple "$1"
@@ -173,8 +176,11 @@ case "$mode" in
     codesign --verify --deep --strict --verbose=2 "$1"
     codesign --display --verbose=2 "$1" 2>&1 | grep -E '^(Authority|TeamIdentifier|Runtime)' || true
     if has_notary; then
-      xcrun stapler validate "$1"
-      spctl --assess --type execute --verbose=2 "$1"
+      if xcrun stapler validate "$1"; then
+        spctl --assess --type execute --verbose=2 "$1"
+      else
+        echo "::warning::$(basename "$1") 没有装订公证票据（公证等待超时），跳过 Gatekeeper 评估"
+      fi
     fi
     ;;
 esac

@@ -5234,7 +5234,7 @@ checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 
 [[package]]
 name = "workroam-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "chacha20poly1305",
  "chrono",
@@ -5255,7 +5255,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-desktop"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "rqrr",
  "serde",
@@ -5274,7 +5274,7 @@ dependencies = [
 
 [[package]]
 name = "workroam-ipc"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "serde",
  "serde_json",

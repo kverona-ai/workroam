@@ -13,7 +13,7 @@ Every kind of signing is optional. When a platform is not configured, the releas
 | Platform | What is signed | How | You need |
 | --- | --- | --- | --- |
 | macOS | The desktop `.app` and `.dmg`, the `workroam` and `workroamd` CLI binaries, and `workroam-server` | Developer ID signing plus Apple notarization. The ticket is stapled to the `.app` and the `.dmg` | An Apple Developer Program account |
-| Windows | Every `.exe`, including the binaries bundled in the desktop app, and the `.msi` and `-setup.exe` installers | Through SignPath, with the certificate that [SignPath Foundation](https://signpath.org) provides free to open source projects | An approved SignPath open source application |
+| Windows (not active) | Every `.exe`, including the binaries bundled in the desktop app, and the `.msi` and `-setup.exe` installers | Through SignPath, with the certificate that [SignPath Foundation](https://signpath.org) provides free to open source projects | An approved SignPath open source application |
 | Linux | `SHA256SUMS`, which lists the checksum of every file | A detached GPG signature `SHA256SUMS.asc`, published with the public key `workroam-release-key.asc` | A GPG key that you generate locally |
 
 Every release also gets GitHub build provenance (SLSA) for all files. That needs no setup.
@@ -75,6 +75,8 @@ When both are configured, the API key wins. With a certificate but no notarizati
 - **Failures.** A rejected notarization fails the job, and the log includes the detailed `notarytool log`. Apple can take from minutes to a few hours, especially for a new team's first submissions; the CLI binaries and the `.app` wait up to 4 hours (`NOTARY_TIMEOUT_SECONDS`) and fail the job after that. The `.dmg` waits up to 45 minutes (`NOTARY_DMG_TIMEOUT_SECONDS`); since the `.app` inside is already notarized and stapled, a `.dmg` that Apple has not finished by then ships signed but unstapled, with a warning, and Gatekeeper finds its notarization online once Apple is done.
 
 ## Windows (SignPath)
+
+> **Status:** SignPath Foundation declined Workroam's application in November 2026, so Windows builds are currently not signed. The pipeline steps below stay in place: once `SIGNPATH_API_TOKEN` and `SIGNPATH_ORGANIZATION_ID` are set (for example after a new application is approved), signing turns on without other changes.
 
 Workroam uses the free code signing certificate that [SignPath Foundation](https://signpath.org) provides to open source projects. The certificate belongs to SignPath Foundation, so Windows shows **SignPath Foundation** as the publisher. SignPath checks that every signed file was built from this repository by GitHub Actions.
 

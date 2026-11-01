@@ -7,6 +7,8 @@ name: Package managers
 # Secrets（没配置时跳过对应渠道，清单仍作为 Release 附件发布）：
 #   HOMEBREW_TAP_TOKEN   对 tap 仓库（以及 bucket 仓库）有 Contents 读写权限的 fine-grained token
 #   SCOOP_BUCKET_TOKEN   可选，单独给 bucket 仓库用；不设时用 HOMEBREW_TAP_TOKEN
+#   WINGET_TOKEN         classic token（public_repo），用来向 microsoft/winget-pkgs 提交 PR；
+#                        PR 从 token 所属账号的 fork 发出，同一版本不要重复运行，否则会再开一个 PR
 # Variables（可选）：HOMEBREW_TAP_REPO（默认 kverona-ai/homebrew-tap）、SCOOP_BUCKET_REPO（默认 kverona-ai/scoop-bucket）
 
 on:
@@ -85,3 +87,39 @@ jobs:
           git commit -q -m "workroam ${version}"
           git push -q origin HEAD
           echo "已更新 ${repo} 到 ${version}"
+
+  winget:
+    name: winget
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ inputs.tag }}
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Download manifests
+        id: download
+        run: |
+          case "$TAG" in v[0-9]*.[0-9]*.[0-9]*) ;; *) echo "::error::tag 应形如 v0.1.2"; exit 1 ;; esac
+          if [ -z "$WINGET_TOKEN" ]; then
+            echo "::notice::没有配置 WINGET_TOKEN，跳过 winget；清单已作为 Release 附件发布"
+            exit 0
+          fi
+          version="${TAG#v}"
+          gh release download "$TAG" -R "$GITHUB_REPOSITORY" -p "winget-manifests-${version}.zip" -D release --clobber
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "submit=true" >> "$GITHUB_OUTPUT"
+
+      - name: Submit to winget-pkgs
+        if: steps.download.outputs.submit == 'true'
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.download.outputs.version }}
+        run: |
+          Expand-Archive -Path "release/winget-manifests-$env:VERSION.zip" -DestinationPath release
+          $dir = "release/manifests/k/Kverona/Workroam/$env:VERSION"
+          Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+          ./wingetcreate.exe submit --prtitle "Kverona.Workroam version $env:VERSION" --token $env:WINGET_TOKEN $dir
+          if ($LASTEXITCODE -ne 0) { Write-Output "::error::向 winget-pkgs 提交失败"; exit 1 }

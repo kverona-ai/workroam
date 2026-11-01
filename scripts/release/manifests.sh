@@ -188,10 +188,12 @@ MinimumOSVersion: 10.0.17763.0
 Installers:
 - Architecture: x64
   InstallerType: nullsoft
+  Scope: user
   InstallerUrl: $base/$d-windows-x64-setup.exe
   InstallerSha256: $(sha "$dist/$d-windows-x64-setup.exe" | tr 'a-f' 'A-F')
 - Architecture: arm64
   InstallerType: nullsoft
+  Scope: user
   InstallerUrl: $base/$d-windows-arm64-setup.exe
   InstallerSha256: $(sha "$dist/$d-windows-arm64-setup.exe" | tr 'a-f' 'A-F')
 YAML
@@ -199,6 +201,7 @@ YAML
       cat <<YAML
 - Architecture: x64
   InstallerType: wix
+  Scope: machine
   InstallerUrl: $base/$d-windows-x64.msi
   InstallerSha256: $(sha "$dist/$d-windows-x64.msi" | tr 'a-f' 'A-F')
 YAML

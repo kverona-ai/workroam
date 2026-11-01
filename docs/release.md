@@ -81,6 +81,7 @@ Windows 的文件分两步签名：各平台编译完成后，`windows-sign` 把
 | --- | --- | --- |
 | `HOMEBREW_TAP_TOKEN` | 对 tap 仓库（以及 Scoop bucket 仓库）有 Contents 读写权限的 fine-grained token | 不更新 tap 与 bucket，formula、cask 与 Scoop 清单仍作为 Release 附件发布 |
 | `SCOOP_BUCKET_TOKEN` | 可选，单独用于 Scoop bucket 的 token | 用 `HOMEBREW_TAP_TOKEN` |
+| `WINGET_TOKEN` | classic token，只勾 `public_repo`，用于向 microsoft/winget-pkgs 提交 PR（从 token 所属账号的 fork 发出） | 不提交 winget，清单仍作为 Release 附件发布 |
 
 | Variable | 用途 | 默认 |
 | --- | --- | --- |
@@ -94,7 +95,7 @@ Windows 的文件分两步签名：各平台编译完成后，`windows-sign` 把
 - **Homebrew**：创建公开仓库 `kverona-ai/homebrew-tap` 并配置 `HOMEBREW_TAP_TOKEN` 后，每次正式发布自动更新 `Formula/workroam.rb` 与 `Casks/workroam-desktop.rb`；用户执行 `brew install kverona-ai/tap/workroam`；
 - **Scoop**：清单 `workroam.json` 作为 Release 附件发布，可直接 `scoop install <地址>`；创建公开仓库 `kverona-ai/scoop-bucket` 并让 token 能写入后，每次正式发布自动更新 `bucket/workroam.json`，用户执行 `scoop bucket add kverona https://github.com/kverona-ai/scoop-bucket` 后 `scoop install kverona/workroam`；
 - **补推**：tap 或 bucket 当时没配好时，在 Actions 中手动运行 **Package managers** 工作流并填写 tag（如 `v0.1.2`），会从已发布的 Release 附件重新推送；
-- **winget**：首次收录需要向 [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs) 提交 PR，内容即 `winget-manifests-<版本>.zip` 中的清单（可先用 `winget validate` 与 `winget install --manifest` 本地验证）；收录之后的版本可以用 `wingetcreate update` 或 `komac` 自动提交。
+- **winget**：配置 `WINGET_TOKEN` 后，每次正式发布用 `wingetcreate submit` 把 `winget-manifests-<版本>.zip` 中的清单提交到 [microsoft/winget-pkgs](https://github.com/microsoft/winget-pkgs)。第一次提交时微软的机器人会要求在 PR 里回复同意 CLA；新包要人工审核，通常几天内合并，之后用户执行 `winget install Kverona.Workroam`。同一版本不要重复运行，否则会再开一个 PR；
 
 ## 在本机运行发布脚本
 
